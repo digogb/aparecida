@@ -1,0 +1,48 @@
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+from typing import Any, Optional
+
+from pydantic import BaseModel
+
+from app.models.parecer import ParecerModelo, ParecerTema, VersionSource
+
+
+class ClassifyOut(BaseModel):
+    tema: ParecerTema
+    subtema: Optional[str] = None
+    modelo_parecer: ParecerModelo
+    municipio_detectado: Optional[str] = None
+    confianca: float
+    request_id: uuid.UUID
+    status: str
+
+
+class ReprocessIn(BaseModel):
+    observacoes: str
+
+
+class ParecerVersionDetail(BaseModel):
+    id: uuid.UUID
+    request_id: uuid.UUID
+    version_number: int
+    source: VersionSource
+    content_tiptap: Optional[dict[str, Any]] = None
+    content_html: Optional[str] = None
+    reprocess_instructions: Optional[str] = None
+    created_by: Optional[uuid.UUID] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ParecerVersionListItem(BaseModel):
+    id: uuid.UUID
+    version_number: int
+    source: VersionSource
+    created_by: Optional[uuid.UUID] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
