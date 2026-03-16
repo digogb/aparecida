@@ -1,0 +1,40 @@
+# Env
+.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+*.egg
+
+# Node
+node_modules/
+dist/
+.cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+.logs/
+
+# Credentials
+credentials/
+*.json
+!package.json
+!tsconfig.json
+!tailwind.config.ts
+!postcss.config.js
+
+# DB
+pgdata/
