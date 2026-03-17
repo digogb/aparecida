@@ -118,6 +118,9 @@ async def ingest_movement(
         from app.services.notification import notify_movement
         await notify_movement(db, movement)
 
+    from app.services.event_dispatcher import dispatch_movement_event
+    await dispatch_movement_event(movement, db)
+
     logger.info(
         "Ingested movement dje_id=%s type=%s process=%s",
         dje_id,
