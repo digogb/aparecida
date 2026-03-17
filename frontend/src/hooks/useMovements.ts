@@ -4,6 +4,7 @@ import {
   fetchMovement,
   fetchMovementMetrics,
   markMovementRead,
+  triggerDjeSearch,
 } from '../services/djeApi'
 import type { MovementFiltersState } from '../types/movement'
 
@@ -40,6 +41,17 @@ export function useMarkMovementRead() {
       queryClient.invalidateQueries({ queryKey: ['movements'] })
       queryClient.invalidateQueries({ queryKey: ['movement-metrics'] })
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    },
+  })
+}
+
+export function useDjeSync() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: triggerDjeSearch,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['movements'] })
+      queryClient.invalidateQueries({ queryKey: ['movement-metrics'] })
     },
   })
 }

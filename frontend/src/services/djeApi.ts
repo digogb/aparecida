@@ -34,6 +34,17 @@ export async function fetchMovementMetrics(): Promise<MovementMetrics> {
   return data
 }
 
+export async function triggerDjeSearch(params: {
+  nome_advogado?: string
+  numero_oab?: string
+  sigla_tribunal?: string
+  data_inicio?: string
+  data_fim?: string
+}): Promise<{ status: string; found: number; ingested: number }> {
+  const { data } = await api.post('/api/dje/search', params)
+  return data
+}
+
 export async function fetchUnreadMovements(): Promise<Movement[]> {
   const { data } = await api.get<MovementListResponse>('/api/movements', {
     params: { is_read: 'false', limit: 20, offset: 0 },
