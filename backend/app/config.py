@@ -8,6 +8,12 @@ class Settings(BaseSettings):
     GMAIL_CREDENTIALS_PATH: str = "/app/credentials/gmail_service_account.json"
     ENV: str = "development"
 
+    # DJE search — configure via .env
+    # Ex: DJE_NOME_PARTE="PREFEITURA MUNICIPAL DE APARECIDA"
+    DJE_NOME_PARTE: str = ""
+    DJE_NUMERO_OAB: str = ""
+    DJE_SIGLA_TRIBUNAL: str = ""
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 

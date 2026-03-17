@@ -1,6 +1,7 @@
 FROM python:3.12-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
     tesseract-ocr \
     tesseract-ocr-por \
     libreoffice-writer-nogui \
@@ -17,5 +18,9 @@ WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Install dje-search-client from local source
+COPY dje-search-client ./dje-search-client
+RUN pip install --no-cache-dir ./dje-search-client
 
 COPY . .

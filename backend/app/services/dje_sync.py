@@ -134,41 +134,64 @@ async def poll_dje(db: AsyncSession) -> int:
     """
     Polling adapter — called by APScheduler every 15 minutes.
 
-    Replace the stub below with a real DJE API HTTP call when
-    the external endpoint is available. Returns number of new movements.
+    Uses DJESearchClient to query comunicaapi.pje.jus.br with settings:
+      DJE_NOME_PARTE, DJE_NUMERO_OAB, DJE_SIGLA_TRIBUNAL
+
+    Returns number of new movements ingested.
     """
+    import asyncio
     from app.config import settings
 
-    dje_api_url = getattr(settings, "DJE_API_URL", None)
-    if not dje_api_url:
-        logger.debug("DJE_API_URL not configured, skipping poll")
+    nome_parte = settings.DJE_NOME_PARTE.strip()
+    numero_oab = settings.DJE_NUMERO_OAB.strip()
+    sigla_tribunal = settings.DJE_SIGLA_TRIBUNAL.strip() or None
+
+    if not nome_parte and not numero_oab:
+        logger.debug("DJE_NOME_PARTE/DJE_NUMERO_OAB not configured, skipping poll")
         return 0
 
     try:
-        import httpx
+        from dje_search import DJESearchClient, DJESearchParams
 
-        async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.get(dje_api_url)
-            resp.raise_for_status()
-            items: list[dict] = resp.json()
+        params = DJESearchParams(
+            nome_parte=nome_parte or None,
+            numero_oab=numero_oab or None,
+            sigla_tribunal=sigla_tribunal,
+        )
+
+        # DJESearchClient is synchronous — run in thread pool to avoid blocking
+        loop = asyncio.get_event_loop()
+        client = DJESearchClient()
+        comunicacoes = await loop.run_in_executor(None, client.buscar, params)
 
         count = 0
-        for item in items:
+        for com in comunicacoes:
             movement = await ingest_movement(
                 db=db,
-                dje_id=item["id"],
-                process_number=item["process_number"],
-                raw_type=item.get("type", "outros"),
-                content=item.get("content"),
-                published_at=item.get("published_at"),
-                court=item.get("court"),
-                metadata=item.get("metadata"),
+                dje_id=com.id,
+                process_number=com.numero_processo,
+                raw_type=com.tipo_comunicacao or "publicacao",
+                content=com.texto,
+                published_at=None,
+                court=com.tribunal or com.orgao or None,
+                metadata={
+                    "link": com.link,
+                    "tribunal": com.tribunal,
+                    "orgao": com.orgao,
+                    "polos": com.polos.to_dict(),
+                    "destinatarios": com.destinatarios,
+                    "data_disponibilizacao": com.data_disponibilizacao,
+                    "termo_buscado": com.termo_buscado,
+                },
             )
             if movement is not None:
                 count += 1
 
         logger.info("DJE poll completed: %d new movements", count)
         return count
+    except ImportError:
+        logger.warning("dje-search-client not installed, skipping poll")
+        return 0
     except Exception as e:
         logger.warning("DJE poll failed: %s", e)
         return 0
