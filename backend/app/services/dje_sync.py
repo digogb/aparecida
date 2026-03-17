@@ -135,26 +135,26 @@ async def poll_dje(db: AsyncSession) -> int:
     Polling adapter — called by APScheduler every 15 minutes.
 
     Uses DJESearchClient to query comunicaapi.pje.jus.br with settings:
-      DJE_NOME_PARTE, DJE_NUMERO_OAB, DJE_SIGLA_TRIBUNAL
+      DJE_NOME_ADVOGADO, DJE_NUMERO_OAB, DJE_SIGLA_TRIBUNAL
 
     Returns number of new movements ingested.
     """
     import asyncio
     from app.config import settings
 
-    nome_parte = settings.DJE_NOME_PARTE.strip()
+    nome_advogado = settings.DJE_NOME_ADVOGADO.strip()
     numero_oab = settings.DJE_NUMERO_OAB.strip()
     sigla_tribunal = settings.DJE_SIGLA_TRIBUNAL.strip() or None
 
-    if not nome_parte and not numero_oab:
-        logger.debug("DJE_NOME_PARTE/DJE_NUMERO_OAB not configured, skipping poll")
+    if not nome_advogado and not numero_oab:
+        logger.debug("DJE_NOME_ADVOGADO/DJE_NUMERO_OAB not configured, skipping poll")
         return 0
 
     try:
         from dje_search import DJESearchClient, DJESearchParams
 
         params = DJESearchParams(
-            nome_parte=nome_parte or None,
+            nome_advogado=nome_advogado or None,
             numero_oab=numero_oab or None,
             sigla_tribunal=sigla_tribunal,
         )

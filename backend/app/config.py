@@ -9,8 +9,9 @@ class Settings(BaseSettings):
     ENV: str = "development"
 
     # DJE search — configure via .env
-    # Ex: DJE_NOME_PARTE="PREFEITURA MUNICIPAL DE APARECIDA"
-    DJE_NOME_PARTE: str = ""
+    # Ex: DJE_NOME_ADVOGADO="JOSE ANTONIO SOUZA"
+    # Ex: DJE_NUMERO_OAB="12345/SP"
+    DJE_NOME_ADVOGADO: str = ""
     DJE_NUMERO_OAB: str = ""
     DJE_SIGLA_TRIBUNAL: str = ""
 
