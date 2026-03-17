@@ -15,7 +15,7 @@ from sqlalchemy.orm import selectinload
 from app.config import settings
 from app.database import get_db
 from app.models.movement import Movement, MovementType, Process
-from app.schemas.movement import DJEWebhookPayload, MovementOut, MovementStats
+from app.schemas.movement import DJEWebhookPayload, MovementListResponse, MovementOut, MovementStats
 from app.services.dje_sync import ingest_movement
 from app.services.notification import ws_manager
 
@@ -219,7 +219,7 @@ async def batch_mark_read(
 # List movements
 # ---------------------------------------------------------------------------
 
-@router.get("/movements", response_model=list[MovementOut])
+@router.get("/movements", response_model=MovementListResponse)
 async def list_movements(
     process_id: Optional[uuid.UUID] = Query(None),
     type: Optional[MovementType] = Query(None),
@@ -229,10 +229,8 @@ async def list_movements(
     offset: int = Query(0),
     credentials: HTTPAuthorizationCredentials = Depends(bearer),
     db: AsyncSession = Depends(get_db),
-) -> list[MovementOut]:
+) -> MovementListResponse:
     _require_user(credentials)
-
-    stmt = select(Movement).options(selectinload(Movement.process))
 
     filters = []
     if process_id:
@@ -243,16 +241,21 @@ async def list_movements(
         filters.append(Movement.is_read == is_read)
     if q:
         filters.append(Movement.content.ilike(f"%{q}%"))
-    if filters:
-        stmt = stmt.where(and_(*filters))
 
-    stmt = (
-        stmt.order_by(Movement.published_at.desc().nullslast(), Movement.created_at.desc())
-        .limit(limit)
-        .offset(offset)
-    )
-    result = await db.execute(stmt)
-    return list(result.scalars().all())
+    where = and_(*filters) if filters else None
+
+    total_stmt = select(func.count(Movement.id))
+    if where is not None:
+        total_stmt = total_stmt.where(where)
+    total = (await db.execute(total_stmt)).scalar_one() or 0
+
+    stmt = select(Movement).options(selectinload(Movement.process))
+    if where is not None:
+        stmt = stmt.where(where)
+    stmt = stmt.order_by(Movement.published_at.desc().nullslast(), Movement.created_at.desc()).limit(limit).offset(offset)
+
+    items = list((await db.execute(stmt)).scalars().all())
+    return MovementListResponse(items=items, total=total)
 
 
 # ---------------------------------------------------------------------------

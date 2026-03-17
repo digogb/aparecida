@@ -36,6 +36,11 @@ class MovementOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class MovementListResponse(BaseModel):
+    items: list[MovementOut]
+    total: int
+
+
 class MovementStats(BaseModel):
     total: int
     unread: int
