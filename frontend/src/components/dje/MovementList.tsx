@@ -11,7 +11,7 @@ const DEFAULT_FILTERS: MovementFiltersState = { movement_type: '', is_read: '', 
 function SyncModal({ onClose }: { onClose: () => void }) {
   const sync = useDjeSync()
   const [form, setForm] = useState({ nome_advogado: '', numero_oab: '', sigla_tribunal: '', data_inicio: '', data_fim: '' })
-  const [result, setResult] = useState<{ found: number; ingested: number } | null>(null)
+  const [queued, setQueued] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,7 +21,7 @@ function SyncModal({ onClose }: { onClose: () => void }) {
     if (form.sigla_tribunal) payload.sigla_tribunal = form.sigla_tribunal
     if (form.data_inicio) payload.data_inicio = form.data_inicio
     if (form.data_fim) payload.data_fim = form.data_fim
-    sync.mutate(payload, { onSuccess: (data) => setResult({ found: data.found, ingested: data.ingested }) })
+    sync.mutate(payload, { onSuccess: () => setQueued(true) })
   }
 
   return (
@@ -34,11 +34,13 @@ function SyncModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {result ? (
+        {queued ? (
           <div className="text-center py-6">
-            <div className="font-display mb-1" style={{ fontSize: 48, fontWeight: 600, color: '#1C1C2E' }}>{result.ingested}</div>
-            <p className="text-sm mb-1" style={{ color: '#6B7280' }}>novas movimentações importadas</p>
-            <p className="text-xs" style={{ color: '#9CA3AF' }}>{result.found} encontradas no DJE</p>
+            <svg className="mx-auto mb-3 opacity-60" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1C1C2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+            </svg>
+            <p className="font-semibold mb-1" style={{ color: '#1C1C2E' }}>Busca iniciada</p>
+            <p className="text-sm" style={{ color: '#6B7280' }}>O worker está buscando no DJE em segundo plano.<br/>As movimentações aparecem automaticamente quando chegarem.</p>
             <button onClick={onClose} className="mt-6 px-5 py-2 rounded-xl text-sm font-semibold" style={{ background: '#1C1C2E', color: '#fff' }}>
               Fechar
             </button>

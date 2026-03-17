@@ -47,7 +47,12 @@ async def get_first_board(db: AsyncSession) -> Board:
     return board
 
 
-async def create_task(data: TaskCreate, db: AsyncSession, changed_by: Optional[uuid.UUID] = None) -> Task:
+async def create_task(
+    data: TaskCreate,
+    db: AsyncSession,
+    changed_by: Optional[uuid.UUID] = None,
+    skip_wip_limit: bool = False,
+) -> Task:
     """Create a new task in the given column."""
     # Verify column exists
     col_result = await db.execute(select(Column).where(Column.id == data.column_id))
@@ -55,8 +60,8 @@ async def create_task(data: TaskCreate, db: AsyncSession, changed_by: Optional[u
     if column is None:
         raise HTTPException(status_code=404, detail="Column not found")
 
-    # Check WIP limit
-    if column.wip_limit is not None:
+    # Check WIP limit (skipped for system-generated tasks)
+    if not skip_wip_limit and column.wip_limit is not None:
         count_result = await db.execute(
             select(func.count(Task.id)).where(Task.column_id == column.id)
         )

@@ -104,14 +104,13 @@ async def dispatch_movement_event(movement: Movement, db: AsyncSession) -> None:
     )
 
     try:
-        task = await create_task(data, db)
+        task = await create_task(data, db, skip_wip_limit=True)
         logger.info(
             "dispatch_movement_event: created task %s for movement %s",
             task.id,
             movement.id,
         )
     except Exception as e:
-        # WIP limit or other error — log and continue (non-blocking)
         logger.warning("dispatch_movement_event: could not create task: %s", e)
 
 

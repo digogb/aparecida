@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt
@@ -48,20 +48,13 @@ class DJESearchRequest(BaseModel):
     data_fim: str | None = None
 
 
-@router.post("/dje/search", tags=["dje"])
-async def dje_search(
-    body: DJESearchRequest,
-    credentials: HTTPAuthorizationCredentials = Depends(bearer),
-    db: AsyncSession = Depends(get_db),
-) -> dict:
-    """
-    Trigger a manual DJE search and ingest matching movements.
-    Requires at least one search criterion.
-    """
+async def _run_dje_search(body: DJESearchRequest) -> None:
+    """Background worker: search DJE and ingest results."""
     import asyncio
     from datetime import date
 
-    _require_user(credentials)
+    from app.database import async_session as AsyncSessionLocal
+    from app.services.dje_sync import ingest_movement as _ingest
 
     try:
         from dje_search import DJESearchClient, DJESearchParams
@@ -82,39 +75,74 @@ async def dje_search(
         client = DJESearchClient()
         comunicacoes = await loop.run_in_executor(None, client.buscar, params)
 
-        from app.services.dje_sync import ingest_movement as _ingest
-
         count = 0
-        for com in comunicacoes:
-            movement = await _ingest(
-                db=db,
-                dje_id=com.id,
-                process_number=com.numero_processo,
-                raw_type=com.tipo_comunicacao or "publicacao",
-                content=com.texto,
-                published_at=None,
-                court=com.tribunal or com.orgao or None,
-                metadata={
-                    "link": com.link,
-                    "tribunal": com.tribunal,
-                    "orgao": com.orgao,
-                    "polos": com.polos.to_dict(),
-                    "destinatarios": com.destinatarios,
-                    "data_disponibilizacao": com.data_disponibilizacao,
-                    "termo_buscado": com.termo_buscado,
-                },
-            )
-            if movement is not None:
-                count += 1
+        async with AsyncSessionLocal() as db:
+            for com in comunicacoes:
+                movement = await _ingest(
+                    db=db,
+                    dje_id=com.id,
+                    process_number=com.numero_processo,
+                    raw_type=com.tipo_comunicacao or "publicacao",
+                    content=com.texto,
+                    published_at=None,
+                    court=com.tribunal or com.orgao or None,
+                    metadata={
+                        "link": com.link,
+                        "tribunal": com.tribunal,
+                        "orgao": com.orgao,
+                        "polos": com.polos.to_dict(),
+                        "destinatarios": com.destinatarios,
+                        "data_disponibilizacao": com.data_disponibilizacao,
+                        "termo_buscado": com.termo_buscado,
+                    },
+                )
+                if movement is not None:
+                    count += 1
 
-        return {"status": "ok", "found": len(comunicacoes), "ingested": count}
+        logger.info("DJE background search finished: found=%d ingested=%d", len(comunicacoes), count)
 
+    except Exception as e:
+        logger.error("DJE background search failed: %s", e)
+
+
+@router.post("/dje/search", status_code=202, tags=["dje"])
+async def dje_search(
+    body: DJESearchRequest,
+    background_tasks: BackgroundTasks,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer),
+) -> dict:
+    """
+    Enqueue a DJE search in the background and return immediately.
+    Results arrive via WebSocket as movements are ingested.
+    """
+    _require_user(credentials)
+
+    try:
+        from dje_search import DJESearchParams
+        # Validate params before queuing
+        data_inicio = None
+        data_fim = None
+        if body.data_inicio:
+            from datetime import date
+            data_inicio = date.fromisoformat(body.data_inicio)
+        if body.data_fim:
+            from datetime import date
+            data_fim = date.fromisoformat(body.data_fim)
+        DJESearchParams(
+            nome_advogado=body.nome_advogado,
+            numero_oab=body.numero_oab,
+            numero_processo=body.numero_processo,
+            sigla_tribunal=body.sigla_tribunal,
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+        ).validar()
     except ImportError:
         raise HTTPException(status_code=503, detail="dje-search-client not installed")
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
+    background_tasks.add_task(_run_dje_search, body)
+    return {"status": "started"}
 
 
 # ---------------------------------------------------------------------------
