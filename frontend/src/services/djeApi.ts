@@ -30,7 +30,7 @@ export async function markMovementRead(id: string): Promise<Movement> {
 }
 
 export async function fetchMovementMetrics(): Promise<MovementMetrics> {
-  const { data } = await api.get<MovementMetrics>('/api/movements/metrics')
+  const { data } = await api.get<MovementMetrics>('/api/movements/stats')
   return data
 }
 

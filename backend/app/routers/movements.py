@@ -40,7 +40,7 @@ def _require_user(credentials: HTTPAuthorizationCredentials | None) -> dict:
 # ---------------------------------------------------------------------------
 
 class DJESearchRequest(BaseModel):
-    nome_parte: str | None = None
+    nome_advogado: str | None = None
     numero_oab: str | None = None
     numero_processo: str | None = None
     sigla_tribunal: str | None = None
@@ -70,7 +70,7 @@ async def dje_search(
         data_fim = date.fromisoformat(body.data_fim) if body.data_fim else None
 
         params = DJESearchParams(
-            nome_parte=body.nome_parte,
+            nome_advogado=body.nome_advogado,
             numero_oab=body.numero_oab,
             numero_processo=body.numero_processo,
             sigla_tribunal=body.sigla_tribunal,
