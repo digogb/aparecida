@@ -1,64 +1,63 @@
 import { useNavigate } from 'react-router-dom'
 import type { DashboardAlert } from '../../types/dashboard'
 
-const URGENCY_STYLES: Record<string, string> = {
-  high: 'border-red-400 bg-red-50',
-  medium: 'border-amber-400 bg-amber-50',
+const TYPE_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
+  parecer_atrasado: { label: 'Parecer Atrasado', color: '#DC2626', dot: '#EF4444' },
+  intimacao_nao_lida: { label: 'Intimação',       color: '#DC2626', dot: '#EF4444' },
+  prazo_proximo:      { label: 'Prazo',            color: '#D97706', dot: '#F59E0B' },
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  parecer_atrasado: 'Parecer Atrasado',
-  intimacao_nao_lida: 'Intimação',
-  prazo_proximo: 'Prazo',
-}
-
-const TYPE_BADGE: Record<string, string> = {
-  parecer_atrasado: 'bg-red-100 text-red-700',
-  intimacao_nao_lida: 'bg-red-100 text-red-700',
-  prazo_proximo: 'bg-amber-100 text-amber-700',
-}
-
-interface AlertsListProps {
-  alerts: DashboardAlert[]
-}
-
-export default function AlertsList({ alerts }: AlertsListProps) {
+export default function AlertsList({ alerts }: { alerts: DashboardAlert[] }) {
   const navigate = useNavigate()
 
   if (alerts.length === 0) {
     return (
-      <div className="bg-green-50 border border-green-200 rounded-xl p-5 flex items-center gap-3">
-        <span className="text-2xl">✓</span>
+      <div className="flex items-center gap-4 rounded-2xl px-5 py-4 animate-fade-up"
+        style={{ background: '#F0FDF9', border: '1px solid #6EE7B744' }}>
+        <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+          style={{ background: '#D1FAE5' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
         <div>
-          <p className="font-semibold text-green-800">Tudo em dia!</p>
-          <p className="text-sm text-green-600">Nenhum alerta crítico no momento.</p>
+          <p className="font-semibold text-sm" style={{ color: '#065F46' }}>Tudo em dia</p>
+          <p className="text-xs" style={{ color: '#059669' }}>Nenhum alerta crítico no momento.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-2">
-      {alerts.map((alert) => (
-        <div
-          key={alert.id}
-          onClick={() => alert.ref_path && navigate(alert.ref_path)}
-          className={`border-l-4 rounded-r-xl p-4 flex items-start justify-between gap-3 ${URGENCY_STYLES[alert.urgency] ?? 'border-gray-300 bg-gray-50'} ${alert.ref_path ? 'cursor-pointer hover:brightness-95 transition-all' : ''}`}
-        >
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${TYPE_BADGE[alert.type] ?? 'bg-gray-100 text-gray-600'}`}>
-                {TYPE_LABELS[alert.type] ?? alert.type}
-              </span>
-              <span className="font-medium text-gray-900 text-sm truncate">{alert.title}</span>
+    <div className="flex flex-col gap-2">
+      {alerts.map((alert, i) => {
+        const cfg = TYPE_CONFIG[alert.type] ?? { label: alert.type, color: '#6B7280', dot: '#9CA3AF' }
+        return (
+          <div key={alert.id} onClick={() => alert.ref_path && navigate(alert.ref_path)}
+            className="animate-fade-up flex items-center gap-4 rounded-2xl px-5 py-3.5 transition-all"
+            style={{
+              animationDelay: `${i * 50}ms`,
+              background: '#fff',
+              border: `1px solid ${cfg.color}22`,
+              borderLeft: `4px solid ${cfg.color}`,
+              cursor: alert.ref_path ? 'pointer' : 'default',
+            }}>
+            <div className="w-2 h-2 rounded-full shrink-0" style={{ background: cfg.dot }} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wide" style={{ color: cfg.color }}>{cfg.label}</span>
+                <span className="text-sm font-medium text-gray-800 truncate">{alert.title}</span>
+              </div>
+              <p className="text-xs text-gray-500 truncate mt-0.5">{alert.description}</p>
             </div>
-            <p className="text-sm text-gray-600 truncate">{alert.description}</p>
+            {alert.ref_path && (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            )}
           </div>
-          {alert.ref_path && (
-            <span className="text-gray-400 text-xs shrink-0 mt-0.5">→</span>
-          )}
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

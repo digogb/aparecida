@@ -1,16 +1,8 @@
 import { useState, useMemo } from 'react'
 import {
-  DndContext,
-  DragEndEvent,
-  DragOverlay,
-  DragStartEvent,
-  MouseSensor,
-  TouchSensor,
-  closestCorners,
-  useSensor,
-  useSensors,
+  DndContext, DragEndEvent, DragOverlay, DragStartEvent,
+  MouseSensor, TouchSensor, closestCorners, useSensor, useSensors,
 } from '@dnd-kit/core'
-import { Plus, LayoutDashboard, Clock, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 
 import { useBoard, useMoveTask } from '../../hooks/useTasks'
 import { useTaskWebSocket } from '../../hooks/useTaskWebSocket'
@@ -19,6 +11,13 @@ import TaskCard from './TaskCard'
 import TaskFilters from './TaskFilters'
 import CreateTaskModal from './CreateTaskModal'
 import type { Task, TaskCategory } from '../../types/task'
+
+const METRIC_DEFS = [
+  { key: 'total',   label: 'Total',          accent: '#1C1C2E', bg: '#F5F3EE', textColor: '#1C1C2E' },
+  { key: 'high',    label: 'Alta prioridade',accent: '#DC2626', bg: '#FFF5F5', textColor: '#991B1B' },
+  { key: 'overdue', label: 'Vencidas',        accent: '#D97706', bg: '#FFFBF0', textColor: '#92400E' },
+  { key: 'done',    label: 'Concluídas',      accent: '#059669', bg: '#F0FDF9', textColor: '#065F46' },
+]
 
 export default function KanbanBoard() {
   useTaskWebSocket()
@@ -35,24 +34,21 @@ export default function KanbanBoard() {
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
   )
 
-  // Derived metrics
   const metrics = useMemo(() => {
     if (!board) return { total: 0, high: 0, overdue: 0, done: 0 }
-    const allTasks = board.columns.flatMap((c) => c.tasks)
+    const all = board.columns.flatMap(c => c.tasks)
     const now = new Date()
-    const doneColumn = board.columns.find((c) => c.name === 'Concluída')
     return {
-      total: allTasks.length,
-      high: allTasks.filter((t) => t.priority === 'high').length,
-      overdue: allTasks.filter((t) => t.due_date && new Date(t.due_date) < now).length,
-      done: doneColumn?.tasks.length ?? 0,
+      total: all.length,
+      high: all.filter(t => t.priority === 'high').length,
+      overdue: all.filter(t => t.due_date && new Date(t.due_date) < now).length,
+      done: board.columns.find(c => c.name === 'Concluída')?.tasks.length ?? 0,
     }
   }, [board])
 
-  // Build task lookup map for DnD
   const taskMap = useMemo(() => {
     const map = new Map<string, Task>()
-    board?.columns.flatMap((c) => c.tasks).forEach((t) => map.set(t.id, t))
+    board?.columns.flatMap(c => c.tasks).forEach(t => map.set(t.id, t))
     return map
   }, [board])
 
@@ -64,139 +60,114 @@ export default function KanbanBoard() {
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     setActiveTask(null)
     if (!over || !board) return
-
     const taskId = String(active.id)
     const task = taskMap.get(taskId)
     if (!task) return
-
-    // Determine target column and position
     let targetColumnId = String(over.id)
     let targetPosition = 0
-
-    // If dropped on a task, find that task's column
     if (taskMap.has(targetColumnId)) {
-      const targetTask = taskMap.get(targetColumnId)!
-      targetColumnId = targetTask.column_id
-      targetPosition = targetTask.position
+      const t2 = taskMap.get(targetColumnId)!
+      targetColumnId = t2.column_id
+      targetPosition = t2.position
     } else {
-      // Dropped on column droppable — append to end
-      const targetColumn = board.columns.find((c) => c.id === targetColumnId)
-      targetPosition = targetColumn?.tasks.length ?? 0
+      targetPosition = board.columns.find(c => c.id === targetColumnId)?.tasks.length ?? 0
     }
-
     if (task.column_id === targetColumnId && task.position === targetPosition) return
-
     moveTask.mutate({ taskId, payload: { column_id: targetColumnId, position: targetPosition } })
   }
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+      <div className="min-h-full flex items-center justify-center" style={{ background: '#F5F3EE' }}>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#1C1C2E44', borderTopColor: '#1C1C2E' }} />
+          <p className="text-sm" style={{ color: '#9CA3AF' }}>Carregando quadro…</p>
+        </div>
       </div>
     )
   }
 
   if (isError || !board) {
     return (
-      <div className="p-6">
-        <p className="text-red-600 text-sm">Erro ao carregar o quadro Kanban.</p>
+      <div className="min-h-full flex items-center justify-center" style={{ background: '#F5F3EE' }}>
+        <div className="rounded-2xl px-6 py-5 text-sm" style={{ background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A522' }}>
+          Erro ao carregar o quadro Kanban.
+        </div>
       </div>
     )
   }
 
-  // Apply category filter
-  const filteredColumns = board.columns.map((col) => ({
+  const metricValues = [metrics.total, metrics.high, metrics.overdue, metrics.done]
+  const filteredColumns = board.columns.map(col => ({
     ...col,
-    tasks: selectedCategory
-      ? col.tasks.filter((t) => t.category === selectedCategory)
-      : col.tasks,
+    tasks: selectedCategory ? col.tasks.filter(t => t.category === selectedCategory) : col.tasks,
   }))
 
   return (
-    <div className="p-6 flex flex-col gap-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Tarefas</h1>
-          <p className="text-sm text-gray-500">{board.name}</p>
+    <div className="min-h-full flex flex-col" style={{ background: '#F5F3EE' }}>
+      <div className="px-6 py-8 space-y-6">
+
+        {/* Header */}
+        <div className="animate-fade-up flex items-end justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: '#9CA3AF' }}>Módulo</p>
+            <h1 className="font-display" style={{ fontSize: 40, fontWeight: 500, color: '#1C1C2E', letterSpacing: '-0.02em', lineHeight: 1 }}>
+              Tarefas
+            </h1>
+            <p className="text-sm mt-1.5" style={{ color: '#6B7280' }}>{board.name}</p>
+          </div>
+          <button onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+            style={{ background: '#1C1C2E', color: '#fff' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Nova Tarefa
+          </button>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Nova Tarefa
-        </button>
-      </div>
 
-      {/* Metric cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <MetricCard icon={<LayoutDashboard className="w-4 h-4" />} label="Total" value={metrics.total} color="indigo" />
-        <MetricCard icon={<AlertCircle className="w-4 h-4" />} label="Alta prioridade" value={metrics.high} color="red" />
-        <MetricCard icon={<Clock className="w-4 h-4" />} label="Vencidas" value={metrics.overdue} color="yellow" />
-        <MetricCard icon={<CheckCircle2 className="w-4 h-4" />} label="Concluídas" value={metrics.done} color="green" />
-      </div>
+        <div style={{ height: 1, background: 'linear-gradient(to right, #1C1C2E22, transparent)' }} />
 
-      {/* Filters */}
-      <TaskFilters selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
-
-      {/* Kanban grid with DnD */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div
-          className="grid gap-4 overflow-x-auto pb-2"
-          style={{ gridTemplateColumns: `repeat(${board.columns.length}, minmax(220px, 1fr))` }}
-        >
-          {filteredColumns.map((col) => (
-            <KanbanColumn key={col.id} column={col} tasks={col.tasks} />
+        {/* Metrics */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {METRIC_DEFS.map((m, i) => (
+            <div key={m.key} className="animate-count rounded-2xl overflow-hidden"
+              style={{ background: m.bg, border: `1px solid ${m.accent}22`, animationDelay: `${i * 60}ms` }}>
+              <div style={{ height: 3, background: m.accent }} />
+              <div className="p-4">
+                <span className="font-display leading-none block"
+                  style={{ fontSize: 38, fontWeight: 600, color: m.accent, letterSpacing: '-0.03em' }}>
+                  {metricValues[i]}
+                </span>
+                <span className="text-xs font-semibold" style={{ color: m.textColor }}>{m.label}</span>
+              </div>
+            </div>
           ))}
         </div>
 
-        <DragOverlay>
-          {activeTask ? <TaskCard task={activeTask} /> : null}
-        </DragOverlay>
-      </DndContext>
+        {/* Filters */}
+        <div className="animate-fade-up" style={{ animationDelay: '200ms' }}>
+          <TaskFilters selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
+        </div>
+      </div>
 
-      {/* Create task modal */}
+      {/* Kanban board */}
+      <div className="px-6 pb-8 flex-1 animate-fade-up" style={{ animationDelay: '260ms' }}>
+        <DndContext sensors={sensors} collisionDetection={closestCorners}
+          onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <div className="grid gap-4 overflow-x-auto pb-2"
+            style={{ gridTemplateColumns: `repeat(${board.columns.length}, minmax(220px, 1fr))` }}>
+            {filteredColumns.map(col => (
+              <KanbanColumn key={col.id} column={col} tasks={col.tasks} />
+            ))}
+          </div>
+          <DragOverlay>{activeTask ? <TaskCard task={activeTask} /> : null}</DragOverlay>
+        </DndContext>
+      </div>
+
       {showCreateModal && (
-        <CreateTaskModal
-          columns={board.columns}
-          onClose={() => setShowCreateModal(false)}
-        />
+        <CreateTaskModal columns={board.columns} onClose={() => setShowCreateModal(false)} />
       )}
-    </div>
-  )
-}
-
-interface MetricCardProps {
-  icon: React.ReactNode
-  label: string
-  value: number
-  color: 'indigo' | 'red' | 'yellow' | 'green'
-}
-
-const COLOR_CLASSES: Record<string, string> = {
-  indigo: 'bg-indigo-50 text-indigo-600',
-  red: 'bg-red-50 text-red-600',
-  yellow: 'bg-yellow-50 text-yellow-600',
-  green: 'bg-green-50 text-green-600',
-}
-
-function MetricCard({ icon, label, value, color }: MetricCardProps) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
-      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${COLOR_CLASSES[color]}`}>
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <p className="text-xl font-bold text-gray-900">{value}</p>
-        <p className="text-xs text-gray-500 truncate">{label}</p>
-      </div>
     </div>
   )
 }

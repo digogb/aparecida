@@ -1,98 +1,51 @@
-import { Search } from 'lucide-react'
-import type { MovementType } from '../../types/movement'
 import type { MovementFiltersState } from '../../types/movement'
 
-const TYPES: { value: MovementType; label: string }[] = [
-  { value: 'intimacao', label: 'Intimação' },
-  { value: 'sentenca', label: 'Sentença' },
-  { value: 'despacho', label: 'Despacho' },
-  { value: 'acordao', label: 'Acórdão' },
-  { value: 'publicacao', label: 'Publicação' },
-  { value: 'distribuicao', label: 'Distribuição' },
-  { value: 'outros', label: 'Outros' },
+const TYPES = [
+  { value: 'intimacao',    label: 'Intimação',    color: '#991B1B', bg: '#FEE2E2' },
+  { value: 'sentenca',     label: 'Sentença',     color: '#3730A3', bg: '#E0E7FF' },
+  { value: 'despacho',     label: 'Despacho',     color: '#0C4A6E', bg: '#E0F2FE' },
+  { value: 'acordao',      label: 'Acórdão',      color: '#065F46', bg: '#D1FAE5' },
+  { value: 'publicacao',   label: 'Publicação',   color: '#92400E', bg: '#FEF3C7' },
+  { value: 'distribuicao', label: 'Distribuição', color: '#5B21B6', bg: '#EDE9FE' },
+  { value: 'outros',       label: 'Outros',       color: '#374151', bg: '#F3F4F6' },
 ]
 
-interface MovementFiltersProps {
+export default function MovementFilters({ filters, onChange }: {
   filters: MovementFiltersState
-  onChange: (filters: MovementFiltersState) => void
-}
-
-export default function MovementFilters({ filters, onChange }: MovementFiltersProps) {
-  function setType(value: MovementType | '') {
-    onChange({ ...filters, movement_type: value })
-  }
-
-  function setRead(value: 'true' | 'false' | '') {
-    onChange({ ...filters, is_read: value })
-  }
-
-  function setSearch(value: string) {
-    onChange({ ...filters, search: value })
-  }
+  onChange: (f: MovementFiltersState) => void
+}) {
+  const toggle = (v: string) => onChange({ ...filters, movement_type: filters.movement_type === v ? '' : v })
 
   return (
     <div className="space-y-3">
-      {/* Search */}
-      <div className="relative">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Buscar processo, resumo..."
-          value={filters.search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+      <div className="flex flex-wrap gap-1.5 items-center">
+        <span className="text-xs font-semibold uppercase tracking-widest mr-1" style={{ color: '#9CA3AF', width: 52 }}>Tipo</span>
+        {TYPES.map(t => {
+          const active = filters.movement_type === t.value
+          return (
+            <button key={t.value} onClick={() => toggle(t.value)}
+              className="text-xs px-3 py-1 rounded-full font-semibold transition-all"
+              style={active
+                ? { background: t.bg, color: t.color, border: `1.5px solid ${t.color}44` }
+                : { background: '#fff', color: '#6B7280', border: '1.5px solid #E5E3DC' }}>
+              {t.label}
+            </button>
+          )
+        })}
       </div>
-
-      {/* Type pills */}
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => setType('')}
-          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-            filters.movement_type === ''
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
-        >
-          Todos
-        </button>
-        {TYPES.map((t) => (
-          <button
-            key={t.value}
-            onClick={() => setType(filters.movement_type === t.value ? '' : t.value)}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-              filters.movement_type === t.value
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Read status */}
       <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-500">Leitura:</span>
-        {(
-          [
-            { value: '' as const, label: 'Todas' },
-            { value: 'false' as const, label: 'Não lidas' },
-            { value: 'true' as const, label: 'Lidas' },
-          ] as { value: 'true' | 'false' | ''; label: string }[]
-        ).map((opt) => (
-          <button
-            key={opt.value}
-            onClick={() => setRead(opt.value)}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-              filters.is_read === opt.value
-                ? 'bg-gray-800 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
+        <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#9CA3AF', width: 52 }}>Leitura</span>
+        <select value={filters.is_read} onChange={e => onChange({ ...filters, is_read: e.target.value })}
+          className="rounded-xl px-3 py-1.5 text-xs font-medium focus:outline-none appearance-none"
+          style={{ background: '#fff', border: '1.5px solid #E5E3DC', color: '#1C1C2E' }}>
+          <option value="">Todas</option>
+          <option value="false">Não lidas</option>
+          <option value="true">Lidas</option>
+        </select>
+        <input type="text" placeholder="Buscar processo..." value={filters.search}
+          onChange={e => onChange({ ...filters, search: e.target.value })}
+          className="rounded-xl px-3 py-1.5 text-sm focus:outline-none"
+          style={{ background: '#fff', border: '1.5px solid #E5E3DC', width: 220, color: '#1C1C2E' }} />
       </div>
     </div>
   )
