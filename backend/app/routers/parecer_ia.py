@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +13,10 @@ from app.schemas.parecer_version import (
     ParecerVersionListItem,
     ReprocessIn,
 )
+
+
+class VersionUpdateIn(BaseModel):
+    content_html: str
 from app.services import classifier, parecer_engine
 
 PREFIX = "/api"
@@ -120,4 +125,30 @@ async def get_version(
     if version is None:
         raise HTTPException(status_code=404, detail="Versao nao encontrada")
 
+    return ParecerVersionDetail.model_validate(version)
+
+
+@router.put(
+    "/parecer-requests/{id}/versions/{version_id}",
+    response_model=ParecerVersionDetail,
+)
+async def update_version(
+    id: uuid.UUID,
+    version_id: uuid.UUID,
+    body: VersionUpdateIn,
+    db: AsyncSession = Depends(get_db),
+) -> ParecerVersionDetail:
+    result = await db.execute(
+        select(ParecerVersion).where(
+            ParecerVersion.id == version_id,
+            ParecerVersion.request_id == id,
+        )
+    )
+    version = result.scalar_one_or_none()
+    if version is None:
+        raise HTTPException(status_code=404, detail="Versao nao encontrada")
+
+    version.content_html = body.content_html
+    await db.commit()
+    await db.refresh(version)
     return ParecerVersionDetail.model_validate(version)

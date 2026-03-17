@@ -8,7 +8,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import CitacaoLegal from '../components/editor/extensions/CitacaoLegal'
 import Ementa from '../components/editor/extensions/Ementa'
 import AIContent from '../components/editor/extensions/AIContent'
-import { saveVersion, returnToAI, approveParecer, exportParecer, requestCorrection } from '../services/editorApi'
+import { saveVersion, returnToAI, approveParecer, exportParecer, requestCorrection, generateParecer } from '../services/editorApi'
 import type { ParecerRequestDetail, ParecerVersion } from '../types/parecer'
 
 export function useEditorInstance(parecer: ParecerRequestDetail | null) {
@@ -17,7 +17,10 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
   const [isSaving, setIsSaving] = useState(false)
   const [showSplitView, setShowSplitView] = useState(false)
   const [showReturnModal, setShowReturnModal] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generateError, setGenerateError] = useState<string | null>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const saveRef = useRef<() => void>(() => {})
   const queryClient = useQueryClient()
 
   // Pick latest version on parecer load
@@ -48,6 +51,14 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
       attributes: {
         class:
           'prose prose-sm max-w-none focus:outline-none min-h-[500px] px-8 py-6',
+      },
+      handleKeyDown: (_view, event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+          event.preventDefault()
+          saveRef.current()
+          return true
+        }
+        return false
       },
     },
   })
@@ -99,6 +110,9 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     }
   }, [editor, parecer, activeVersion, queryClient])
 
+  // Keep saveRef current so Ctrl+S always calls the latest handleSave
+  saveRef.current = handleSave
+
   const handleReturnToAI = useCallback(
     async (instructions: string) => {
       if (!parecer) return
@@ -146,6 +160,21 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     [parecer]
   )
 
+  const handleGenerate = useCallback(async () => {
+    if (!parecer) return
+    setIsGenerating(true)
+    setGenerateError(null)
+    try {
+      const newVersion = await generateParecer(parecer.id)
+      setActiveVersion(newVersion)
+      queryClient.invalidateQueries({ queryKey: ['parecer', parecer.id] })
+    } catch (err: unknown) {
+      setGenerateError(err instanceof Error ? err.message : 'Erro ao gerar parecer')
+    } finally {
+      setIsGenerating(false)
+    }
+  }, [parecer, queryClient])
+
   const handleRequestCorrection = useCallback(async () => {
     if (!parecer) return
     try {
@@ -167,6 +196,9 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     showReturnModal,
     setShowReturnModal,
     handleSave,
+    handleGenerate,
+    isGenerating,
+    generateError,
     handleReturnToAI,
     handleApprove,
     handleExport,

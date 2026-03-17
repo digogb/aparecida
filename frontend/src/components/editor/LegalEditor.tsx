@@ -73,6 +73,9 @@ export default function LegalEditor() {
     showReturnModal,
     setShowReturnModal,
     handleSave,
+    handleGenerate,
+    isGenerating,
+    generateError,
     handleReturnToAI,
     handleApprove,
     handleExport,
@@ -142,10 +145,51 @@ export default function LegalEditor() {
       </div>
 
       {/* Toolbar */}
-      <EditorToolbar editor={editor} onExport={handleExport} />
+      <EditorToolbar
+        editor={editor}
+        onExport={handleExport}
+        onSave={handleSave}
+        isSaving={isSaving}
+        isDirty={isDirty}
+      />
+
+      {/* Generate state — shown when parecer is classified but not yet generated */}
+      {parecer.status === 'classificado' && !activeVersion && (
+        <div className="flex flex-1 items-center justify-center bg-gray-50">
+          <div className="text-center max-w-sm">
+            <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-4">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/><path d="M22 2 12 12"/>
+              </svg>
+            </div>
+            <h2 className="text-base font-semibold text-gray-900 mb-1">Pronto para gerar</h2>
+            <p className="text-sm text-gray-500 mb-6">O email foi processado e o texto extraído. Clique abaixo para a IA redigir a minuta do parecer.</p>
+            {generateError && (
+              <p className="text-sm text-red-600 mb-3">{generateError}</p>
+            )}
+            <button
+              onClick={handleGenerate}
+              disabled={isGenerating}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-60"
+            >
+              {isGenerating ? (
+                <>
+                  <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                  Gerando parecer...
+                </>
+              ) : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M22 2 12 12"/></svg>
+                  Gerar parecer com IA
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main content area */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className={`flex flex-1 overflow-hidden ${parecer.status === 'classificado' && !activeVersion ? 'hidden' : ''}`}>
         {/* Editor area */}
         <div className="flex-1 overflow-y-auto bg-white">
           {showSplitView ? (

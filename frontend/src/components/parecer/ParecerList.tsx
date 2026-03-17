@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import api from '../../services/api'
 import { usePareceres } from '../../hooks/useParecer'
 import type { ParecerFiltersState } from '../../types/parecer'
 import ParecerCard from './ParecerCard'
@@ -15,7 +18,34 @@ const METRICS = [
 
 export default function ParecerList() {
   const [filters, setFilters] = useState<ParecerFiltersState>(EMPTY)
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { data, isLoading, isError } = usePareceres(filters)
+
+  async function handleEmlUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImporting(true)
+    setImportError(null)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const { data } = await api.post('/api/parecer-requests/ingest-eml', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      await queryClient.invalidateQueries({ queryKey: ['pareceres'] })
+      navigate(`/pareceres/${data.id}`)
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      setImportError(msg || (err instanceof Error ? err.message : 'Erro ao importar'))
+    } finally {
+      setImporting(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
 
   const items = data?.items ?? []
   const total = data?.total ?? 0
@@ -31,11 +61,32 @@ export default function ParecerList() {
     <div className="min-h-full px-6 py-7 space-y-7" style={{ background: '#F5F3EE' }}>
 
         {/* Header */}
-        <div className="animate-fade-up">
-          <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: '#9CA3AF' }}>Módulo</p>
-          <h1 className="font-display" style={{ fontSize: 40, fontWeight: 500, color: '#1C1C2E', letterSpacing: '-0.02em', lineHeight: 1 }}>
-            Pareceres
-          </h1>
+        <div className="animate-fade-up flex items-end justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: '#9CA3AF' }}>Módulo</p>
+            <h1 className="font-display" style={{ fontSize: 40, fontWeight: 500, color: '#1C1C2E', letterSpacing: '-0.02em', lineHeight: 1 }}>
+              Pareceres
+            </h1>
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <input ref={fileInputRef} type="file" accept=".eml" className="hidden" onChange={handleEmlUpload} />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importing}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-opacity"
+              style={{ background: '#1C1C2E', color: '#fff', opacity: importing ? 0.6 : 1 }}
+            >
+              {importing ? (
+                <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              )}
+              {importing ? 'Importando...' : 'Importar .eml'}
+            </button>
+            {importError && (
+              <p className="text-xs" style={{ color: '#DC2626' }}>{importError}</p>
+            )}
+          </div>
         </div>
 
         <div style={{ height: 1, background: 'linear-gradient(to right, #1C1C2E22, transparent)' }} />

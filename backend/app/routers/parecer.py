@@ -66,6 +66,7 @@ class ParecerRequestOut(BaseModel):
 
 
 class ParecerRequestDetail(ParecerRequestOut):
+    extracted_text: Optional[str] = None
     attachments: list[AttachmentOut] = []
     versions: list[ParecerVersionOut] = []
 

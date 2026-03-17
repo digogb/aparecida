@@ -3,9 +3,12 @@ import type { Editor } from '@tiptap/react'
 interface Props {
   editor: Editor | null
   onExport: (format: 'docx' | 'pdf') => void
+  onSave: () => void
+  isSaving: boolean
+  isDirty: boolean
 }
 
-export default function EditorToolbar({ editor, onExport }: Props) {
+export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDirty }: Props) {
   if (!editor) return null
 
   const btnClass = (active: boolean) =>
@@ -120,7 +123,36 @@ export default function EditorToolbar({ editor, onExport }: Props) {
         •
       </button>
 
+      <div className="w-px h-5 bg-gray-300 mx-1" />
+
+      {/* Clear formatting */}
+      <button
+        className="px-2 py-1 rounded text-sm text-gray-600 hover:bg-gray-100"
+        onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
+        title="Limpar formatação"
+      >
+        T̶
+      </button>
+
       <div className="flex-1" />
+
+      {/* Save */}
+      <button
+        className={`px-3 py-1 text-sm rounded font-medium transition-colors ${
+          isSaving
+            ? 'text-gray-400 cursor-not-allowed'
+            : isDirty
+              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+              : 'text-gray-400 border border-gray-200'
+        }`}
+        onClick={onSave}
+        disabled={isSaving || !isDirty}
+        title="Salvar (Ctrl+S)"
+      >
+        {isSaving ? 'Salvando…' : 'Salvar'}
+      </button>
+
+      <div className="w-px h-5 bg-gray-300 mx-1" />
 
       {/* Export */}
       <button

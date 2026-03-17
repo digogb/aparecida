@@ -104,7 +104,7 @@ export default function EditorSidebar({
             {parecer.attachments.map((att) => (
               <li key={att.id}>
                 <a
-                  href={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/attachments/${att.id}/download`}
+                  href={`/api/attachments/${att.id}/file`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-indigo-600 hover:underline truncate block"
