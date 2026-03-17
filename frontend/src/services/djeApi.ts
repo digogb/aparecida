@@ -12,9 +12,9 @@ export async function fetchMovements(
   offset = 0
 ): Promise<MovementListResponse> {
   const params: Record<string, string | number> = { limit, offset }
-  if (filters.movement_type) params.movement_type = filters.movement_type
+  if (filters.type) params.type = filters.type
   if (filters.is_read !== '') params.is_read = filters.is_read
-  if (filters.search) params.search = filters.search
+  if (filters.search) params.q = filters.search
   const { data } = await api.get<MovementListResponse>('/api/movements', { params })
   return data
 }

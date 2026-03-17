@@ -2,47 +2,42 @@ import type { MovementType } from './index'
 
 export type { MovementType }
 
+export interface ProcessOut {
+  id: string
+  number: string
+  subject: string | null
+  court: string | null
+  is_active: boolean
+  created_at: string
+}
+
 export interface Movement {
   id: string
-  process_number: string
-  movement_type: MovementType
-  publication_date: string
-  deadline_date: string | null
-  summary: string
-  full_text: string
+  process_id: string
+  dje_id: string | null
+  type: MovementType
+  content: string | null
+  published_at: string | null
   is_read: boolean
-  municipio_id: string | null
-  municipio_nome: string | null
+  metadata_: Record<string, unknown> | null
   created_at: string
-  updated_at: string
+  process: ProcessOut | null
 }
 
 export interface MovementListResponse {
   items: Movement[]
   total: number
-  limit: number
-  offset: number
 }
 
 export interface MovementMetrics {
   total: number
-  nao_lidas: number
-  com_prazo_hoje: number
-  com_prazo_semana: number
+  unread: number
+  by_type: Record<string, number>
+  last_sync: string | null
 }
 
 export interface MovementFiltersState {
-  movement_type: MovementType | ''
+  type: MovementType | ''
   is_read: 'true' | 'false' | ''
   search: string
-}
-
-export interface Notification {
-  id: string
-  movement_id: string
-  process_number: string
-  movement_type: MovementType
-  summary: string
-  publication_date: string
-  is_read: boolean
 }

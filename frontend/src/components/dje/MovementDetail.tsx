@@ -14,23 +14,21 @@ const TYPE_LABELS: Record<MovementType, string> = {
   outros: 'Outros',
 }
 
-function deadlineLabel(deadline: string | null): { text: string; cls: string } | null {
-  if (!deadline) return null
-  const days = Math.ceil(
-    (new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-  )
-  const text = `${new Date(deadline).toLocaleDateString('pt-BR')} (${
-    days < 0 ? `${Math.abs(days)}d vencido` : days === 0 ? 'hoje' : `${days}d restantes`
-  })`
-  const cls =
-    days < 0
-      ? 'text-red-600 font-semibold'
-      : days <= 3
-      ? 'text-orange-500 font-semibold'
-      : days <= 7
-      ? 'text-yellow-600'
-      : 'text-gray-700'
-  return { text, cls }
+const TYPE_COLORS: Record<MovementType, { color: string; bg: string }> = {
+  intimacao:    { color: '#991B1B', bg: '#FEE2E2' },
+  sentenca:     { color: '#3730A3', bg: '#E0E7FF' },
+  despacho:     { color: '#0C4A6E', bg: '#E0F2FE' },
+  acordao:      { color: '#065F46', bg: '#D1FAE5' },
+  publicacao:   { color: '#92400E', bg: '#FEF3C7' },
+  distribuicao: { color: '#5B21B6', bg: '#EDE9FE' },
+  outros:       { color: '#374151', bg: '#F3F4F6' },
+}
+
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
 interface MovementDetailProps {
@@ -47,6 +45,7 @@ export default function MovementDetail({
   onSelectRelated,
 }: MovementDetailProps) {
   const markRead = useMarkMovementRead()
+  const colors = TYPE_COLORS[movement.type] ?? TYPE_COLORS.outros
 
   useEffect(() => {
     if (!movement.is_read) {
@@ -54,31 +53,30 @@ export default function MovementDetail({
     }
   }, [movement.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const deadline = deadlineLabel(movement.deadline_date)
+  const meta = movement.metadata_ ?? {}
+  const pubDate = formatDate(movement.published_at ?? (meta.data_disponibilizacao as string) ?? null)
+  const processNumber = movement.process?.number ?? '—'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(28,28,46,0.5)' }}>
+      <div className="rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col" style={{ background: '#fff', border: '1px solid #E5E3DC' }}>
         {/* Header */}
-        <div className="flex items-start justify-between p-5 border-b">
+        <div className="flex items-start justify-between p-5" style={{ borderBottom: '1px solid #E5E3DC' }}>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                {TYPE_LABELS[movement.movement_type]}
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                style={{ background: colors.bg, color: colors.color }}>
+                {TYPE_LABELS[movement.type]}
               </span>
-              {movement.municipio_nome && (
-                <span className="text-xs text-gray-500">{movement.municipio_nome}</span>
+              {movement.process?.court && (
+                <span className="text-xs" style={{ color: '#9CA3AF' }}>{movement.process.court}</span>
               )}
             </div>
-            <h2 className="text-lg font-semibold text-gray-900">
-              {movement.process_number}
+            <h2 className="font-display" style={{ fontSize: 20, fontWeight: 500, color: '#1C1C2E' }}>
+              {processNumber}
             </h2>
-            <p className="text-sm text-gray-500 mt-0.5">{movement.summary}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="ml-4 p-1.5 rounded hover:bg-gray-100 text-gray-400"
-          >
+          <button onClick={onClose} className="ml-4 p-1.5 rounded-lg hover:bg-gray-100" style={{ color: '#9CA3AF' }}>
             <X size={18} />
           </button>
         </div>
@@ -86,43 +84,35 @@ export default function MovementDetail({
         <div className="flex flex-1 overflow-hidden">
           {/* Main content */}
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
-            {/* Meta */}
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <span className="text-gray-400 text-xs uppercase tracking-wide">
-                  Publicação
-                </span>
-                <p className="text-gray-800 mt-0.5">
-                  {new Date(movement.publication_date).toLocaleDateString('pt-BR')}
-                </p>
+                <span className="text-xs font-semibold uppercase tracking-widest block mb-1" style={{ color: '#9CA3AF' }}>Publicação</span>
+                <p style={{ color: '#1C1C2E' }}>{pubDate}</p>
               </div>
-              {deadline && (
+              {meta.link && (
                 <div>
-                  <span className="text-gray-400 text-xs uppercase tracking-wide">
-                    Prazo
-                  </span>
-                  <p className={`mt-0.5 ${deadline.cls}`}>{deadline.text}</p>
+                  <span className="text-xs font-semibold uppercase tracking-widest block mb-1" style={{ color: '#9CA3AF' }}>Link</span>
+                  <a href={meta.link as string} target="_blank" rel="noopener noreferrer"
+                    className="text-xs underline" style={{ color: '#4F46E5' }}>
+                    Abrir no DJE
+                  </a>
                 </div>
               )}
             </div>
 
-            {/* Full text */}
             <div>
-              <p className="text-gray-400 text-xs uppercase tracking-wide mb-2">
-                Texto Completo
-              </p>
-              <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto">
-                {movement.full_text || 'Texto não disponível.'}
+              <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Conteúdo</p>
+              <div className="rounded-xl p-4 text-sm whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto"
+                style={{ background: '#F5F3EE', color: '#374151', border: '1px solid #E5E3DC' }}>
+                {movement.content || 'Texto não disponível.'}
               </div>
             </div>
           </div>
 
           {/* Sidebar: Timeline */}
           {relatedMovements.length > 1 && (
-            <div className="w-52 border-l p-4 overflow-y-auto flex-shrink-0">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
-                Histórico
-              </p>
+            <div className="w-52 overflow-y-auto flex-shrink-0 p-4" style={{ borderLeft: '1px solid #E5E3DC' }}>
+              <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#9CA3AF' }}>Histórico</p>
               <ProcessTimeline
                 movements={relatedMovements}
                 currentId={movement.id}

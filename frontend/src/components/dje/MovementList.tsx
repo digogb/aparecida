@@ -6,7 +6,7 @@ import MovementFilters from './MovementFilters'
 import MovementDetail from './MovementDetail'
 import type { Movement, MovementFiltersState } from '../../types/movement'
 
-const DEFAULT_FILTERS: MovementFiltersState = { movement_type: '', is_read: '', search: '' }
+const DEFAULT_FILTERS: MovementFiltersState = { type: '', is_read: '', search: '' }
 
 function SyncModal({ onClose }: { onClose: () => void }) {
   const sync = useDjeSync()
@@ -124,10 +124,8 @@ function SyncModal({ onClose }: { onClose: () => void }) {
 }
 
 const METRICS = [
-  { key: 'total',           label: 'Total',          accent: '#1C1C2E', bg: '#F5F3EE', textColor: '#1C1C2E' },
-  { key: 'nao_lidas',       label: 'Não lidas',      accent: '#DC2626', bg: '#FFF5F5', textColor: '#991B1B' },
-  { key: 'com_prazo_hoje',  label: 'Prazo hoje',     accent: '#D97706', bg: '#FFFBF0', textColor: '#92400E' },
-  { key: 'com_prazo_semana',label: 'Prazo na semana',accent: '#4F46E5', bg: '#F5F3FF', textColor: '#3730A3' },
+  { key: 'total',  label: 'Total',     accent: '#1C1C2E', bg: '#F5F3EE', textColor: '#1C1C2E' },
+  { key: 'unread', label: 'Não lidas', accent: '#DC2626', bg: '#FFF5F5', textColor: '#991B1B' },
 ]
 
 export default function MovementList() {
@@ -140,8 +138,8 @@ export default function MovementList() {
   const { data: metrics } = useMovementMetrics()
 
   const movements = data?.items ?? []
-  const relatedMovements = selected ? movements.filter(m => m.process_number === selected.process_number) : []
-  const metricValues = [metrics?.total, metrics?.nao_lidas, metrics?.com_prazo_hoje, metrics?.com_prazo_semana]
+  const relatedMovements = selected ? movements.filter(m => m.process_id === selected.process_id) : []
+  const metricValues = [metrics?.total, metrics?.unread]
 
   return (
     <div className="min-h-full px-6 py-7 space-y-7" style={{ background: '#F5F3EE' }}>

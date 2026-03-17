@@ -14,14 +14,14 @@ export default function MovementFilters({ filters, onChange }: {
   filters: MovementFiltersState
   onChange: (f: MovementFiltersState) => void
 }) {
-  const toggle = (v: string) => onChange({ ...filters, movement_type: filters.movement_type === v ? '' : v })
+  const toggle = (v: string) => onChange({ ...filters, type: filters.type === v ? '' : v as MovementFiltersState['type'] })
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-1.5 items-center">
         <span className="text-xs font-semibold uppercase tracking-widest mr-1" style={{ color: '#9CA3AF', width: 52 }}>Tipo</span>
         {TYPES.map(t => {
-          const active = filters.movement_type === t.value
+          const active = filters.type === t.value
           return (
             <button key={t.value} onClick={() => toggle(t.value)}
               className="text-xs px-3 py-1 rounded-full font-semibold transition-all"
