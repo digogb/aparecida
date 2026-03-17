@@ -280,7 +280,7 @@ async def get_movement(
     return movement
 
 
-@router.patch("/movements/{movement_id}/read")
+@router.patch("/movements/{movement_id}/mark-read")
 async def mark_movement_read(
     movement_id: uuid.UUID,
     credentials: HTTPAuthorizationCredentials = Depends(bearer),
