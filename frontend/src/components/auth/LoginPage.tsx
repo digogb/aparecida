@@ -1,10 +1,8 @@
 import { useState, FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import type { TokenResponse } from '../../types'
 
 export default function LoginPage() {
-  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -17,7 +15,7 @@ export default function LoginPage() {
     try {
       const { data } = await api.post<TokenResponse>('/api/auth/login', { email, password })
       localStorage.setItem('token', data.access_token)
-      navigate('/')
+      window.location.replace('/')
     } catch {
       setError('Email ou senha inválidos')
     } finally {
@@ -28,7 +26,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="bg-white rounded-xl shadow-sm border p-8 w-full max-w-sm">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2">Ionde Jurídico</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 mb-2">Ione Jurídico</h1>
         <p className="text-gray-500 text-sm mb-6">Faça login para continuar</p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>

@@ -7,7 +7,7 @@ const LegalEditor = lazy(() => import('./components/editor/LegalEditor'))
 const MovementList = lazy(() => import('./components/dje/MovementList'))
 const KanbanBoard = lazy(() => import('./components/kanban/KanbanBoard'))
 
-export interface AppRoute extends RouteObject {
+export type AppRoute = RouteObject & {
   label?: string
   icon?: string
   showInSidebar?: boolean

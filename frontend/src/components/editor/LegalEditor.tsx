@@ -7,10 +7,12 @@ import EditorToolbar from './EditorToolbar'
 import EditorSidebar from './EditorSidebar'
 import SplitView from './SplitView'
 
-function ReturnModal({
+function CorrectionModal({
+  markedTexts,
   onSubmit,
   onClose,
 }: {
+  markedTexts: string[]
   onSubmit: (instructions: string) => void
   onClose: () => void
 }) {
@@ -18,25 +20,59 @@ function ReturnModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col">
         <div className="p-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">
-            Devolver para IA
+            Solicitar correção para IA
           </h3>
           <p className="text-sm text-gray-500 mt-1">
-            Descreva as instruções para a IA gerar uma nova versão.
+            {markedTexts.length > 0
+              ? 'Os trechos marcados serão enviados junto com suas instruções.'
+              : 'Descreva o que a IA deve corrigir na minuta.'}
           </p>
         </div>
-        <div className="p-4">
-          <textarea
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-            rows={5}
-            placeholder="Ex: Reescrever a fundamentação com base na Lei 14.133/2021..."
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
-            autoFocus
-          />
+
+        <div className="p-4 overflow-y-auto flex-1 space-y-4">
+          {/* Marked fragments */}
+          {markedTexts.length > 0 && (
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Trechos marcados ({markedTexts.length})
+              </label>
+              <ul className="mt-2 space-y-1.5">
+                {markedTexts.map((text, i) => (
+                  <li
+                    key={i}
+                    className="text-sm px-3 py-2 rounded-lg border-l-3"
+                    style={{
+                      background: '#FEF3C7',
+                      borderLeft: '3px solid #F59E0B',
+                      color: '#92400E',
+                    }}
+                  >
+                    "{text}"
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Instructions */}
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Instruções para a IA
+            </label>
+            <textarea
+              className="mt-2 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+              rows={4}
+              placeholder="Ex: Reescrever a fundamentação com base na Lei 14.133/2021..."
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              autoFocus
+            />
+          </div>
         </div>
+
         <div className="flex justify-end gap-2 p-4 border-t border-gray-200">
           <button
             onClick={onClose}
@@ -47,7 +83,7 @@ function ReturnModal({
           <button
             onClick={() => onSubmit(instructions)}
             disabled={!instructions.trim()}
-            className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Enviar para IA
           </button>
@@ -79,7 +115,8 @@ export default function LegalEditor() {
     handleReturnToAI,
     handleApprove,
     handleExport,
-    handleRequestCorrection,
+    getMarkedTexts,
+    correctionCount,
   } = useEditorInstance(parecer ?? null)
 
   if (isLoading) {
@@ -153,43 +190,26 @@ export default function LegalEditor() {
         isDirty={isDirty}
       />
 
-      {/* Generate state — shown when parecer is classified but not yet generated */}
-      {parecer.status === 'classificado' && !activeVersion && (
+      {/* Pipeline processing state — shown while classify + generate runs in background */}
+      {!activeVersion && (parecer.status === 'classificado' || parecer.status === 'pendente') && (
         <div className="flex flex-1 items-center justify-center bg-gray-50">
           <div className="text-center max-w-sm">
             <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-4">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/><path d="M22 2 12 12"/>
+              <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2.5">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
               </svg>
             </div>
-            <h2 className="text-base font-semibold text-gray-900 mb-1">Pronto para gerar</h2>
-            <p className="text-sm text-gray-500 mb-6">O email foi processado e o texto extraído. Clique abaixo para a IA redigir a minuta do parecer.</p>
+            <h2 className="text-base font-semibold text-gray-900 mb-1">Gerando minuta...</h2>
+            <p className="text-sm text-gray-500 mb-2">A IA está classificando o pedido e redigindo a minuta do parecer. Isso pode levar alguns segundos.</p>
             {generateError && (
               <p className="text-sm text-red-600 mb-3">{generateError}</p>
             )}
-            <button
-              onClick={handleGenerate}
-              disabled={isGenerating}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-60"
-            >
-              {isGenerating ? (
-                <>
-                  <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                  Gerando parecer...
-                </>
-              ) : (
-                <>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M22 2 12 12"/></svg>
-                  Gerar parecer com IA
-                </>
-              )}
-            </button>
           </div>
         </div>
       )}
 
       {/* Main content area */}
-      <div className={`flex flex-1 overflow-hidden ${parecer.status === 'classificado' && !activeVersion ? 'hidden' : ''}`}>
+      <div className={`flex flex-1 overflow-hidden ${!activeVersion && (parecer.status === 'classificado' || parecer.status === 'pendente') ? 'hidden' : ''}`}>
         {/* Editor area */}
         <div className="flex-1 overflow-y-auto bg-white">
           {showSplitView ? (
@@ -214,25 +234,22 @@ export default function LegalEditor() {
       <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
         <div className="flex items-center gap-2">
           <button
-            onClick={handleRequestCorrection}
-            className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100"
-          >
-            Solicitar correção
-          </button>
-          <button
             onClick={() => setShowReturnModal(true)}
-            className="px-4 py-2 text-sm border border-amber-300 text-amber-700 bg-amber-50 rounded-lg hover:bg-amber-100"
+            className="px-4 py-2 text-sm border border-amber-300 text-amber-700 bg-amber-50 rounded-lg hover:bg-amber-100 flex items-center gap-2"
           >
-            Devolver para IA
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Solicitar correção para IA
+            {correctionCount > 0 && (
+              <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold bg-amber-500 text-white rounded-full">
+                {correctionCount}
+              </span>
+            )}
           </button>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => handleExport('docx')}
-            className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100"
-          >
-            Exportar .docx
-          </button>
           <button
             onClick={() => handleApprove(false)}
             className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -248,9 +265,10 @@ export default function LegalEditor() {
         </div>
       </div>
 
-      {/* Return to AI Modal */}
+      {/* Correction Modal */}
       {showReturnModal && (
-        <ReturnModal
+        <CorrectionModal
+          markedTexts={getMarkedTexts()}
           onSubmit={handleReturnToAI}
           onClose={() => setShowReturnModal(false)}
         />

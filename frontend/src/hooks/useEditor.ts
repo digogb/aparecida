@@ -8,8 +8,39 @@ import { useQueryClient } from '@tanstack/react-query'
 import CitacaoLegal from '../components/editor/extensions/CitacaoLegal'
 import Ementa from '../components/editor/extensions/Ementa'
 import AIContent from '../components/editor/extensions/AIContent'
-import { saveVersion, returnToAI, approveParecer, exportParecer, requestCorrection, generateParecer } from '../services/editorApi'
+import CorrectionMark from '../components/editor/extensions/CorrectionMark'
+import { saveVersion, returnToAI, approveParecer, exportParecer, generateParecer } from '../services/editorApi'
 import type { ParecerRequestDetail, ParecerVersion } from '../types/parecer'
+
+/** Extract all text fragments marked with correctionMark from the editor */
+function getMarkedFragments(editor: ReturnType<typeof useTipTapEditor>): string[] {
+  if (!editor) return []
+  const fragments: string[] = []
+  const { doc } = editor.state
+  doc.descendants((node) => {
+    if (!node.isText) return
+    const hasMark = node.marks.some((m) => m.type.name === 'correctionMark')
+    if (hasMark && node.text) {
+      fragments.push(node.text)
+    }
+  })
+  return fragments
+}
+
+/** Remove all correctionMark marks from the entire document */
+function clearAllCorrectionMarks(editor: ReturnType<typeof useTipTapEditor>) {
+  if (!editor) return
+  const { doc } = editor.state
+  const { tr } = editor.state
+  doc.descendants((node, pos) => {
+    if (!node.isText) return
+    const mark = node.marks.find((m) => m.type.name === 'correctionMark')
+    if (mark) {
+      tr.removeMark(pos, pos + node.nodeSize, mark.type)
+    }
+  })
+  editor.view.dispatch(tr)
+}
 
 export function useEditorInstance(parecer: ParecerRequestDetail | null) {
   const [activeVersion, setActiveVersion] = useState<ParecerVersion | null>(null)
@@ -19,6 +50,7 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
   const [showReturnModal, setShowReturnModal] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
+  const [correctionCount, setCorrectionCount] = useState(0)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const saveRef = useRef<() => void>(() => {})
   const queryClient = useQueryClient()
@@ -42,8 +74,9 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
       CitacaoLegal,
       Ementa,
       AIContent,
+      CorrectionMark,
     ],
-    content: activeVersion?.content_html || '',
+    content: activeVersion?.content_tiptap || activeVersion?.content_html || '',
     onUpdate: () => {
       setIsDirty(true)
     },
@@ -63,14 +96,25 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     },
   })
 
+  // Track correction mark count
+  useEffect(() => {
+    if (!editor) return
+    const updateCount = () => {
+      setCorrectionCount(getMarkedFragments(editor).length)
+    }
+    editor.on('transaction', updateCount)
+    return () => {
+      editor.off('transaction', updateCount)
+    }
+  }, [editor])
+
   // Sync content when activeVersion changes
   useEffect(() => {
-    if (editor && activeVersion?.content_html != null) {
-      const currentContent = editor.getHTML()
-      if (currentContent !== activeVersion.content_html) {
-        editor.commands.setContent(activeVersion.content_html)
-        setIsDirty(false)
-      }
+    if (editor && activeVersion) {
+      const newContent = activeVersion.content_tiptap || activeVersion.content_html || ''
+      editor.commands.setContent(newContent)
+      setIsDirty(false)
+      setCorrectionCount(0)
     }
   }, [activeVersion, editor])
 
@@ -113,11 +157,22 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
   // Keep saveRef current so Ctrl+S always calls the latest handleSave
   saveRef.current = handleSave
 
+  const getMarkedTexts = useCallback(() => {
+    return getMarkedFragments(editor)
+  }, [editor])
+
   const handleReturnToAI = useCallback(
     async (instructions: string) => {
       if (!parecer) return
       try {
-        const newVersion = await returnToAI(parecer.id, instructions)
+        // Collect marked fragments to include in the reprocess request
+        const trechos = getMarkedFragments(editor)
+        const fullObservacoes = trechos.length > 0
+          ? `## TRECHOS MARCADOS PARA CORREÇÃO\n${trechos.map((t, i) => `${i + 1}. "${t}"`).join('\n')}\n\n## INSTRUÇÕES DO REVISOR\n${instructions}`
+          : instructions
+        const newVersion = await returnToAI(parecer.id, fullObservacoes)
+        // Clear marks after successful reprocess
+        clearAllCorrectionMarks(editor)
         setActiveVersion(newVersion)
         setShowReturnModal(false)
         queryClient.invalidateQueries({ queryKey: ['parecer', parecer.id] })
@@ -125,7 +180,7 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
         console.error('Return to AI failed:', err)
       }
     },
-    [parecer, queryClient]
+    [parecer, editor, queryClient]
   )
 
   const handleApprove = useCallback(
@@ -175,16 +230,6 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     }
   }, [parecer, queryClient])
 
-  const handleRequestCorrection = useCallback(async () => {
-    if (!parecer) return
-    try {
-      await requestCorrection(parecer.id)
-      queryClient.invalidateQueries({ queryKey: ['parecer', parecer.id] })
-    } catch (err) {
-      console.error('Request correction failed:', err)
-    }
-  }, [parecer, queryClient])
-
   return {
     editor,
     activeVersion,
@@ -202,6 +247,7 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     handleReturnToAI,
     handleApprove,
     handleExport,
-    handleRequestCorrection,
+    getMarkedTexts,
+    correctionCount,
   }
 }

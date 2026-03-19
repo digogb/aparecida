@@ -33,7 +33,7 @@ def _now() -> datetime:
 
 def _make_token(user_id: str | None = None) -> str:
     uid = user_id or str(uuid.uuid4())
-    payload = {"sub": uid, "email": "test@ionde.adv.br", "role": "advogado"}
+    payload = {"sub": uid, "email": "test@ione.adv.br", "role": "advogado"}
     return jwt.encode(payload, settings.JWT_SECRET, algorithm="HS256")
 
 
@@ -297,7 +297,7 @@ class TestToDocx:
         db = _mock_db()
         advogados_result = MagicMock()
         advogados_result.scalars.return_value.all.return_value = [
-            _mock_advogado("Francisco Ionde", UserRole.admin),
+            _mock_advogado("Francisco Ione", UserRole.admin),
             _mock_advogado("Matheus Nogueira", UserRole.advogado),
         ]
         db.execute.return_value = advogados_result
@@ -342,7 +342,7 @@ class TestToPdf:
         db = _mock_db()
         advogados_result = MagicMock()
         advogados_result.scalars.return_value.all.return_value = [
-            _mock_advogado("Francisco Ionde", UserRole.admin),
+            _mock_advogado("Francisco Ione", UserRole.admin),
         ]
         db.execute.return_value = advogados_result
 
@@ -363,7 +363,7 @@ class TestToPdf:
         advogados = [_mock_advogado()]
 
         html = _build_pdf_html(req, version, advogados)
-        assert "Ionde Advogados" in html
+        assert "Ione Advogados" in html
         assert "2026/001" in html
         assert "Parecer Juridico" in html
         assert "Matheus Nogueira" in html
@@ -416,7 +416,7 @@ class TestEmailSender:
         req = _mock_parecer()
         body = _build_email_body(req)
         assert "2026/001" in body
-        assert "Ionde Advogados" in body
+        assert "Ione Advogados" in body
         assert "Consulta sobre licitacao" in body
 
 

@@ -4,7 +4,7 @@ import { sidebarRoutes } from '../../routes'
 export function Sidebar() {
   return (
     <aside className="w-56 border-r bg-gray-50 h-screen p-4 flex-shrink-0">
-      <h1 className="text-lg font-semibold mb-6 text-gray-900">Ionde</h1>
+      <h1 className="text-lg font-semibold mb-6 text-gray-900">Ione</h1>
       <nav className="flex flex-col gap-1">
         {sidebarRoutes.map((r) => (
           <NavLink

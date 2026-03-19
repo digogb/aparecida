@@ -12,7 +12,7 @@ import uuid
 from email.header import decode_header as _decode_header
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -137,6 +137,7 @@ async def _identify_municipio(domain: str, db: AsyncSession):
 
 @router.post("/parecer-requests/ingest-eml", status_code=201)
 async def ingest_eml(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
@@ -214,7 +215,7 @@ async def ingest_eml(
         municipio_id=municipio.id if municipio else None,
         extracted_text=extracted_text,
         extraction_status=ExtractionStatus.success if extracted_text else ExtractionStatus.partial,
-        status=ParecerStatus.classificado,
+        status=ParecerStatus.pendente,
         raw_payload={"source": "eml_upload", "original_from": from_header},
     )
     db.add(parecer)
@@ -225,6 +226,10 @@ async def ingest_eml(
 
     await db.commit()
     await db.refresh(parecer)
+
+    # Dispara pipeline P1 (classify) → P2 (generate) em background
+    from app.services.pipeline import process_parecer_pipeline
+    background_tasks.add_task(process_parecer_pipeline, str(parecer.id))
 
     return {
         "id": str(parecer.id),

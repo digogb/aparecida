@@ -16,5 +16,14 @@ export function useParecer(id: string | undefined) {
     queryFn: () => fetchParecer(id!),
     enabled: !!id,
     staleTime: 30_000,
+    refetchInterval: (query) => {
+      const data = query.state.data
+      if (!data) return false
+      // Poll while pipeline is still processing (classified but no versions yet)
+      const isProcessing =
+        (data.status === 'classificado' || data.status === 'pendente') &&
+        (!data.versions || data.versions.length === 0)
+      return isProcessing ? 2000 : false
+    },
   })
 }

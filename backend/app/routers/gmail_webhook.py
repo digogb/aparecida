@@ -17,8 +17,9 @@ router = APIRouter()
 
 
 async def _process_gmail_message(request_id: str, gmail_info: dict) -> None:
-    """Background task placeholder: extract attachments and classify parecer."""
-    pass
+    """Background task: extract attachments, classify (P1) and generate (P2)."""
+    from app.services.pipeline import process_parecer_pipeline
+    await process_parecer_pipeline(request_id)
 
 
 @router.post("/gmail/webhook", status_code=200)

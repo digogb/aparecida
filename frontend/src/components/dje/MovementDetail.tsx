@@ -89,10 +89,10 @@ export default function MovementDetail({
                 <span className="text-xs font-semibold uppercase tracking-widest block mb-1" style={{ color: '#9CA3AF' }}>Publicação</span>
                 <p style={{ color: '#1C1C2E' }}>{pubDate}</p>
               </div>
-              {meta.link && (
+              {typeof meta.link === 'string' && meta.link && (
                 <div>
                   <span className="text-xs font-semibold uppercase tracking-widest block mb-1" style={{ color: '#9CA3AF' }}>Link</span>
-                  <a href={meta.link as string} target="_blank" rel="noopener noreferrer"
+                  <a href={meta.link} target="_blank" rel="noopener noreferrer"
                     className="text-xs underline" style={{ color: '#4F46E5' }}>
                     Abrir no DJE
                   </a>

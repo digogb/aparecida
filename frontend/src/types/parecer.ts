@@ -47,6 +47,7 @@ export interface ParecerVersion {
   id: string
   version_number: number
   source: string
+  content_tiptap: Record<string, unknown> | null
   content_html: string | null
   created_at: string
   updated_at: string

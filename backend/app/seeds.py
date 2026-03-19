@@ -26,11 +26,11 @@ async def seed_users(db: AsyncSession) -> None:
         return
 
     users = [
-        User(name="Francisco Ionde", email="francisco@ionde.adv.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.admin),
-        User(name="Matheus Nogueira", email="matheus@ionde.adv.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.advogado),
-        User(name="Flavio Henrique", email="flavio@ionde.adv.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.advogado),
-        User(name="Valeria Matias", email="valeria@ionde.adv.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.advogado),
-        User(name="Secretaria", email="secretaria@ionde.adv.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.secretaria),
+        User(name="Francisco Ione", email="francisco@ione.adv.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.admin),
+        User(name="Matheus Nogueira", email="matheus@ione.adv.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.advogado),
+        User(name="Flavio Henrique", email="flavio@ione.adv.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.advogado),
+        User(name="Valeria Matias", email="valeria@ione.adv.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.advogado),
+        User(name="Secretaria", email="secretaria@ione.adv.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.secretaria),
     ]
     db.add_all(users)
     await db.flush()

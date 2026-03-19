@@ -53,8 +53,3 @@ export async function exportParecer(
   return data
 }
 
-export async function requestCorrection(parecerId: string): Promise<void> {
-  await api.post(`/api/parecer-requests/${parecerId}/return`, {
-    observacoes: 'Solicitação de correção manual',
-  })
-}

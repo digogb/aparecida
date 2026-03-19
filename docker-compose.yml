@@ -5,15 +5,15 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ionde
+      POSTGRES_USER: ione
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ionde
+      POSTGRES_DB: ione
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ionde"]
+      test: ["CMD-SHELL", "pg_isready -U ione"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -30,8 +30,9 @@ services:
     volumes:
       - ./backend/app:/app/app
       - ./backend/alembic:/app/alembic
+      - ./uploads:/app/uploads
     environment:
-      DATABASE_URL: postgresql+asyncpg://ionde:${DB_PASSWORD}@db:5432/ionde
+      DATABASE_URL: postgresql+asyncpg://ione:${DB_PASSWORD}@db:5432/ione
       JWT_SECRET: ${JWT_SECRET}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       GMAIL_CREDENTIALS_PATH: ${GMAIL_CREDENTIALS_PATH:-/app/credentials/gmail_service_account.json}

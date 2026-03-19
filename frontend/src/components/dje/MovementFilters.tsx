@@ -35,7 +35,7 @@ export default function MovementFilters({ filters, onChange }: {
       </div>
       <div className="flex items-center gap-2">
         <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#9CA3AF', width: 52 }}>Leitura</span>
-        <select value={filters.is_read} onChange={e => onChange({ ...filters, is_read: e.target.value })}
+        <select value={filters.is_read} onChange={e => onChange({ ...filters, is_read: e.target.value as '' | 'true' | 'false' })}
           className="rounded-xl px-3 py-1.5 text-xs font-medium focus:outline-none appearance-none"
           style={{ background: '#fff', border: '1.5px solid #E5E3DC', color: '#1C1C2E' }}>
           <option value="">Todas</option>

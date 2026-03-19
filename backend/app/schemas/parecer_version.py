@@ -14,9 +14,10 @@ class ClassifyOut(BaseModel):
     subtema: Optional[str] = None
     modelo_parecer: ParecerModelo
     municipio_detectado: Optional[str] = None
-    confianca: float
+    confianca: Optional[float] = None
     request_id: uuid.UUID
     status: str
+    classificacao: Optional[dict[str, Any]] = None
 
 
 class ReprocessIn(BaseModel):
@@ -31,6 +32,10 @@ class ParecerVersionDetail(BaseModel):
     content_tiptap: Optional[dict[str, Any]] = None
     content_html: Optional[str] = None
     reprocess_instructions: Optional[str] = None
+    prompt_version: Optional[str] = None
+    citacoes_verificar: Optional[list[Any]] = None
+    ressalvas: Optional[list[Any]] = None
+    notas_revisor: Optional[list[Any]] = None
     created_by: Optional[uuid.UUID] = None
     created_at: datetime
     updated_at: datetime

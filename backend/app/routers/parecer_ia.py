@@ -40,12 +40,13 @@ async def classify_request(
 
     return ClassifyOut(
         tema=pr.tema,
-        subtema=data.get("subtema"),
+        subtema=data.get("areas_conexas", [None])[0] if data.get("areas_conexas") else None,
         modelo_parecer=pr.modelo,
-        municipio_detectado=data.get("municipio_detectado"),
-        confianca=data.get("confianca", 0.0),
+        municipio_detectado=data.get("municipio"),
+        confianca=1.0 if data.get("confianca_classificacao") == "alta" else 0.5,
         request_id=pr.id,
         status=pr.status.value,
+        classificacao=data,
     )
 
 

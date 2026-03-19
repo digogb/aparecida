@@ -1,5 +1,12 @@
 """
 Export service: converts parecer content to DOCX and PDF formats.
+
+Formato baseado no template profissional do escritório:
+- Advocacia & Assessoria — Dr. Francisco Ione Pereira Lima
+- Font: Times New Roman (serif), 12pt
+- Seções: EMENTA, I — RELATÓRIO, II — FUNDAMENTOS, III — CONCLUSÃO
+- Assinaturas: 2×2 grid com OAB
+- Rodapé: endereço do escritório
 """
 from __future__ import annotations
 
@@ -9,43 +16,226 @@ from datetime import datetime, timezone
 from typing import Any
 
 from docx import Document
-from docx.enum.section import WD_ORIENT
+from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Cm, Pt, RGBColor
-from sqlalchemy import select
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Cm, Emu, Pt, RGBColor
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.parecer import ParecerRequest, ParecerVersion
-from app.models.user import User, UserRole
 
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Escritorio info
+# Escritório info (fixo — dados do template de referência)
 # ---------------------------------------------------------------------------
-ESCRITORIO_NOME = "Ionde Advogados & Associados"
-ESCRITORIO_SUBTITULO = "Assessoria Jurídica em Direito Público Municipal"
-ESCRITORIO_ENDERECO = "Rua Exemplo, 123 - Centro - São Carlos/SP - CEP 13560-000"
-ESCRITORIO_CONTATO = "Tel: (16) 3333-0000 | contato@ionde.adv.br"
+ESCRITORIO_LINHA1 = "Advocacia & Assessoria"
+ESCRITORIO_LINHA2 = "Dr. Francisco Ione Pereira Lima"
+ESCRITORIO_ENDERECO = (
+    "Rua Gen. Caiado de Castro 462, Luciano Cavalcante, Fortaleza-CE  |  "
+    "Fone: (85) 3021-7701 / (85) 99981-4392 / (85) 99223-6716  |  "
+    "E-mail: dr.ione@uol.com.br"
+)
+
+ADVOGADOS = [
+    ("Francisco Ione Pereira Lima", "OAB/CE 4.585"),
+    ("Matheus Nogueira Pereira Lima", "OAB/CE 31.251"),
+    ("Flavio Henrique Luna Silva", "OAB/CE 31.252"),
+    ("Valéria Matias de Alencar", "OAB/CE 36.666"),
+]
+
+MESES = [
+    "", "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+    "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+]
 
 
 # ---------------------------------------------------------------------------
-# TipTap JSON → python-docx mapping
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _formatar_data_extenso(municipio_uf: str) -> str:
+    now = datetime.now(timezone.utc)
+    municipio = municipio_uf.split("/")[0].strip() if "/" in municipio_uf else municipio_uf
+    uf = municipio_uf.split("/")[1].strip() if "/" in municipio_uf else "CE"
+    return f"{municipio}/{uf}, {now.day} de {MESES[now.month]} de {now.year}."
+
+
+def _get_metadata(req: ParecerRequest) -> dict:
+    """Extract metadata from classificacao or fallback to request fields."""
+    classification = req.classificacao or {}
+    municipio = classification.get("municipio", "")
+    uf = classification.get("uf", "CE")
+    municipio_uf = f"{municipio}/{uf}" if municipio else "[Município/UF]"
+    return {
+        "orgao_consulente": classification.get("orgao_consulente", req.sender_email or "[Órgão não informado]"),
+        "municipio_uf": municipio_uf,
+        "assunto": classification.get("assunto_resumido", req.subject or "[Assunto]"),
+        "referencia": req.numero_parecer or "N/A",
+    }
+
+
+def _add_paragraph_border_bottom(paragraph) -> None:
+    """Add a bottom border to a paragraph via XML."""
+    pPr = paragraph._p.get_or_add_pPr()
+    pBdr = OxmlElement("w:pBdr")
+    bottom = OxmlElement("w:bottom")
+    bottom.set(qn("w:val"), "single")
+    bottom.set(qn("w:sz"), "6")
+    bottom.set(qn("w:space"), "1")
+    bottom.set(qn("w:color"), "000000")
+    pBdr.append(bottom)
+    pPr.append(pBdr)
+
+
+def _set_cell_border(cell, **kwargs):
+    """Set borders on a table cell. kwargs: top, bottom, start, end with val, sz, color."""
+    tc = cell._tc
+    tcPr = tc.get_or_add_tcPr()
+    tcBorders = OxmlElement("w:tcBorders")
+    for edge, attrs in kwargs.items():
+        element = OxmlElement(f"w:{edge}")
+        for attr_name, attr_val in attrs.items():
+            element.set(qn(f"w:{attr_name}"), str(attr_val))
+        tcBorders.append(element)
+    tcPr.append(tcBorders)
+
+
+def _remove_table_borders(table):
+    """Remove all borders from a table."""
+    tbl = table._tbl
+    tblPr = tbl.tblPr if tbl.tblPr is not None else OxmlElement("w:tblPr")
+    borders = OxmlElement("w:tblBorders")
+    for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        el = OxmlElement(f"w:{edge}")
+        el.set(qn("w:val"), "none")
+        el.set(qn("w:sz"), "0")
+        el.set(qn("w:space"), "0")
+        el.set(qn("w:color"), "auto")
+        borders.append(el)
+    tblPr.append(borders)
+
+
+# ---------------------------------------------------------------------------
+# DOCX: Header
+# ---------------------------------------------------------------------------
+
+def _build_header(doc: Document) -> None:
+    """Cabeçalho: Advocacia & Assessoria / Dr. Francisco Ione Pereira Lima."""
+    # Linha 1
+    p1 = doc.add_paragraph()
+    p1.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p1.paragraph_format.space_after = Pt(0)
+    p1.paragraph_format.space_before = Pt(0)
+    run1 = p1.add_run(ESCRITORIO_LINHA1)
+    run1.font.name = "Times New Roman"
+    run1.font.size = Pt(13)
+    run1.font.small_caps = True
+
+    # Linha 2
+    p2 = doc.add_paragraph()
+    p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p2.paragraph_format.space_after = Pt(6)
+    p2.paragraph_format.space_before = Pt(2)
+    run2 = p2.add_run(ESCRITORIO_LINHA2)
+    run2.font.name = "Times New Roman"
+    run2.font.size = Pt(11)
+    run2.bold = True
+    run2.font.small_caps = True
+
+    # Bottom border on last header paragraph
+    _add_paragraph_border_bottom(p2)
+
+
+# ---------------------------------------------------------------------------
+# DOCX: Title + Identification
+# ---------------------------------------------------------------------------
+
+def _build_title_and_meta(doc: Document, req: ParecerRequest) -> None:
+    meta = _get_metadata(req)
+
+    # Título
+    title_p = doc.add_paragraph()
+    title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    title_p.paragraph_format.space_before = Pt(14)
+    title_p.paragraph_format.space_after = Pt(14)
+    run = title_p.add_run("PARECER JURÍDICO")
+    run.bold = True
+    run.font.name = "Times New Roman"
+    run.font.size = Pt(13)
+
+    # Identification fields
+    fields = [
+        ("Órgão Consulente:", meta["orgao_consulente"]),
+        ("Referência:", meta["referencia"]),
+        ("Assunto:", meta["assunto"]),
+    ]
+    for label, value in fields:
+        p = doc.add_paragraph()
+        p.paragraph_format.space_after = Pt(2)
+        p.paragraph_format.space_before = Pt(0)
+        run_label = p.add_run(label + " ")
+        run_label.bold = True
+        run_label.font.name = "Times New Roman"
+        run_label.font.size = Pt(11.5)
+        run_value = p.add_run(value)
+        run_value.font.name = "Times New Roman"
+        run_value.font.size = Pt(11.5)
+
+
+# ---------------------------------------------------------------------------
+# DOCX: TipTap JSON → python-docx mapping
 # ---------------------------------------------------------------------------
 
 def _add_tiptap_content(doc: Document, content: list[dict[str, Any]]) -> None:
-    """Recursively map TipTap JSON nodes to python-docx elements."""
+    """Map TipTap JSON nodes to python-docx elements with professional formatting."""
     for node in content:
         node_type = node.get("type", "")
 
         if node_type == "paragraph":
             para = doc.add_paragraph()
+            para.paragraph_format.space_after = Pt(6)
+            para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            # Text indent for normal paragraphs
+            para.paragraph_format.first_line_indent = Cm(1.25)
             _add_inline_content(para, node.get("content", []))
 
         elif node_type == "heading":
-            level = node.get("attrs", {}).get("level", 1)
-            heading = doc.add_heading(level=min(level, 4))
-            _add_inline_content(heading, node.get("content", []))
+            level = node.get("attrs", {}).get("level", 2)
+            text = _extract_text(node.get("content", []))
+
+            if level == 2:
+                # Section heading (EMENTA, I — RELATÓRIO, etc.)
+                para = doc.add_paragraph()
+                para.paragraph_format.space_before = Pt(18)
+                para.paragraph_format.space_after = Pt(8)
+                run = para.add_run(text)
+                run.bold = True
+                run.font.name = "Times New Roman"
+                run.font.size = Pt(12)
+            elif level == 3:
+                # Numbered subtitle (1. Da Legislação, etc.)
+                para = doc.add_paragraph()
+                para.paragraph_format.space_before = Pt(12)
+                para.paragraph_format.space_after = Pt(4)
+                run = para.add_run(text)
+                run.bold = True
+                run.font.name = "Times New Roman"
+                run.font.size = Pt(12)
+            else:
+                para = doc.add_paragraph()
+                _add_inline_content(para, node.get("content", []))
+
+        elif node_type == "blockquote":
+            # Blockquote: italic, indented left
+            for child in node.get("content", []):
+                para = doc.add_paragraph()
+                para.paragraph_format.left_indent = Cm(2)
+                para.paragraph_format.right_indent = Cm(1)
+                para.paragraph_format.space_after = Pt(4)
+                para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                _add_inline_content(para, child.get("content", []), italic=True)
 
         elif node_type == "bulletList":
             for item in node.get("content", []):
@@ -61,33 +251,26 @@ def _add_tiptap_content(doc: Document, content: list[dict[str, Any]]) -> None:
                         para = doc.add_paragraph(style="List Number")
                         _add_inline_content(para, child.get("content", []))
 
-        elif node_type == "blockquote":
-            for child in node.get("content", []):
-                para = doc.add_paragraph(style="Quote")
-                _add_inline_content(para, child.get("content", []))
-
-        elif node_type == "horizontalRule":
-            para = doc.add_paragraph()
-            para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            run = para.add_run("─" * 60)
-            run.font.color.rgb = RGBColor(0xCC, 0xCC, 0xCC)
-
-        elif node_type == "hardBreak":
-            pass  # handled inline
-
         else:
-            # Fallback: try to recurse into content
             children = node.get("content", [])
             if children:
                 _add_tiptap_content(doc, children)
 
 
-def _add_inline_content(paragraph, content: list[dict[str, Any]]) -> None:
+def _add_inline_content(
+    paragraph, content: list[dict[str, Any]], italic: bool = False
+) -> None:
     """Add inline text nodes (with marks) to a paragraph."""
     for item in content:
         if item.get("type") == "text":
             text = item.get("text", "")
             run = paragraph.add_run(text)
+            run.font.name = "Times New Roman"
+            run.font.size = Pt(12)
+
+            if italic:
+                run.italic = True
+
             for mark in item.get("marks", []):
                 mark_type = mark.get("type", "")
                 if mark_type == "bold":
@@ -102,117 +285,95 @@ def _add_inline_content(paragraph, content: list[dict[str, Any]]) -> None:
             paragraph.add_run("\n")
 
 
+def _extract_text(content: list[dict[str, Any]]) -> str:
+    """Extract plain text from TipTap inline content."""
+    return "".join(item.get("text", "") for item in content if item.get("type") == "text")
+
+
 # ---------------------------------------------------------------------------
-# DOCX generation
+# DOCX: Local/Data + Assinaturas + Rodapé
 # ---------------------------------------------------------------------------
 
-async def _get_advogados(db: AsyncSession) -> list[User]:
-    """Fetch all active advogado + admin users for the signature block."""
-    result = await db.execute(
-        select(User).where(
-            User.is_active.is_(True),
-            User.role.in_([UserRole.advogado, UserRole.admin]),
-        )
-    )
-    return list(result.scalars().all())
+def _build_closing(doc: Document, req: ParecerRequest) -> None:
+    """Local, data e bloco de assinaturas."""
+    meta = _get_metadata(req)
 
+    # Local e data (right-aligned)
+    data_p = doc.add_paragraph()
+    data_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    data_p.paragraph_format.space_before = Pt(24)
+    data_p.paragraph_format.space_after = Pt(6)
+    run = data_p.add_run(_formatar_data_extenso(meta["municipio_uf"]))
+    run.font.name = "Times New Roman"
+    run.font.size = Pt(12)
 
-def _build_header(doc: Document) -> None:
-    """Add escritorio header to the document."""
-    header_para = doc.add_paragraph()
-    header_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = header_para.add_run(ESCRITORIO_NOME)
-    run.bold = True
-    run.font.size = Pt(16)
-    run.font.color.rgb = RGBColor(0x1A, 0x36, 0x5D)
+    # Assinaturas: 2×2 table sem bordas
+    table = doc.add_table(rows=2, cols=2)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    _remove_table_borders(table)
 
-    sub_para = doc.add_paragraph()
-    sub_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = sub_para.add_run(ESCRITORIO_SUBTITULO)
-    run.font.size = Pt(10)
-    run.font.color.rgb = RGBColor(0x66, 0x66, 0x66)
+    for idx, (nome, oab) in enumerate(ADVOGADOS):
+        row = idx // 2
+        col = idx % 2
+        cell = table.cell(row, col)
 
-    addr_para = doc.add_paragraph()
-    addr_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = addr_para.add_run(ESCRITORIO_ENDERECO)
-    run.font.size = Pt(8)
-    run.font.color.rgb = RGBColor(0x99, 0x99, 0x99)
+        # Clear default paragraph
+        cell.paragraphs[0].clear()
 
-    contact_para = doc.add_paragraph()
-    contact_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = contact_para.add_run(ESCRITORIO_CONTATO)
-    run.font.size = Pt(8)
-    run.font.color.rgb = RGBColor(0x99, 0x99, 0x99)
+        # Spacing before signature line
+        spacer = cell.paragraphs[0]
+        spacer.paragraph_format.space_before = Pt(36)
+        spacer.paragraph_format.space_after = Pt(0)
 
-    # Separator
-    sep = doc.add_paragraph()
-    sep.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = sep.add_run("━" * 70)
-    run.font.color.rgb = RGBColor(0x1A, 0x36, 0x5D)
-    run.font.size = Pt(6)
+        # Add top border to simulate signature line
+        _set_cell_border(cell, top={"val": "single", "sz": "4", "color": "000000"})
 
-
-def _build_parecer_meta(doc: Document, req: ParecerRequest) -> None:
-    """Add parecer metadata block."""
-    meta_lines = []
-    if req.numero_parecer:
-        meta_lines.append(f"PARECER Nº {req.numero_parecer}")
-    meta_lines.append(f"Assunto: {req.subject or 'N/A'}")
-    if req.tema:
-        meta_lines.append(f"Tema: {req.tema.value.capitalize()}")
-    meta_lines.append(
-        f"Data: {datetime.now(timezone.utc).strftime('%d/%m/%Y')}"
-    )
-    if req.sender_email:
-        meta_lines.append(f"Consulente: {req.sender_email}")
-
-    for line in meta_lines:
-        para = doc.add_paragraph()
-        run = para.add_run(line)
-        run.bold = True
-        run.font.size = Pt(11)
-
-    doc.add_paragraph()  # spacing
-
-
-def _build_footer(doc: Document, advogados: list[User]) -> None:
-    """Add signature block with all advogados."""
-    doc.add_paragraph()  # spacing
-
-    sep = doc.add_paragraph()
-    sep.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = sep.add_run("━" * 70)
-    run.font.color.rgb = RGBColor(0x1A, 0x36, 0x5D)
-    run.font.size = Pt(6)
-
-    title_para = doc.add_paragraph()
-    title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = title_para.add_run("ASSINATURAS")
-    run.bold = True
-    run.font.size = Pt(10)
-
-    doc.add_paragraph()  # spacing
-
-    for adv in advogados:
-        sig_para = doc.add_paragraph()
-        sig_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-        line_run = sig_para.add_run("_" * 40)
-        line_run.font.color.rgb = RGBColor(0x99, 0x99, 0x99)
-        sig_para.add_run("\n")
-
-        name_run = sig_para.add_run(adv.name)
+        # Name (small caps, bold, centered)
+        name_run = spacer.add_run(nome)
         name_run.bold = True
-        name_run.font.size = Pt(10)
-        sig_para.add_run("\n")
+        name_run.font.name = "Times New Roman"
+        name_run.font.size = Pt(11)
+        name_run.font.small_caps = True
+        spacer.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        role_label = "Advogado" if adv.role == UserRole.advogado else "Sócio-Administrador"
-        role_run = sig_para.add_run(role_label)
-        role_run.font.size = Pt(9)
-        role_run.font.color.rgb = RGBColor(0x66, 0x66, 0x66)
+        # OAB
+        oab_p = cell.add_paragraph()
+        oab_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        oab_p.paragraph_format.space_before = Pt(2)
+        oab_p.paragraph_format.space_after = Pt(20)
+        oab_run = oab_p.add_run(oab)
+        oab_run.font.name = "Times New Roman"
+        oab_run.font.size = Pt(10)
 
-        doc.add_paragraph()  # spacing between signatures
 
+def _build_footer(doc: Document) -> None:
+    """Rodapé: endereço do escritório com borda superior."""
+    doc.add_paragraph()  # spacing
+
+    footer_p = doc.add_paragraph()
+    footer_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    footer_p.paragraph_format.space_before = Pt(10)
+
+    # Top border
+    pPr = footer_p._p.get_or_add_pPr()
+    pBdr = OxmlElement("w:pBdr")
+    top = OxmlElement("w:top")
+    top.set(qn("w:val"), "single")
+    top.set(qn("w:sz"), "4")
+    top.set(qn("w:space"), "1")
+    top.set(qn("w:color"), "000000")
+    pBdr.append(top)
+    pPr.append(pBdr)
+
+    run = footer_p.add_run(ESCRITORIO_ENDERECO)
+    run.font.name = "Times New Roman"
+    run.font.size = Pt(9)
+    run.font.color.rgb = RGBColor(0x33, 0x33, 0x33)
+
+
+# ---------------------------------------------------------------------------
+# DOCX generation (public)
+# ---------------------------------------------------------------------------
 
 async def to_docx(
     parecer_request: ParecerRequest,
@@ -222,23 +383,23 @@ async def to_docx(
     """Generate DOCX bytes from a parecer version's TipTap content."""
     doc = Document()
 
-    # Page setup
+    # Page setup (A4)
     section = doc.sections[0]
-    section.top_margin = Cm(2.5)
-    section.bottom_margin = Cm(2.5)
-    section.left_margin = Cm(3)
+    section.top_margin = Cm(2)
+    section.bottom_margin = Cm(2)
+    section.left_margin = Cm(2)
     section.right_margin = Cm(2)
 
     # Default font
     style = doc.styles["Normal"]
-    style.font.name = "Arial"
-    style.font.size = Pt(11)
+    style.font.name = "Times New Roman"
+    style.font.size = Pt(12)
     style.paragraph_format.space_after = Pt(6)
-    style.paragraph_format.line_spacing = 1.5
+    style.paragraph_format.line_spacing = 1.6
 
     # Build document
     _build_header(doc)
-    _build_parecer_meta(doc, parecer_request)
+    _build_title_and_meta(doc, parecer_request)
 
     # Body from TipTap JSON
     tiptap = version.content_tiptap
@@ -246,14 +407,15 @@ async def to_docx(
         content = tiptap.get("content", [])
         _add_tiptap_content(doc, content)
     elif version.content_html:
-        # Fallback: plain text from HTML
         doc.add_paragraph(version.content_html)
 
-    # Footer with signatures
-    advogados = await _get_advogados(db)
-    _build_footer(doc, advogados)
+    # Closing: local/date + signatures
+    _build_closing(doc, parecer_request)
 
-    # Serialize to bytes
+    # Footer
+    _build_footer(doc)
+
+    # Serialize
     buffer = io.BytesIO()
     doc.save(buffer)
     buffer.seek(0)
@@ -261,251 +423,21 @@ async def to_docx(
 
 
 # ---------------------------------------------------------------------------
-# PDF generation
+# PDF generation (public)
 # ---------------------------------------------------------------------------
-
-_PDF_CSS = """
-@page {
-    size: A4;
-    margin: 2.5cm 2cm 2.5cm 3cm;
-    @bottom-center {
-        content: "Página " counter(page) " de " counter(pages);
-        font-size: 8pt;
-        color: #999;
-    }
-}
-body {
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 11pt;
-    line-height: 1.6;
-    color: #333;
-}
-.header {
-    text-align: center;
-    margin-bottom: 20px;
-}
-.header h1 {
-    font-size: 16pt;
-    color: #1A365D;
-    margin: 0;
-}
-.header .subtitle {
-    font-size: 10pt;
-    color: #666;
-    margin: 4px 0;
-}
-.header .info {
-    font-size: 8pt;
-    color: #999;
-}
-.separator {
-    border: none;
-    border-top: 2px solid #1A365D;
-    margin: 15px 0;
-}
-.meta {
-    margin-bottom: 20px;
-}
-.meta p {
-    font-weight: bold;
-    margin: 4px 0;
-}
-.content {
-    margin-bottom: 30px;
-}
-.content h1, .content h2, .content h3, .content h4 {
-    color: #1A365D;
-    margin-top: 16px;
-}
-.content blockquote {
-    border-left: 3px solid #1A365D;
-    padding-left: 12px;
-    color: #555;
-    margin: 12px 0;
-}
-.signatures {
-    margin-top: 40px;
-    text-align: center;
-}
-.signature-block {
-    display: inline-block;
-    width: 45%;
-    margin: 20px 2%;
-    text-align: center;
-}
-.signature-line {
-    border-top: 1px solid #999;
-    width: 80%;
-    margin: 0 auto 4px auto;
-}
-.signature-name {
-    font-weight: bold;
-    font-size: 10pt;
-}
-.signature-role {
-    font-size: 9pt;
-    color: #666;
-}
-"""
-
-
-def _tiptap_to_html(content: list[dict[str, Any]]) -> str:
-    """Convert TipTap JSON content to HTML string."""
-    parts: list[str] = []
-
-    for node in content:
-        node_type = node.get("type", "")
-
-        if node_type == "paragraph":
-            inner = _inline_to_html(node.get("content", []))
-            parts.append(f"<p>{inner}</p>")
-
-        elif node_type == "heading":
-            level = node.get("attrs", {}).get("level", 1)
-            level = min(level, 4)
-            inner = _inline_to_html(node.get("content", []))
-            parts.append(f"<h{level}>{inner}</h{level}>")
-
-        elif node_type == "bulletList":
-            items = _list_items_html(node)
-            parts.append(f"<ul>{items}</ul>")
-
-        elif node_type == "orderedList":
-            items = _list_items_html(node)
-            parts.append(f"<ol>{items}</ol>")
-
-        elif node_type == "blockquote":
-            inner = _tiptap_to_html(node.get("content", []))
-            parts.append(f"<blockquote>{inner}</blockquote>")
-
-        elif node_type == "horizontalRule":
-            parts.append("<hr>")
-
-        else:
-            children = node.get("content", [])
-            if children:
-                parts.append(_tiptap_to_html(children))
-
-    return "\n".join(parts)
-
-
-def _list_items_html(node: dict[str, Any]) -> str:
-    items: list[str] = []
-    for item in node.get("content", []):
-        if item.get("type") == "listItem":
-            inner = _tiptap_to_html(item.get("content", []))
-            items.append(f"<li>{inner}</li>")
-    return "\n".join(items)
-
-
-def _inline_to_html(content: list[dict[str, Any]]) -> str:
-    parts: list[str] = []
-    for item in content:
-        if item.get("type") == "text":
-            text = _escape_html(item.get("text", ""))
-            for mark in item.get("marks", []):
-                mark_type = mark.get("type", "")
-                if mark_type == "bold":
-                    text = f"<strong>{text}</strong>"
-                elif mark_type == "italic":
-                    text = f"<em>{text}</em>"
-                elif mark_type == "underline":
-                    text = f"<u>{text}</u>"
-                elif mark_type == "strike":
-                    text = f"<s>{text}</s>"
-            parts.append(text)
-        elif item.get("type") == "hardBreak":
-            parts.append("<br>")
-    return "".join(parts)
-
-
-def _escape_html(text: str) -> str:
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-    )
-
-
-def _build_pdf_html(
-    req: ParecerRequest,
-    version: ParecerVersion,
-    advogados: list[User],
-) -> str:
-    """Build full HTML document for PDF rendering."""
-    # Body content
-    tiptap = version.content_tiptap
-    if tiptap and isinstance(tiptap, dict):
-        body_html = _tiptap_to_html(tiptap.get("content", []))
-    elif version.content_html:
-        body_html = version.content_html
-    else:
-        body_html = "<p>Conteúdo não disponível.</p>"
-
-    # Meta
-    meta_lines = []
-    if req.numero_parecer:
-        meta_lines.append(f"PARECER Nº {req.numero_parecer}")
-    meta_lines.append(f"Assunto: {req.subject or 'N/A'}")
-    if req.tema:
-        meta_lines.append(f"Tema: {req.tema.value.capitalize()}")
-    meta_lines.append(
-        f"Data: {datetime.now(timezone.utc).strftime('%d/%m/%Y')}"
-    )
-    if req.sender_email:
-        meta_lines.append(f"Consulente: {req.sender_email}")
-    meta_html = "\n".join(f"<p>{_escape_html(l)}</p>" for l in meta_lines)
-
-    # Signatures
-    sig_blocks = []
-    for adv in advogados:
-        role_label = "Advogado" if adv.role == UserRole.advogado else "Sócio-Administrador"
-        sig_blocks.append(
-            f'<div class="signature-block">'
-            f'<div class="signature-line"></div>'
-            f'<div class="signature-name">{_escape_html(adv.name)}</div>'
-            f'<div class="signature-role">{role_label}</div>'
-            f"</div>"
-        )
-    sig_html = "\n".join(sig_blocks)
-
-    return f"""<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <style>{_PDF_CSS}</style>
-</head>
-<body>
-    <div class="header">
-        <h1>{_escape_html(ESCRITORIO_NOME)}</h1>
-        <div class="subtitle">{_escape_html(ESCRITORIO_SUBTITULO)}</div>
-        <div class="info">{_escape_html(ESCRITORIO_ENDERECO)}</div>
-        <div class="info">{_escape_html(ESCRITORIO_CONTATO)}</div>
-    </div>
-    <hr class="separator">
-    <div class="meta">
-        {meta_html}
-    </div>
-    <div class="content">
-        {body_html}
-    </div>
-    <hr class="separator">
-    <div class="signatures">
-        {sig_html}
-    </div>
-</body>
-</html>"""
-
 
 async def to_pdf(
     parecer_request: ParecerRequest,
     version: ParecerVersion,
     db: AsyncSession,
 ) -> bytes:
-    """Generate PDF bytes from a parecer version's content via WeasyPrint."""
+    """Generate PDF bytes from the pre-rendered HTML (P4 template)."""
     from weasyprint import HTML
 
-    advogados = await _get_advogados(db)
-    html_str = _build_pdf_html(parecer_request, version, advogados)
+    # content_html is already rendered by render_parecer_html (P4 template)
+    # which matches the reference format exactly
+    html_str = version.content_html
+    if not html_str:
+        html_str = "<html><body><p>Conteúdo não disponível.</p></body></html>"
+
     return HTML(string=html_str).write_pdf()

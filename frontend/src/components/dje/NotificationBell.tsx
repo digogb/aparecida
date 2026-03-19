@@ -84,16 +84,16 @@ export default function NotificationBell() {
                   >
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-xs font-medium text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">
-                        {TYPE_LABELS[n.movement_type]}
+                        {TYPE_LABELS[n.type]}
                       </span>
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                     </div>
                     <p className="text-xs font-medium text-gray-800 truncate">
-                      {n.process_number}
+                      {n.process?.number ?? '—'}
                     </p>
-                    <p className="text-xs text-gray-500 truncate mt-0.5">{n.summary}</p>
+                    <p className="text-xs text-gray-500 truncate mt-0.5">{n.content}</p>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      {new Date(n.publication_date).toLocaleDateString('pt-BR')}
+                      {n.published_at ? new Date(n.published_at).toLocaleDateString('pt-BR') : '—'}
                     </p>
                   </button>
                 </li>

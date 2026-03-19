@@ -44,7 +44,7 @@ def _build_email_body(req: ParecerRequest) -> str:
         f"O documento encontra-se em formato DOCX para sua conveniência.\n\n"
         f"Permanecemos à disposição para eventuais esclarecimentos.\n\n"
         f"Atenciosamente,\n"
-        f"Ionde Advogados & Associados\n"
+        f"Ione Advogados & Associados\n"
         f"Assessoria Jurídica em Direito Público Municipal"
     )
 
