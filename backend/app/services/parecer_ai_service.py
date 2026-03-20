@@ -212,6 +212,4 @@ async def revise_parecer(
             max_tokens=6000,
         )
 
-    logger.info("P3 raw length: %d chars", len(raw))
-
     return parse_parecer_xml(raw)

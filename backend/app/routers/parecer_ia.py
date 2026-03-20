@@ -129,6 +129,68 @@ async def get_version(
     return ParecerVersionDetail.model_validate(version)
 
 
+@router.post(
+    "/parecer-requests/{id}/versions/{version_id}/restore",
+    response_model=ParecerVersionDetail,
+)
+async def restore_version(
+    id: uuid.UUID,
+    version_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> ParecerVersionDetail:
+    """Cria uma nova versão copiando o conteúdo de uma versão anterior."""
+    from sqlalchemy import func, select
+    from app.models.parecer import ParecerStatus, ParecerStatusHistory, VersionSource
+
+    pr_result = await db.execute(select(ParecerRequest).where(ParecerRequest.id == id))
+    pr = pr_result.scalar_one_or_none()
+    if pr is None:
+        raise HTTPException(status_code=404, detail="Parecer request nao encontrado")
+
+    src_result = await db.execute(
+        select(ParecerVersion).where(
+            ParecerVersion.id == version_id,
+            ParecerVersion.request_id == id,
+        )
+    )
+    src = src_result.scalar_one_or_none()
+    if src is None:
+        raise HTTPException(status_code=404, detail="Versao nao encontrada")
+
+    next_num_result = await db.execute(
+        select(func.coalesce(func.max(ParecerVersion.version_number), 0))
+        .where(ParecerVersion.request_id == id)
+    )
+    next_num = next_num_result.scalar_one() + 1
+
+    new_version = ParecerVersion(
+        request_id=pr.id,
+        version_number=next_num,
+        source=VersionSource.restaurado,
+        content_tiptap=src.content_tiptap,
+        content_html=src.content_html,
+        prompt_version=src.prompt_version,
+        citacoes_verificar=src.citacoes_verificar or [],
+        ressalvas=src.ressalvas or [],
+        notas_revisor=[],
+        reprocess_instructions=f"Restaurado da v{src.version_number}",
+    )
+    db.add(new_version)
+
+    old_status = pr.status
+    pr.status = ParecerStatus.gerado
+    db.add(ParecerStatusHistory(
+        request_id=pr.id,
+        from_status=old_status,
+        to_status=ParecerStatus.gerado,
+        notes=f"Versão restaurada da v{src.version_number}",
+    ))
+
+    await db.commit()
+    await db.refresh(new_version)
+    return ParecerVersionDetail.model_validate(new_version)
+
+
 @router.put(
     "/parecer-requests/{id}/versions/{version_id}",
     response_model=ParecerVersionDetail,

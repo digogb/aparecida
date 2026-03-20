@@ -17,6 +17,7 @@ class ParecerStatus(str, enum.Enum):
     devolvido = "devolvido"
     aprovado = "aprovado"
     enviado = "enviado"
+    erro = "erro"
 
 
 class ParecerTema(str, enum.Enum):
@@ -36,6 +37,7 @@ class VersionSource(str, enum.Enum):
     ia_gerado = "ia_gerado"
     ia_reprocessado = "ia_reprocessado"
     manual_edit = "manual_edit"
+    restaurado = "restaurado"
 
 
 class ExtractionMethod(str, enum.Enum):

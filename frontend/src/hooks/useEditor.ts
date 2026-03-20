@@ -51,19 +51,20 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
   const [correctionCount, setCorrectionCount] = useState(0)
+  const [isReprocessing, setIsReprocessing] = useState(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const saveRef = useRef<() => void>(() => {})
   const queryClient = useQueryClient()
 
-  // Pick latest version on parecer load
+  // Pick latest version on initial load only (activeVersion === null)
   useEffect(() => {
-    if (parecer?.versions?.length) {
+    if (parecer?.versions?.length && activeVersion === null) {
       const sorted = [...parecer.versions].sort(
         (a, b) => b.version_number - a.version_number
       )
       setActiveVersion(sorted[0])
     }
-  }, [parecer])
+  }, [parecer, activeVersion])
 
   const editor = useTipTapEditor({
     extensions: [
@@ -164,20 +165,21 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
   const handleReturnToAI = useCallback(
     async (instructions: string) => {
       if (!parecer) return
+      setIsReprocessing(true)
       try {
-        // Collect marked fragments to include in the reprocess request
         const trechos = getMarkedFragments(editor)
         const fullObservacoes = trechos.length > 0
-          ? `## TRECHOS MARCADOS PARA CORREÇÃO\n${trechos.map((t, i) => `${i + 1}. "${t}"`).join('\n')}\n\n## INSTRUÇÕES DO REVISOR\n${instructions}`
+          ? `## TRECHOS MARCADOS PARA CORREÇÃO\nOs seguintes trechos foram marcados e DEVEM ser reescritos/corrigidos:\n${trechos.map((t, i) => `${i + 1}. "${t}"`).join('\n')}\n\n## INSTRUÇÕES DO REVISOR\n${instructions}`
           : instructions
         const newVersion = await returnToAI(parecer.id, fullObservacoes)
-        // Clear marks after successful reprocess
         clearAllCorrectionMarks(editor)
         setActiveVersion(newVersion)
         setShowReturnModal(false)
         queryClient.invalidateQueries({ queryKey: ['parecer', parecer.id] })
       } catch (err) {
         console.error('Return to AI failed:', err)
+      } finally {
+        setIsReprocessing(false)
       }
     },
     [parecer, editor, queryClient]
@@ -245,6 +247,7 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     isGenerating,
     generateError,
     handleReturnToAI,
+    isReprocessing,
     handleApprove,
     handleExport,
     getMarkedTexts,

@@ -12,6 +12,7 @@ import logging
 from typing import Optional, Tuple
 
 import chardet
+import filetype
 import pdfplumber
 import pytesseract
 from docx import Document
@@ -116,6 +117,16 @@ def extract_file(
                 return text, "fallback_libreoffice", "partial"
             except Exception:
                 return "", "fallback_libreoffice", "failed"
+
+        # Extension unknown or missing — try to detect via magic bytes
+        kind = filetype.guess(file_bytes)
+        if kind is not None:
+            logger.info(
+                "Detected file type by magic bytes: %s -> %s (%s)",
+                filename, kind.extension, kind.mime,
+            )
+            guessed_name = f"_detected_.{kind.extension}"
+            return extract_file(guessed_name, file_bytes)
 
         logger.warning("Unsupported file type for extraction: %s", filename)
         return "", None, "failed"

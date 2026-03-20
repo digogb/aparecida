@@ -18,6 +18,31 @@ from app.services import classifier, parecer_engine
 logger = logging.getLogger(__name__)
 
 
+async def _mark_erro(parecer_request_id: str, etapa: str, exc: Exception) -> None:
+    """Salva status=erro e registra histórico. Nunca lança exceção."""
+    try:
+        async with async_session() as db:
+            result = await db.execute(
+                select(ParecerRequest).where(ParecerRequest.id == parecer_request_id)
+            )
+            pr = result.scalar_one_or_none()
+            if pr is None:
+                return
+            old_status = pr.status
+            pr.status = ParecerStatus.erro
+            db.add(
+                ParecerStatusHistory(
+                    request_id=pr.id,
+                    from_status=old_status,
+                    to_status=ParecerStatus.erro,
+                    notes=f"Falha na etapa {etapa}: {type(exc).__name__}: {exc}",
+                )
+            )
+            await db.commit()
+    except Exception:
+        logger.exception("Pipeline: erro ao salvar status de falha para %s", parecer_request_id)
+
+
 async def process_parecer_pipeline(parecer_request_id: str) -> None:
     """
     Executa P1 (classify) → P2 (generate) para um ParecerRequest.
@@ -45,8 +70,9 @@ async def process_parecer_pipeline(parecer_request_id: str) -> None:
         async with async_session() as db:
             await classifier.classify(parecer_request_id, db)
         logger.info("Pipeline P1: classificacao concluida para %s", parecer_request_id)
-    except Exception:
+    except Exception as exc:
         logger.exception("Pipeline P1: falha ao classificar %s", parecer_request_id)
+        await _mark_erro(parecer_request_id, "P1-classificacao", exc)
         return
 
     # ─── P2: Gerar minuta ───
@@ -55,5 +81,6 @@ async def process_parecer_pipeline(parecer_request_id: str) -> None:
         async with async_session() as db:
             await parecer_engine.generate(parecer_request_id, db)
         logger.info("Pipeline P2: minuta gerada para %s", parecer_request_id)
-    except Exception:
+    except Exception as exc:
         logger.exception("Pipeline P2: falha ao gerar minuta para %s", parecer_request_id)
+        await _mark_erro(parecer_request_id, "P2-geracao", exc)

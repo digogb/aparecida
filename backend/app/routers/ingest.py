@@ -205,6 +205,10 @@ async def ingest_eml(
 
     extracted_text = assemble(body, attachment_texts)
 
+    # Fallback: se o body ficou vazio mas temos assunto, usa o assunto como contexto mínimo
+    if not extracted_text and subject:
+        extracted_text = f"Assunto: {subject}\nRemetente: {sender_email}"
+
     # Create ParecerRequest
     parecer = ParecerRequest(
         id=uuid.uuid4(),

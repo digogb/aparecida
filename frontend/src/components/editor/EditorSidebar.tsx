@@ -1,10 +1,14 @@
+import { useState } from 'react'
 import type { ParecerRequestDetail, ParecerVersion } from '../../types/parecer'
 import type { ReviewFlowStep } from '../../types/editor'
+import { restoreVersion } from '../../services/editorApi'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface Props {
   parecer: ParecerRequestDetail
   activeVersion: ParecerVersion | null
   onVersionSelect: (version: ParecerVersion) => void
+  onVersionRestored: (version: ParecerVersion) => void
 }
 
 const statusLabels: Record<string, string> = {
@@ -55,11 +59,30 @@ export default function EditorSidebar({
   parecer,
   activeVersion,
   onVersionSelect,
+  onVersionRestored,
 }: Props) {
+  const [isRestoring, setIsRestoring] = useState(false)
+  const queryClient = useQueryClient()
   const flow = getReviewFlow(parecer.status)
   const sortedVersions = [...parecer.versions].sort(
     (a, b) => b.version_number - a.version_number
   )
+  const latestVersionNumber = sortedVersions[0]?.version_number ?? 0
+  const isViewingOld = activeVersion !== null && activeVersion.version_number < latestVersionNumber
+
+  async function handleRestore() {
+    if (!activeVersion) return
+    setIsRestoring(true)
+    try {
+      const newVersion = await restoreVersion(parecer.id, activeVersion.id)
+      queryClient.invalidateQueries({ queryKey: ['parecer', parecer.id] })
+      onVersionRestored(newVersion)
+    } catch (err) {
+      console.error('Restore failed:', err)
+    } finally {
+      setIsRestoring(false)
+    }
+  }
 
   return (
     <aside className="w-[220px] border-l border-gray-200 bg-gray-50 overflow-y-auto flex-shrink-0">
@@ -159,6 +182,15 @@ export default function EditorSidebar({
         <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
           Versões
         </h3>
+        {isViewingOld && (
+          <button
+            onClick={handleRestore}
+            disabled={isRestoring}
+            className="w-full mb-2 px-2 py-1.5 text-xs rounded bg-amber-50 border border-amber-300 text-amber-700 hover:bg-amber-100 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isRestoring ? 'Restaurando...' : `↩ Restaurar v${activeVersion?.version_number}`}
+          </button>
+        )}
         <ul className="space-y-1">
           {sortedVersions.map((v) => (
             <li key={v.id}>

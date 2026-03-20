@@ -276,59 +276,70 @@ async def reprocess(
     if pr is None:
         raise ValueError(f"ParecerRequest {parecer_request_id} nao encontrado")
 
-    last_version_result = await db.execute(
+    all_versions_result = await db.execute(
         select(ParecerVersion)
         .where(ParecerVersion.request_id == pr.id)
         .order_by(ParecerVersion.version_number.desc())
-        .limit(1)
     )
-    last_version = last_version_result.scalar_one_or_none()
-    if last_version is None:
+    all_versions = list(all_versions_result.scalars().all())
+    if not all_versions:
         raise ValueError("Nenhuma versao anterior encontrada para reprocessar")
 
-    # Reconstruir dict de seções da versão atual
-    parecer_atual = {
-        "ementa": "",
-        "relatorio": "",
-        "fundamentos": "",
-        "conclusao": "",
-        "citacoes_verificar": last_version.citacoes_verificar or [],
-        "ressalvas": last_version.ressalvas or [],
-        "notas_revisor": last_version.notas_revisor or [],
+    last_version = all_versions[0]
+
+    section_keys = {
+        "EMENTA": "ementa",
+        "I \u2014 RELATÓRIO": "relatorio",
+        "II \u2014 FUNDAMENTOS": "fundamentos",
+        "III \u2014 CONCLUSÃO": "conclusao",
     }
 
-    # Extrair seções do HTML atual via parse do TipTap JSON
-    if last_version.content_tiptap:
-        tiptap = last_version.content_tiptap
+    def _extract_sections_from_tiptap(tiptap: dict) -> dict[str, str]:
+        sections: dict[str, str] = {"ementa": "", "relatorio": "", "fundamentos": "", "conclusao": ""}
         current_section = None
         text_buffer: list[str] = []
-        section_keys = {
-            "EMENTA": "ementa",
-            "RELATÓRIO": "relatorio",
-            "FUNDAMENTOS": "fundamentos",
-            "CONCLUSÃO": "conclusao",
-        }
         for node in tiptap.get("content", []):
             if node.get("type") == "heading":
                 if current_section and text_buffer:
-                    parecer_atual[current_section] = "\n\n".join(text_buffer)
+                    sections[current_section] = "\n\n".join(text_buffer)
                     text_buffer = []
-                title = "".join(
-                    c.get("text", "") for c in node.get("content", [])
-                )
+                title = "".join(c.get("text", "") for c in node.get("content", []))
                 current_section = section_keys.get(title)
             elif node.get("type") == "paragraph" and current_section:
                 text = "".join(c.get("text", "") for c in node.get("content", []))
                 if text:
                     text_buffer.append(text)
         if current_section and text_buffer:
-            parecer_atual[current_section] = "\n\n".join(text_buffer)
+            sections[current_section] = "\n\n".join(text_buffer)
+        return sections
+
+    # Tentar extrair seções de versões do mais recente ao mais antigo
+    # até encontrar uma com todas as seções principais preenchidas
+    parecer_atual: dict = {}
+    for version in all_versions:
+        if not version.content_tiptap:
+            continue
+        extracted = _extract_sections_from_tiptap(version.content_tiptap)
+        main_sections = ["ementa", "relatorio", "fundamentos", "conclusao"]
+        if all(extracted.get(s) for s in main_sections):
+            parecer_atual = extracted
+            break
+
+    if not parecer_atual:
+        # Fallback: usar a versão mais recente mesmo incompleta
+        parecer_atual = _extract_sections_from_tiptap(last_version.content_tiptap or {})
+
+    parecer_atual.update({
+        "citacoes_verificar": last_version.citacoes_verificar or [],
+        "ressalvas": last_version.ressalvas or [],
+        "notas_revisor": last_version.notas_revisor or [],
+    })
 
     # P3 — Revisar com observações
     secoes = ["ementa", "relatorio", "fundamentos", "conclusao"]
+
     revisao = await revise_parecer(parecer_atual, observacoes, secoes)
 
-    # Merge: substituir apenas seções alteradas
     secoes_alteradas = revisao.get("secoes_alteradas", [])
     if isinstance(secoes_alteradas, str):
         secoes_alteradas = [s.strip() for s in secoes_alteradas.split(",") if s.strip()]

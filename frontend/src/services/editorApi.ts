@@ -31,6 +31,16 @@ export async function returnToAI(
   return data
 }
 
+export async function restoreVersion(
+  parecerId: string,
+  versionId: string
+): Promise<ParecerVersion> {
+  const { data } = await api.post<ParecerVersion>(
+    `/api/parecer-requests/${parecerId}/versions/${versionId}/restore`
+  )
+  return data
+}
+
 export async function approveParecer(
   parecerId: string,
   sendEmail: boolean
