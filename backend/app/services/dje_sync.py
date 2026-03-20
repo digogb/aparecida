@@ -52,6 +52,23 @@ def _normalize_type(raw_type: str) -> MovementType:
     return _TYPE_MAP.get(raw_type.lower().strip(), MovementType.outros)
 
 
+def _parse_dje_date(raw: str | None) -> datetime | None:
+    """Parse DJE date string (DD/MM/YYYY or YYYY-MM-DD) to datetime."""
+    if not raw:
+        return None
+    raw = raw.strip()
+    parts = raw.split("/")
+    if len(parts) == 3:
+        try:
+            return datetime(int(parts[2]), int(parts[1]), int(parts[0]))
+        except (ValueError, IndexError):
+            return None
+    try:
+        return datetime.fromisoformat(raw.split("T")[0])
+    except ValueError:
+        return None
+
+
 async def _get_or_create_process(
     db: AsyncSession,
     number: str,
@@ -172,7 +189,7 @@ async def poll_dje(db: AsyncSession) -> int:
                 process_number=com.numero_processo,
                 raw_type=com.tipo_comunicacao or "publicacao",
                 content=com.texto,
-                published_at=None,
+                published_at=_parse_dje_date(com.data_disponibilizacao),
                 court=com.tribunal or com.orgao or None,
                 metadata={
                     "link": com.link,

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { X } from 'lucide-react'
 import type { Movement, MovementType } from '../../types/movement'
 import ProcessTimeline from './ProcessTimeline'
@@ -22,6 +22,71 @@ const TYPE_COLORS: Record<MovementType, { color: string; bg: string }> = {
   publicacao:   { color: '#92400E', bg: '#FEF3C7' },
   distribuicao: { color: '#5B21B6', bg: '#EDE9FE' },
   outros:       { color: '#374151', bg: '#F3F4F6' },
+}
+
+/**
+ * Inserts paragraph breaks at natural DJE structural boundaries when the
+ * text arrives as a single flat block (which is the common case from the API).
+ */
+function preprocessDjeText(raw: string): string {
+  let t = raw.trim()
+
+  // Break before city+date line: "Fortaleza, 13 de março de 2026."
+  t = t.replace(
+    /([.;])\s+([A-ZÁÉÍÓÚÀÂÃÊÔÕÇ][a-záéíóúàâãêôõç]{2,}(?:\s+[A-ZÁÉÍÓÚÀÂÃÊÔÕÇ][a-záéíóúàâãêôõç]+)*,\s+\d{1,2}\s+de\s+\w+\s+de\s+\d{4})/g,
+    '$1\n\n$2'
+  )
+
+  // Break before " - Advs:" separator
+  t = t.replace(/\s+-\s*Advs:/g, '\n\nAdvs:')
+
+  // Break before ALL-CAPS judge/rapporteur signature block
+  // (3+ consecutive ALL-CAPS words after a sentence end)
+  t = t.replace(
+    /([.!?])\s+([A-ZÁÉÍÓÚÀÂÃÊÔÕÇ]{3,}(?:\s+(?:DE|DA|DO|DOS|DAS|[A-ZÁÉÍÓÚÀÂÃÊÔÕÇ]{2,})){2,})\s/g,
+    '$1\n\n$2 '
+  )
+
+  // Break before common decision openers when stuck to prior sentence
+  t = t.replace(
+    /([.!?])\s+-\s+(Diante\b|Ante\b|Considerando\b|Isso\s+posto\b|Do\s+exposto\b|Ante\s+o\s+exposto\b)/gi,
+    '$1\n\n$2'
+  )
+
+  return t
+}
+
+// Renders DJE plain text with structured paragraphs and indentation for numbered items
+function FormattedContent({ text }: { text: string }) {
+  const processed = preprocessDjeText(text)
+  const paragraphs = processed.split('\n\n').map(p => p.trim()).filter(Boolean)
+  // Matches: "1.", "2)", "I.", "II.", "a)", "b." etc. at start of line
+  const numberedRe = /^(\s*(?:[0-9]+|[IVXivx]+|[a-zA-Z])[.)]\s)/
+
+  return (
+    <div className="space-y-3">
+      {paragraphs.map((para, pi) => {
+        const lines = para.split('\n').map(l => l.trim()).filter(Boolean)
+        return (
+          <p key={pi} className="leading-relaxed">
+            {lines.map((line, li) => {
+              const isNumbered = numberedRe.test(line)
+              return (
+                <span
+                  key={li}
+                  className={isNumbered ? 'block' : undefined}
+                  style={isNumbered ? { paddingLeft: '1.25rem', textIndent: '-1.25rem' } : undefined}
+                >
+                  {li > 0 && !isNumbered && <br />}
+                  {line}
+                </span>
+              )
+            })}
+          </p>
+        )
+      })}
+    </div>
+  )
 }
 
 function formatDate(iso: string | null | undefined): string {
@@ -102,9 +167,9 @@ export default function MovementDetail({
 
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Conteúdo</p>
-              <div className="rounded-xl p-4 text-sm whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto"
+              <div className="rounded-xl p-4 text-sm leading-relaxed max-h-96 overflow-y-auto"
                 style={{ background: '#F5F3EE', color: '#374151', border: '1px solid #E5E3DC' }}>
-                {movement.content || 'Texto não disponível.'}
+                {movement.content ? <FormattedContent text={movement.content} /> : <span style={{ color: '#9CA3AF' }}>Texto não disponível.</span>}
               </div>
             </div>
           </div>

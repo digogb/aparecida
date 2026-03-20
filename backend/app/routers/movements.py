@@ -16,7 +16,7 @@ from app.config import settings
 from app.database import get_db
 from app.models.movement import Movement, MovementType, Process
 from app.schemas.movement import DJEWebhookPayload, MovementListResponse, MovementOut, MovementStats
-from app.services.dje_sync import ingest_movement
+from app.services.dje_sync import ingest_movement, _parse_dje_date
 from app.services.notification import ws_manager
 
 PREFIX = "/api"
@@ -87,7 +87,7 @@ async def _run_dje_search(body: DJESearchRequest) -> None:
                     process_number=com.numero_processo,
                     raw_type=com.tipo_comunicacao or "publicacao",
                     content=com.texto,
-                    published_at=None,
+                    published_at=_parse_dje_date(com.data_disponibilizacao),
                     court=com.tribunal or com.orgao or None,
                     metadata={
                         "link": com.link,
