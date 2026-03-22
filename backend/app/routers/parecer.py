@@ -14,6 +14,7 @@ from app.models.parecer import (
     ExtractionStatus,
     ParecerRequest,
     ParecerStatus,
+    ParecerStatusHistory,
     ParecerTema,
     ParecerVersion,
     VersionSource,
@@ -42,6 +43,7 @@ class ParecerVersionOut(BaseModel):
     id: uuid.UUID
     version_number: int
     source: VersionSource
+    content_tiptap: Optional[dict] = None
     content_html: Optional[str] = None
     created_by: Optional[uuid.UUID] = None
     created_at: datetime
@@ -59,10 +61,18 @@ class ParecerRequestOut(BaseModel):
     tema: Optional[ParecerTema] = None
     numero_parecer: Optional[str] = None
     extraction_status: Optional[ExtractionStatus] = None
+    municipio_nome: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_parecer(cls, pr: ParecerRequest) -> "ParecerRequestOut":
+        data = cls.model_validate(pr).model_dump()
+        classificacao = pr.classificacao or {}
+        data["municipio_nome"] = classificacao.get("municipio") or None
+        return cls(**data)
 
 
 class ParecerRequestDetail(ParecerRequestOut):
@@ -116,7 +126,7 @@ async def list_parecer_requests(
     items = result.scalars().all()
 
     return PaginatedParecerRequests(
-        items=[ParecerRequestOut.model_validate(item) for item in items],
+        items=[ParecerRequestOut.from_parecer(item) for item in items],
         total=total,
         limit=limit,
         offset=offset,
@@ -167,3 +177,28 @@ async def retry_extraction(
     await db.refresh(item)
 
     return ParecerRequestOut.model_validate(item)
+
+
+@router.delete("/parecer-requests/{id}", status_code=204)
+async def delete_parecer(
+    id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    result = await db.execute(
+        select(ParecerRequest).where(ParecerRequest.id == id)
+    )
+    item = result.scalar_one_or_none()
+    if not item:
+        raise HTTPException(status_code=404, detail="Parecer nao encontrado")
+
+    await db.execute(
+        ParecerVersion.__table__.delete().where(ParecerVersion.request_id == id)
+    )
+    await db.execute(
+        ParecerStatusHistory.__table__.delete().where(ParecerStatusHistory.request_id == id)
+    )
+    await db.execute(
+        Attachment.__table__.delete().where(Attachment.request_id == id)
+    )
+    await db.delete(item)
+    await db.commit()

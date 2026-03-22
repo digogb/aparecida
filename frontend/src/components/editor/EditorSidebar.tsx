@@ -23,6 +23,20 @@ const statusLabels: Record<string, string> = {
 }
 
 function getReviewFlow(status: string): ReviewFlowStep[] {
+  if (status === 'devolvido') {
+    return [
+      { label: 'Recebido', status: 'done' },
+      { label: 'IA processando', status: 'done' },
+      { label: 'Devolvido', status: 'current' },
+    ]
+  }
+  if (status === 'erro') {
+    return [
+      { label: 'Recebido', status: 'done' },
+      { label: 'IA processando', status: 'current' },
+      { label: 'Erro no processamento', status: 'pending' },
+    ]
+  }
   const steps: ReviewFlowStep[] = [
     { label: 'Recebido', status: 'done' },
     { label: 'IA processando', status: 'pending' },
@@ -33,7 +47,7 @@ function getReviewFlow(status: string): ReviewFlowStep[] {
   ]
   const statusToStep: Record<string, number> = {
     pendente: 0, classificado: 1, gerado: 2, em_correcao: 3,
-    em_revisao: 2, devolvido: 3, aprovado: 4, enviado: 5,
+    em_revisao: 2, aprovado: 4, enviado: 5,
   }
   const idx = statusToStep[status] ?? -1
   for (let i = 0; i <= idx && i < steps.length; i++) {

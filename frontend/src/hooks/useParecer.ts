@@ -2,11 +2,17 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchParecer, fetchPareceres } from '../services/parecerApi'
 import type { ParecerFiltersState } from '../types/parecer'
 
+const PROCESSING = new Set(['pendente', 'classificado'])
+
 export function usePareceres(filters: ParecerFiltersState) {
   return useQuery({
     queryKey: ['pareceres', filters],
     queryFn: () => fetchPareceres(filters),
     staleTime: 30_000,
+    refetchInterval: (query) => {
+      const items = query.state.data?.items ?? []
+      return items.some(p => PROCESSING.has(p.status)) ? 3000 : false
+    },
   })
 }
 
@@ -17,6 +23,10 @@ export function useParecerMetrics() {
     queryKey: ['pareceres-metrics'],
     queryFn: () => fetchPareceres(EMPTY_FILTERS),
     staleTime: 30_000,
+    refetchInterval: (query) => {
+      const items = query.state.data?.items ?? []
+      return items.some(p => PROCESSING.has(p.status)) ? 3000 : false
+    },
   })
 }
 

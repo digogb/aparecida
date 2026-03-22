@@ -43,6 +43,7 @@ Classifique em UMA área principal e até 2 áreas conexas:
 
 ```json
 {
+  "is_consulta_juridica": true,
   "municipio": "Nome do Município",
   "uf": "UF",
   "orgao_consulente": "Nome do órgão (Prefeitura, Câmara, Autarquia...)",
@@ -68,3 +69,4 @@ Classifique em UMA área principal e até 2 áreas conexas:
 4. `dados_ausentes` é crítico — lista o que o advogado pode precisar solicitar ao município antes de elaborar o parecer.
 5. NÃO interprete juridicamente. Apenas extraia e classifique. A análise jurídica será feita na próxima etapa.
 6. Retorne APENAS o JSON. Nenhum texto antes ou depois.
+7. `is_consulta_juridica` = `false` quando o email for spam, promoção, newsletter, notificação automática de sistema, ou qualquer mensagem que NÃO seja uma solicitação genuína de parecer ou orientação jurídica a um município. Nesse caso, os demais campos podem ser `null`.

@@ -7,6 +7,7 @@ export type ParecerStatus =
   | 'devolvido'
   | 'aprovado'
   | 'enviado'
+  | 'erro'
 
 export type ParecerTema =
   | 'administrativo'
