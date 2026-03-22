@@ -6,6 +6,12 @@ class Settings(BaseSettings):
     JWT_SECRET: str = "troque-isso-em-producao"
     ANTHROPIC_API_KEY: str = ""
     GMAIL_CREDENTIALS_PATH: str = "/app/credentials/gmail_service_account.json"
+    GMAIL_SENDER_EMAIL: str = ""
+    # OAuth2 (para teste / Gmail pessoal)
+    GMAIL_CLIENT_ID: str = ""
+    GMAIL_CLIENT_SECRET: str = ""
+    GMAIL_REFRESH_TOKEN: str = ""
+    GMAIL_TEST_RECIPIENT: str = ""  # se definido, todos os emails vão para este endereço (teste)
     ENV: str = "development"
 
     # DJE search — configure via .env

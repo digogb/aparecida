@@ -137,7 +137,7 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     saveTimerRef.current = setTimeout(async () => {
       setIsSaving(true)
       try {
-        await saveVersion(parecer.id, activeVersion.id, editor.getHTML())
+        await saveVersion(parecer.id, activeVersion.id, editor.getHTML(), editor.getJSON())
         setIsDirty(false)
         queryClient.invalidateQueries({ queryKey: ['parecer', parecer.id] })
       } catch (err) {
@@ -156,7 +156,7 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     setIsSaving(true)
     try {
-      await saveVersion(parecer.id, activeVersion.id, editor.getHTML())
+      await saveVersion(parecer.id, activeVersion.id, editor.getHTML(), editor.getJSON())
       setIsDirty(false)
       queryClient.invalidateQueries({ queryKey: ['parecer', parecer.id] })
     } catch (err) {
@@ -230,14 +230,16 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
   }, [])
 
   const handleApprove = useCallback(
-    async (sendEmail: boolean) => {
-      if (!parecer) return
+    async (sendEmail: boolean): Promise<boolean> => {
+      if (!parecer) return false
       await handleSave()
       try {
         await approveParecer(parecer.id, sendEmail)
         queryClient.invalidateQueries({ queryKey: ['parecer', parecer.id] })
+        return true
       } catch (err) {
         console.error('Approve failed:', err)
+        return false
       }
     },
     [parecer, handleSave, queryClient]

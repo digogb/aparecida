@@ -1,4 +1,5 @@
 import uuid
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -19,6 +20,7 @@ from app.schemas.parecer_version import (
 
 class VersionUpdateIn(BaseModel):
     content_html: str
+    content_tiptap: Optional[dict] = None
 from app.services import classifier, parecer_engine
 
 PREFIX = "/api"
@@ -238,6 +240,8 @@ async def update_version(
         raise HTTPException(status_code=404, detail="Versao nao encontrada")
 
     version.content_html = body.content_html
+    if body.content_tiptap is not None:
+        version.content_tiptap = body.content_tiptap
 
     # Atualizar status para em_correcao ao editar manualmente
     from app.models.parecer import ParecerStatus, ParecerStatusHistory
