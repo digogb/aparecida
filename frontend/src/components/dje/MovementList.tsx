@@ -25,87 +25,87 @@ function SyncModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(28,28,46,0.5)' }}>
-      <div className="rounded-2xl p-6 w-full max-w-md shadow-2xl" style={{ background: '#fff', border: '1px solid #E5E3DC' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(27,40,56,0.5)' }}>
+      <div className="rounded-xl p-6 w-full max-w-md" style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
         <div className="flex items-center justify-between mb-5">
-          <h2 className="font-display" style={{ fontSize: 22, fontWeight: 500, color: '#1C1C2E' }}>Sincronizar DJE</h2>
-          <button onClick={onClose} style={{ color: '#9CA3AF' }}>
+          <h2 className="font-display" style={{ fontSize: 22, fontWeight: 500, color: '#1B2838' }}>Sincronizar DJE</h2>
+          <button onClick={onClose} style={{ color: '#A69B8D' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
 
         {queued ? (
           <div className="text-center py-6">
-            <svg className="mx-auto mb-3 opacity-60" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1C1C2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <svg className="mx-auto mb-3 opacity-60" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#5B7553" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
             </svg>
-            <p className="font-semibold mb-1" style={{ color: '#1C1C2E' }}>Busca iniciada</p>
-            <p className="text-sm" style={{ color: '#6B7280' }}>O worker está buscando no DJE em segundo plano.<br/>As movimentações aparecem automaticamente quando chegarem.</p>
-            <button onClick={onClose} className="mt-6 px-5 py-2 rounded-xl text-sm font-semibold" style={{ background: '#1C1C2E', color: '#fff' }}>
+            <p className="font-medium text-base mb-1" style={{ color: '#2D2D3A' }}>Busca iniciada</p>
+            <p className="text-sm" style={{ color: '#A69B8D' }}>O worker está buscando no DJE em segundo plano.<br/>As movimentações aparecem automaticamente quando chegarem.</p>
+            <button onClick={onClose} className="mt-6 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 hover:brightness-[0.95] cursor-pointer" style={{ background: '#1B2838', color: '#FAF8F5' }}>
               Fechar
             </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
-              <label className="text-xs font-semibold uppercase tracking-widest block mb-1" style={{ color: '#9CA3AF' }}>Nome do advogado</label>
+              <label className="text-sm font-medium uppercase tracking-widest block mb-1" style={{ color: '#A69B8D' }}>Nome do advogado</label>
               <input
                 type="text" placeholder="Ex: JOSE ANTONIO SOUZA"
                 value={form.nome_advogado} onChange={e => setForm(f => ({ ...f, nome_advogado: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl text-sm outline-none"
-                style={{ background: '#F5F3EE', border: '1px solid #E5E3DC', color: '#1C1C2E' }}
+                className="w-full px-3 py-2.5 rounded-xl text-base outline-none focus:ring-2"
+                style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
               />
             </div>
             <div>
-              <label className="text-xs font-semibold uppercase tracking-widest block mb-1" style={{ color: '#9CA3AF' }}>Número OAB</label>
+              <label className="text-sm font-medium uppercase tracking-widest block mb-1" style={{ color: '#A69B8D' }}>Número OAB</label>
               <input
                 type="text" placeholder="Ex: 12345/SP"
                 value={form.numero_oab} onChange={e => setForm(f => ({ ...f, numero_oab: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl text-sm outline-none"
-                style={{ background: '#F5F3EE', border: '1px solid #E5E3DC', color: '#1C1C2E' }}
+                className="w-full px-3 py-2.5 rounded-xl text-base outline-none focus:ring-2"
+                style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-semibold uppercase tracking-widest block mb-1" style={{ color: '#9CA3AF' }}>Tribunal</label>
+                <label className="text-sm font-medium uppercase tracking-widest block mb-1" style={{ color: '#A69B8D' }}>Tribunal</label>
                 <input
                   type="text" placeholder="Ex: TJSP"
                   value={form.sigla_tribunal} onChange={e => setForm(f => ({ ...f, sigla_tribunal: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl text-sm outline-none"
-                  style={{ background: '#F5F3EE', border: '1px solid #E5E3DC', color: '#1C1C2E' }}
+                  className="w-full px-3 py-2.5 rounded-xl text-base outline-none focus:ring-2"
+                  style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-semibold uppercase tracking-widest block mb-1" style={{ color: '#9CA3AF' }}>Data início</label>
+                <label className="text-sm font-medium uppercase tracking-widest block mb-1" style={{ color: '#A69B8D' }}>Data início</label>
                 <input
                   type="date" value={form.data_inicio} onChange={e => setForm(f => ({ ...f, data_inicio: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl text-sm outline-none"
-                  style={{ background: '#F5F3EE', border: '1px solid #E5E3DC', color: '#1C1C2E' }}
+                  className="w-full px-3 py-2.5 rounded-xl text-base outline-none focus:ring-2"
+                  style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold uppercase tracking-widest block mb-1" style={{ color: '#9CA3AF' }}>Data fim</label>
+                <label className="text-sm font-medium uppercase tracking-widest block mb-1" style={{ color: '#A69B8D' }}>Data fim</label>
                 <input
                   type="date" value={form.data_fim} onChange={e => setForm(f => ({ ...f, data_fim: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl text-sm outline-none"
-                  style={{ background: '#F5F3EE', border: '1px solid #E5E3DC', color: '#1C1C2E' }}
+                  className="w-full px-3 py-2.5 rounded-xl text-base outline-none focus:ring-2"
+                  style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
                 />
               </div>
             </div>
             {sync.isError && (
-              <p className="text-xs px-3 py-2 rounded-xl" style={{ background: '#FEE2E2', color: '#991B1B' }}>
+              <p className="text-sm px-3 py-2 rounded-xl" style={{ background: '#8B233218', color: '#8B2332' }}>
                 Erro ao buscar. Verifique os parâmetros.
               </p>
             )}
             <div className="flex gap-2 pt-2">
-              <button type="button" onClick={onClose} className="flex-1 px-4 py-2 rounded-xl text-sm font-semibold"
-                style={{ background: '#F5F3EE', color: '#1C1C2E', border: '1px solid #E5E3DC' }}>
+              <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 hover:brightness-[0.97] cursor-pointer"
+                style={{ background: '#FAF8F5', color: '#6B6860', border: '1.5px solid #DDD9D2' }}>
                 Cancelar
               </button>
-              <button type="submit" disabled={sync.isPending} className="flex-1 px-4 py-2 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
-                style={{ background: '#1C1C2E', color: '#fff', opacity: sync.isPending ? 0.7 : 1 }}>
+              <button type="submit" disabled={sync.isPending} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all duration-150 hover:brightness-[0.95] cursor-pointer"
+                style={{ background: '#1B2838', color: '#FAF8F5', opacity: sync.isPending ? 0.7 : 1 }}>
                 {sync.isPending ? (
                   <>
                     <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -124,8 +124,8 @@ function SyncModal({ onClose }: { onClose: () => void }) {
 }
 
 const METRICS = [
-  { key: 'total',  label: 'Total',     accent: '#1C1C2E', bg: '#F5F3EE', textColor: '#1C1C2E' },
-  { key: 'unread', label: 'Não lidas', accent: '#DC2626', bg: '#FFF5F5', textColor: '#991B1B' },
+  { key: 'total',  label: 'Total',     tone: '#2D2D3A' },
+  { key: 'unread', label: 'Não lidas', tone: '#C4953A' },
 ]
 
 export default function MovementList() {
@@ -142,23 +142,17 @@ export default function MovementList() {
   const metricValues = [metrics?.total, metrics?.unread]
 
   return (
-    <div className="min-h-full px-6 py-7 space-y-7" style={{ background: '#F5F3EE' }}>
+    <div className="min-h-full px-6 py-8 space-y-8" style={{ background: '#FAF8F5' }}>
 
         {/* Header */}
-        <div className="animate-fade-up flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: '#9CA3AF' }}>Módulo</p>
-            <h1 className="font-display" style={{ fontSize: 40, fontWeight: 500, color: '#1C1C2E', letterSpacing: '-0.02em', lineHeight: 1 }}>
-              Movimentações DJE
-            </h1>
-            <p className="text-sm mt-2" style={{ color: '#6B7280' }}>
-              Acompanhamento de publicações do Diário de Justiça Eletrônico
-            </p>
-          </div>
+        <div className="animate-fade-up flex items-end justify-between">
+          <h1 className="font-display" style={{ fontSize: 32, fontWeight: 400, color: '#1B2838', letterSpacing: '-0.02em' }}>
+            Movimentações DJE
+          </h1>
           <button
             onClick={() => setSyncOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold mt-1 shrink-0"
-            style={{ background: '#1C1C2E', color: '#fff' }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 hover:brightness-[0.95] cursor-pointer"
+            style={{ background: '#1B2838', color: '#FAF8F5' }}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
@@ -167,47 +161,41 @@ export default function MovementList() {
           </button>
         </div>
 
-        <div style={{ height: 1, background: 'linear-gradient(to right, #1C1C2E22, transparent)' }} />
-
         {/* Metrics */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {METRICS.map((m, i) => (
-            <div key={m.key} className="animate-count rounded-2xl overflow-hidden"
-              style={{ background: m.bg, border: `1px solid ${m.accent}22`, animationDelay: `${i * 60}ms` }}>
-              <div style={{ height: 3, background: m.accent }} />
-              <div className="p-4">
+            <div key={m.key} className="animate-count rounded-xl overflow-hidden"
+              style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', animationDelay: `${i * 50}ms` }}>
+              <div className="h-1" style={{ background: m.tone }} />
+              <div className="px-5 py-4">
                 <span className="font-display leading-none block"
-                  style={{ fontSize: 38, fontWeight: 600, color: m.accent, letterSpacing: '-0.03em' }}>
+                  style={{ fontSize: 38, fontWeight: 500, color: m.tone, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
                   {metricValues[i] ?? '—'}
                 </span>
-                <span className="text-xs font-semibold" style={{ color: m.textColor }}>{m.label}</span>
+                <span className="text-sm font-medium" style={{ color: '#6B6860' }}>{m.label}</span>
               </div>
             </div>
           ))}
         </div>
 
         {/* Filters */}
-        <div className="animate-fade-up rounded-2xl px-5 py-4" style={{ background: '#fff', border: '1px solid #E5E3DC', animationDelay: '180ms' }}>
-          <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#9CA3AF' }}>Filtros</p>
+        <div className="animate-fade-up" style={{ animationDelay: '180ms' }}>
           <MovementFilters filters={filters} onChange={setFilters} />
         </div>
 
         {/* List */}
         <div className="space-y-2 animate-fade-up" style={{ animationDelay: '240ms' }}>
           {isLoading && Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-2xl h-20 animate-pulse" style={{ background: '#E9E7E0' }} />
+            <div key={i} className="rounded-xl h-20 animate-pulse" style={{ background: '#EBE8E2' }} />
           ))}
           {isError && (
-            <div className="rounded-2xl px-5 py-4 text-sm" style={{ background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A522' }}>
+            <div className="rounded-xl px-5 py-4 text-base" style={{ background: '#8B233218', color: '#8B2332', border: '1.5px solid #8B233222' }}>
               Erro ao carregar movimentações.
             </div>
           )}
           {!isLoading && !isError && movements.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16" style={{ color: '#9CA3AF' }}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-3 opacity-40">
-                <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
-              </svg>
-              <p className="text-sm">Nenhuma movimentação encontrada</p>
+            <div className="flex flex-col items-center justify-center py-16">
+              <p className="text-base" style={{ color: '#A69B8D' }}>Nenhuma movimentação encontrada</p>
             </div>
           )}
           {movements.map((m, i) => (
@@ -218,7 +206,7 @@ export default function MovementList() {
         </div>
 
         {data && data.total > movements.length && (
-          <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>
+          <p className="text-sm text-center" style={{ color: '#A69B8D' }}>
             Mostrando {movements.length} de {data.total} movimentações
           </p>
         )}

@@ -18,3 +18,7 @@ export async function fetchParecer(id: string): Promise<ParecerRequestDetail> {
   const { data } = await api.get<ParecerRequestDetail>(`/api/parecer-requests/${id}`)
   return data
 }
+
+export async function deleteParecer(id: string): Promise<void> {
+  await api.delete(`/api/parecer-requests/${id}`)
+}

@@ -33,11 +33,11 @@ export default function CreateTaskModal({ columns, defaultColumnId, onClose }: C
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-5 py-4 border-b">
-          <h2 className="text-base font-semibold text-gray-900">Nova Tarefa</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(27,40,56,0.5)' }}>
+      <div className="rounded-xl w-full max-w-md" style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #EBE8E2' }}>
+          <h2 className="text-base font-medium" style={{ color: '#2D2D3A' }}>Nova Tarefa</h2>
+          <button onClick={onClose} className="p-1 rounded-lg transition-all duration-150 hover:brightness-[0.97] cursor-pointer" style={{ color: '#A69B8D' }}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -45,12 +45,13 @@ export default function CreateTaskModal({ columns, defaultColumnId, onClose }: C
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Título *</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: '#6B6860' }}>Título *</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2"
+              style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
               placeholder="Descreva a tarefa..."
               required
             />
@@ -58,12 +59,13 @@ export default function CreateTaskModal({ columns, defaultColumnId, onClose }: C
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: '#6B6860' }}>Descrição</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className="w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 resize-none"
+              style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
               placeholder="Detalhes opcionais..."
             />
           </div>
@@ -71,11 +73,12 @@ export default function CreateTaskModal({ columns, defaultColumnId, onClose }: C
           <div className="grid grid-cols-2 gap-3">
             {/* Column */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Coluna</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: '#6B6860' }}>Coluna</label>
               <select
                 value={columnId}
                 onChange={(e) => setColumnId(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2"
+                style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
               >
                 {columns.map((col) => (
                   <option key={col.id} value={col.id}>{col.name}</option>
@@ -85,11 +88,12 @@ export default function CreateTaskModal({ columns, defaultColumnId, onClose }: C
 
             {/* Priority */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Prioridade</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: '#6B6860' }}>Prioridade</label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as TaskPriority)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2"
+                style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
               >
                 <option value="high">Alta</option>
                 <option value="medium">Média</option>
@@ -100,11 +104,12 @@ export default function CreateTaskModal({ columns, defaultColumnId, onClose }: C
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: '#6B6860' }}>Categoria</label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value as TaskCategory | '')}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2"
+              style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
             >
               <option value="">Sem categoria</option>
               <option value="judicial">Judicial</option>
@@ -119,21 +124,23 @@ export default function CreateTaskModal({ columns, defaultColumnId, onClose }: C
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer"
+              style={{ background: '#FAF8F5', color: '#6B6860', border: '1.5px solid #DDD9D2' }}
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={createTask.isPending}
-              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50"
+              style={{ background: '#1B2838', color: '#FAF8F5' }}
             >
               {createTask.isPending ? 'Criando...' : 'Criar Tarefa'}
             </button>
           </div>
 
           {createTask.isError && (
-            <p className="text-xs text-red-600 text-center">
+            <p className="text-sm text-center" style={{ color: '#8B2332' }}>
               {(createTask.error as any)?.response?.data?.detail ?? 'Erro ao criar tarefa'}
             </p>
           )}

@@ -2,16 +2,15 @@ export type ParecerStatus =
   | 'pendente'
   | 'classificado'
   | 'gerado'
+  | 'em_correcao'
   | 'em_revisao'
   | 'devolvido'
   | 'aprovado'
   | 'enviado'
+  | 'erro'
 
 export type ParecerTema =
   | 'administrativo'
-  | 'tributario'
-  | 'financeiro'
-  | 'previdenciario'
   | 'licitacao'
 
 export interface ParecerRequest {
@@ -22,6 +21,7 @@ export interface ParecerRequest {
   assigned_to: string | null
   subject: string | null
   sender_email: string | null
+  sent_to_email: string | null
   status: ParecerStatus
   tema: ParecerTema | null
   created_at: string

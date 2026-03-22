@@ -24,6 +24,27 @@ class ReprocessIn(BaseModel):
     observacoes: str
 
 
+class TrechoRevisado(BaseModel):
+    original: str
+    revisado: str
+    secao: str
+
+
+class PreviewCorrectionOut(BaseModel):
+    secoes_alteradas: list[str]
+    revisado: dict[str, str]
+    trechos: list[TrechoRevisado] = []
+    notas_revisor: list[Any] = []
+    citacoes_verificar: list[Any] = []
+
+
+class ApplyCorrectionIn(BaseModel):
+    secoes_aprovadas: dict[str, str]
+    observacoes: str = ""
+    notas_revisor: list[str] = []
+    citacoes_verificar: list[Any] = []
+
+
 class ParecerVersionDetail(BaseModel):
     id: uuid.UUID
     request_id: uuid.UUID

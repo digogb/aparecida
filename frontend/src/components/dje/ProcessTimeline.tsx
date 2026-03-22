@@ -11,13 +11,13 @@ const TYPE_LABELS: Record<MovementType, string> = {
 }
 
 const TYPE_COLORS: Record<MovementType, string> = {
-  intimacao:    '#DC2626',
-  sentenca:     '#7C3AED',
-  despacho:     '#0284C7',
-  acordao:      '#059669',
-  publicacao:   '#D97706',
-  distribuicao: '#7C3AED',
-  outros:       '#6B7280',
+  intimacao:    '#8B2332',
+  sentenca:     '#1B2838',
+  despacho:     '#6B6860',
+  acordao:      '#5B7553',
+  publicacao:   '#C4953A',
+  distribuicao: '#A69B8D',
+  outros:       '#6B6860',
 }
 
 function formatDate(iso: string | null | undefined): string {
@@ -40,26 +40,30 @@ export default function ProcessTimeline({ movements, currentId, onSelect }: Proc
 
   return (
     <div className="relative">
-      <div className="absolute left-3 top-0 bottom-0 w-0.5" style={{ background: '#E5E3DC' }} />
+      <div className="absolute left-3 top-0 bottom-0 w-0.5" style={{ background: '#DDD9D2' }} />
       <ul className="space-y-3">
-        {sorted.map((m) => (
-          <li key={m.id} className="relative pl-8">
-            <div className="absolute left-1.5 top-2 w-3 h-3 rounded-full border-2 border-white"
-              style={{
-                background: TYPE_COLORS[m.type] ?? TYPE_COLORS.outros,
-                boxShadow: currentId === m.id ? `0 0 0 2px ${TYPE_COLORS[m.type]}44` : undefined,
-              }}
-            />
-            <button className="text-left w-full rounded-lg px-2 py-1 transition-colors"
-              style={{ background: currentId === m.id ? '#F5F3EE' : 'transparent' }}
-              onClick={() => onSelect(m)}>
-              <p className="text-xs font-semibold" style={{ color: '#1C1C2E' }}>{TYPE_LABELS[m.type]}</p>
-              <p className="text-xs" style={{ color: '#9CA3AF' }}>
-                {formatDate(m.published_at ?? m.metadata_?.data_disponibilizacao as string ?? null)}
-              </p>
-            </button>
-          </li>
-        ))}
+        {sorted.map((m) => {
+          const color = TYPE_COLORS[m.type] ?? TYPE_COLORS.outros
+          return (
+            <li key={m.id} className="relative pl-8">
+              <div className="absolute left-1.5 top-2 w-3 h-3 rounded-full"
+                style={{
+                  background: color,
+                  border: '2px solid #FAF8F5',
+                  boxShadow: currentId === m.id ? `0 0 0 2px ${color}44` : undefined,
+                }}
+              />
+              <button className="text-left w-full rounded-lg px-2 py-1 transition-all duration-150 cursor-pointer"
+                style={{ background: currentId === m.id ? '#EBE8E2' : 'transparent' }}
+                onClick={() => onSelect(m)}>
+                <p className="text-sm font-medium" style={{ color: '#2D2D3A' }}>{TYPE_LABELS[m.type]}</p>
+                <p className="text-sm" style={{ color: '#A69B8D' }}>
+                  {formatDate(m.published_at ?? m.metadata_?.data_disponibilizacao as string ?? null)}
+                </p>
+              </button>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )

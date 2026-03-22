@@ -12,17 +12,23 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
   if (!editor) return null
 
   const btnClass = (active: boolean) =>
-    `px-2 py-1 rounded text-sm font-medium transition-colors ${
+    `px-2 py-1 rounded text-sm font-medium transition-all duration-150 cursor-pointer ${
       active
-        ? 'bg-indigo-100 text-indigo-700'
-        : 'text-gray-600 hover:bg-gray-100'
+        ? ''
+        : ''
     }`
 
+  const btnStyle = (active: boolean) =>
+    active
+      ? { background: '#C4953A18', color: '#C4953A' }
+      : { color: '#6B6860' }
+
   return (
-    <div className="flex items-center gap-1 border-b border-gray-200 px-4 py-2 bg-white flex-wrap">
+    <div className="flex items-center gap-1 px-4 py-2 flex-wrap" style={{ background: '#FAF8F5', borderBottom: '1px solid #EBE8E2' }}>
       {/* Block type dropdown */}
       <select
-        className="text-sm border border-gray-300 rounded px-2 py-1 mr-2"
+        className="text-sm rounded-lg px-2 py-1 mr-2 focus:outline-none"
+        style={{ border: '1.5px solid #DDD9D2', color: '#2D2D3A', background: '#FAF8F5' }}
         value={
           editor.isActive('heading', { level: 1 })
             ? 'h1'
@@ -49,11 +55,12 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
         <option value="h3">Título 3</option>
       </select>
 
-      <div className="w-px h-5 bg-gray-300 mx-1" />
+      <div className="w-px h-5 mx-1" style={{ background: '#DDD9D2' }} />
 
       {/* Inline formatting */}
       <button
         className={btnClass(editor.isActive('bold'))}
+        style={btnStyle(editor.isActive('bold'))}
         onClick={() => editor.chain().focus().toggleBold().run()}
         title="Negrito"
       >
@@ -61,6 +68,7 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
       </button>
       <button
         className={btnClass(editor.isActive('italic'))}
+        style={btnStyle(editor.isActive('italic'))}
         onClick={() => editor.chain().focus().toggleItalic().run()}
         title="Itálico"
       >
@@ -68,17 +76,19 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
       </button>
       <button
         className={btnClass(editor.isActive('underline'))}
+        style={btnStyle(editor.isActive('underline'))}
         onClick={() => editor.chain().focus().toggleUnderline().run()}
         title="Sublinhado"
       >
         <u>U</u>
       </button>
 
-      <div className="w-px h-5 bg-gray-300 mx-1" />
+      <div className="w-px h-5 mx-1" style={{ background: '#DDD9D2' }} />
 
       {/* Legal blocks */}
       <button
         className={btnClass(editor.isActive('citacaoLegal'))}
+        style={btnStyle(editor.isActive('citacaoLegal'))}
         onClick={() => editor.chain().focus().setCitacaoLegal({ referencia: 'Lei/Artigo' }).run()}
         title="Citação Legal"
       >
@@ -86,13 +96,15 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
       </button>
       <button
         className={btnClass(editor.isActive('ementa'))}
+        style={btnStyle(editor.isActive('ementa'))}
         onClick={() => editor.chain().focus().setEmenta().run()}
         title="Ementa"
       >
         Ementa
       </button>
       <button
-        className="px-2 py-1 rounded text-sm text-gray-600 hover:bg-gray-100"
+        className="px-2 py-1 rounded text-sm transition-all duration-150 cursor-pointer"
+        style={{ color: '#6B6860' }}
         onClick={() =>
           editor
             .chain()
@@ -105,11 +117,12 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
         Art.
       </button>
 
-      <div className="w-px h-5 bg-gray-300 mx-1" />
+      <div className="w-px h-5 mx-1" style={{ background: '#DDD9D2' }} />
 
       {/* Lists */}
       <button
         className={btnClass(editor.isActive('orderedList'))}
+        style={btnStyle(editor.isActive('orderedList'))}
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
         title="Lista numerada"
       >
@@ -117,32 +130,35 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
       </button>
       <button
         className={btnClass(editor.isActive('bulletList'))}
+        style={btnStyle(editor.isActive('bulletList'))}
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         title="Lista"
       >
         •
       </button>
 
-      <div className="w-px h-5 bg-gray-300 mx-1" />
+      <div className="w-px h-5 mx-1" style={{ background: '#DDD9D2' }} />
 
       {/* Clear formatting */}
       <button
-        className="px-2 py-1 rounded text-sm text-gray-600 hover:bg-gray-100"
+        className="px-2 py-1 rounded text-sm transition-all duration-150 cursor-pointer"
+        style={{ color: '#6B6860' }}
         onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
         title="Limpar formatação"
       >
         T̶
       </button>
 
-      <div className="w-px h-5 bg-gray-300 mx-1" />
+      <div className="w-px h-5 mx-1" style={{ background: '#DDD9D2' }} />
 
       {/* Correction mark */}
       <button
-        className={`px-2 py-1 rounded text-sm font-medium transition-colors ${
+        className="px-2 py-1 rounded text-sm font-medium transition-all duration-150 cursor-pointer"
+        style={
           editor.isActive('correctionMark')
-            ? 'bg-amber-100 text-amber-700 border border-amber-300'
-            : 'text-amber-600 hover:bg-amber-50'
-        }`}
+            ? { background: '#C4953A18', color: '#C4953A', border: '1px solid #C4953A44' }
+            : { color: '#C4953A' }
+        }
         onClick={() => editor.chain().focus().toggleCorrectionMark().run()}
         title="Marcar trecho para correção (Ctrl+Shift+M)"
       >
@@ -159,13 +175,14 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
 
       {/* Save */}
       <button
-        className={`px-3 py-1 text-sm rounded font-medium transition-colors ${
+        className="px-3 py-1 text-sm rounded-lg font-medium transition-all duration-150 cursor-pointer"
+        style={
           isSaving
-            ? 'text-gray-400 cursor-not-allowed'
+            ? { color: '#A69B8D', cursor: 'not-allowed' }
             : isDirty
-              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-              : 'text-gray-400 border border-gray-200'
-        }`}
+              ? { background: '#1B2838', color: '#FAF8F5' }
+              : { color: '#A69B8D', border: '1.5px solid #DDD9D2' }
+        }
         onClick={onSave}
         disabled={isSaving || !isDirty}
         title="Salvar (Ctrl+S)"
@@ -173,17 +190,19 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
         {isSaving ? 'Salvando…' : 'Salvar'}
       </button>
 
-      <div className="w-px h-5 bg-gray-300 mx-1" />
+      <div className="w-px h-5 mx-1" style={{ background: '#DDD9D2' }} />
 
       {/* Export */}
       <button
-        className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded"
+        className="px-3 py-1 text-sm rounded-lg transition-all duration-150 cursor-pointer"
+        style={{ color: '#6B6860' }}
         onClick={() => onExport('docx')}
       >
         .docx
       </button>
       <button
-        className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded"
+        className="px-3 py-1 text-sm rounded-lg transition-all duration-150 cursor-pointer"
+        style={{ color: '#6B6860' }}
         onClick={() => onExport('pdf')}
       >
         .pdf

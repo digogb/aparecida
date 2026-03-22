@@ -9,7 +9,15 @@ import CitacaoLegal from '../components/editor/extensions/CitacaoLegal'
 import Ementa from '../components/editor/extensions/Ementa'
 import AIContent from '../components/editor/extensions/AIContent'
 import CorrectionMark from '../components/editor/extensions/CorrectionMark'
-import { saveVersion, returnToAI, approveParecer, exportParecer, generateParecer } from '../services/editorApi'
+import {
+  saveVersion,
+  previewCorrection,
+  applyCorrection,
+  approveParecer,
+  exportParecer,
+  generateParecer,
+} from '../services/editorApi'
+import type { CorrectionPreview } from '../services/editorApi'
 import type { ParecerRequestDetail, ParecerVersion } from '../types/parecer'
 
 /** Extract all text fragments marked with correctionMark from the editor */
@@ -52,6 +60,9 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
   const [generateError, setGenerateError] = useState<string | null>(null)
   const [correctionCount, setCorrectionCount] = useState(0)
   const [isReprocessing, setIsReprocessing] = useState(false)
+  const [correctionPreview, setCorrectionPreview] = useState<CorrectionPreview | null>(null)
+  const [isApplying, setIsApplying] = useState(false)
+  const [correctionInstructions, setCorrectionInstructions] = useState('')
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const saveRef = useRef<() => void>(() => {})
   const queryClient = useQueryClient()
@@ -162,28 +173,61 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     return getMarkedFragments(editor)
   }, [editor])
 
-  const handleReturnToAI = useCallback(
+  /** Fase 1: enviar para IA e obter preview */
+  const handleRequestPreview = useCallback(
     async (instructions: string) => {
       if (!parecer) return
       setIsReprocessing(true)
+      setCorrectionInstructions(instructions)
       try {
         const trechos = getMarkedFragments(editor)
         const fullObservacoes = trechos.length > 0
           ? `## TRECHOS MARCADOS PARA CORREÇÃO\nOs seguintes trechos foram marcados e DEVEM ser reescritos/corrigidos:\n${trechos.map((t, i) => `${i + 1}. "${t}"`).join('\n')}\n\n## INSTRUÇÕES DO REVISOR\n${instructions}`
           : instructions
-        const newVersion = await returnToAI(parecer.id, fullObservacoes)
-        clearAllCorrectionMarks(editor)
-        setActiveVersion(newVersion)
-        setShowReturnModal(false)
-        queryClient.invalidateQueries({ queryKey: ['parecer', parecer.id] })
+        const preview = await previewCorrection(parecer.id, fullObservacoes)
+        setCorrectionPreview(preview)
       } catch (err) {
-        console.error('Return to AI failed:', err)
+        console.error('Preview correction failed:', err)
       } finally {
         setIsReprocessing(false)
       }
     },
-    [parecer, editor, queryClient]
+    [parecer, editor]
   )
+
+  /** Fase 2: aplicar seções aprovadas */
+  const handleApplyCorrection = useCallback(
+    async (secoes_aprovadas: Record<string, string>) => {
+      if (!parecer || !correctionPreview) return
+      setIsApplying(true)
+      try {
+        const newVersion = await applyCorrection(
+          parecer.id,
+          secoes_aprovadas,
+          correctionInstructions,
+          correctionPreview.notas_revisor,
+          correctionPreview.citacoes_verificar,
+        )
+        clearAllCorrectionMarks(editor)
+        setActiveVersion(newVersion)
+        setCorrectionPreview(null)
+        setCorrectionInstructions('')
+        setShowReturnModal(false)
+        queryClient.invalidateQueries({ queryKey: ['parecer', parecer.id] })
+      } catch (err) {
+        console.error('Apply correction failed:', err)
+      } finally {
+        setIsApplying(false)
+      }
+    },
+    [parecer, correctionPreview, correctionInstructions, editor, queryClient]
+  )
+
+  const handleCloseModal = useCallback(() => {
+    setShowReturnModal(false)
+    setCorrectionPreview(null)
+    setCorrectionInstructions('')
+  }, [])
 
   const handleApprove = useCallback(
     async (sendEmail: boolean) => {
@@ -246,8 +290,12 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     handleGenerate,
     isGenerating,
     generateError,
-    handleReturnToAI,
+    handleRequestPreview,
+    handleApplyCorrection,
+    handleCloseModal,
     isReprocessing,
+    isApplying,
+    correctionPreview,
     handleApprove,
     handleExport,
     getMarkedTexts,

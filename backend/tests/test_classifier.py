@@ -11,7 +11,7 @@ from app.services.parecer_engine import _parse_sections, _sections_to_html, _sec
 
 class TestClassificacaoPrompt:
     def test_prompt_mentions_all_themes(self):
-        for tema in ["administrativo", "tributario", "financeiro", "previdenciario", "licitacao"]:
+        for tema in ["administrativo", "licitacao"]:
             assert tema in SYSTEM_PROMPT
 
     def test_prompt_mentions_models(self):

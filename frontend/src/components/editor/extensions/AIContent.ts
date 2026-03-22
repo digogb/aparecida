@@ -56,15 +56,16 @@ const AIContent = Node.create<AIContentOptions>({
 
   renderHTML({ HTMLAttributes }) {
     const accepted = HTMLAttributes['data-accepted']
-    let borderClass = 'border-green-400 bg-green-50'
-    if (accepted === 'true') borderClass = 'border-blue-400 bg-blue-50'
-    if (accepted === 'false') borderClass = 'border-red-300 bg-red-50 opacity-50'
+    let borderStyle = 'border-color: #5B7553; background: #5B755318;'
+    if (accepted === 'true') borderStyle = 'border-color: #C4953A; background: #C4953A18;'
+    if (accepted === 'false') borderStyle = 'border-color: #8B2332; background: #8B233218; opacity: 0.5;'
 
     return [
       'div',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
         'data-type': 'ai-content',
-        class: `border-l-4 ${borderClass} pl-4 py-2 my-3 rounded-r relative`,
+        class: 'border-l-4 pl-4 py-2 my-3 rounded-r relative',
+        style: borderStyle,
       }),
       [
         'div',
@@ -76,7 +77,8 @@ const AIContent = Node.create<AIContentOptions>({
           'span',
           {
             class:
-              'inline-flex items-center px-2 py-0.5 rounded bg-green-200 text-green-800 font-medium',
+              'inline-flex items-center px-2 py-0.5 rounded font-medium',
+            style: 'background: #5B755318; color: #5B7553;',
           },
           '✦ Gerado por IA',
         ],

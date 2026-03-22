@@ -44,6 +44,7 @@ class ParecerRequestOut(BaseModel):
     gmail_message_id: Optional[str]
     subject: Optional[str]
     sender_email: Optional[str]
+    sent_to_email: Optional[str]
     extracted_text: Optional[str]
     extraction_method: Optional[ExtractionMethod]
     extraction_status: Optional[ExtractionStatus]

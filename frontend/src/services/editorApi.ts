@@ -1,6 +1,20 @@
 import api from './api'
 import type { ParecerVersion } from '../types/parecer'
 
+export interface TrechoRevisado {
+  original: string
+  revisado: string
+  secao: string
+}
+
+export interface CorrectionPreview {
+  secoes_alteradas: string[]
+  revisado: Record<string, string>
+  trechos: TrechoRevisado[]
+  notas_revisor: string[]
+  citacoes_verificar: unknown[]
+}
+
 export async function generateParecer(parecerId: string): Promise<ParecerVersion> {
   const { data } = await api.post<ParecerVersion>(
     `/api/parecer-requests/${parecerId}/generate`
@@ -20,13 +34,27 @@ export async function saveVersion(
   return data
 }
 
-export async function returnToAI(
+export async function previewCorrection(
   parecerId: string,
   instructions: string
+): Promise<CorrectionPreview> {
+  const { data } = await api.post<CorrectionPreview>(
+    `/api/parecer-requests/${parecerId}/preview-correction`,
+    { observacoes: instructions }
+  )
+  return data
+}
+
+export async function applyCorrection(
+  parecerId: string,
+  secoes_aprovadas: Record<string, string>,
+  observacoes: string,
+  notas_revisor: string[],
+  citacoes_verificar: unknown[]
 ): Promise<ParecerVersion> {
   const { data } = await api.post<ParecerVersion>(
-    `/api/parecer-requests/${parecerId}/reprocess`,
-    { observacoes: instructions }
+    `/api/parecer-requests/${parecerId}/apply-correction`,
+    { secoes_aprovadas, observacoes, notas_revisor, citacoes_verificar }
   )
   return data
 }

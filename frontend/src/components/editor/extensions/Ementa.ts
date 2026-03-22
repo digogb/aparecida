@@ -35,7 +35,8 @@ const Ementa = Node.create<EmentaOptions>({
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
         'data-type': 'ementa',
         class:
-          'border-l-4 border-gray-400 bg-gray-50 pl-6 py-3 my-3 italic text-gray-700 rounded-r',
+          'border-l-4 pl-6 py-3 my-3 italic rounded-r',
+        style: 'border-color: #DDD9D2; background: #EBE8E2; color: #6B6860;',
       }),
       0,
     ]

@@ -14,6 +14,7 @@ from sqlalchemy.orm import selectinload
 from app.database import async_session
 from app.models.parecer import ParecerRequest, ParecerStatus, ParecerStatusHistory
 from app.services import classifier, parecer_engine
+from app.services.classifier import NotLegalConsultationError
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,31 @@ async def _mark_erro(parecer_request_id: str, etapa: str, exc: Exception) -> Non
         logger.exception("Pipeline: erro ao salvar status de falha para %s", parecer_request_id)
 
 
+async def _mark_devolvido(parecer_request_id: str, motivo: str) -> None:
+    """Marca o parecer como devolvido (email não é consulta jurídica)."""
+    try:
+        async with async_session() as db:
+            result = await db.execute(
+                select(ParecerRequest).where(ParecerRequest.id == parecer_request_id)
+            )
+            pr = result.scalar_one_or_none()
+            if pr is None:
+                return
+            old_status = pr.status
+            pr.status = ParecerStatus.devolvido
+            db.add(
+                ParecerStatusHistory(
+                    request_id=pr.id,
+                    from_status=old_status,
+                    to_status=ParecerStatus.devolvido,
+                    notes=f"Email não é uma consulta jurídica: {motivo}",
+                )
+            )
+            await db.commit()
+    except Exception:
+        logger.exception("Pipeline: erro ao marcar devolvido para %s", parecer_request_id)
+
+
 async def process_parecer_pipeline(parecer_request_id: str) -> None:
     """
     Executa P1 (classify) → P2 (generate) para um ParecerRequest.
@@ -70,6 +96,10 @@ async def process_parecer_pipeline(parecer_request_id: str) -> None:
         async with async_session() as db:
             await classifier.classify(parecer_request_id, db)
         logger.info("Pipeline P1: classificacao concluida para %s", parecer_request_id)
+    except NotLegalConsultationError as exc:
+        logger.warning("Pipeline P1: email nao juridico, marcando como devolvido — %s", exc)
+        await _mark_devolvido(parecer_request_id, str(exc))
+        return
     except Exception as exc:
         logger.exception("Pipeline P1: falha ao classificar %s", parecer_request_id)
         await _mark_erro(parecer_request_id, "P1-classificacao", exc)

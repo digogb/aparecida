@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 
 class DashboardStats(BaseModel):
-    pareceres_pendentes: int
+    aguardando_revisao: int
     em_revisao: int
     movimentacoes_nao_lidas: int
     tarefas_urgentes: int

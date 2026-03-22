@@ -4,9 +4,9 @@ import { Calendar, User } from 'lucide-react'
 import type { Task } from '../../types/task'
 
 const PRIORITY_COLORS: Record<string, string> = {
-  high: 'bg-red-500',
-  medium: 'bg-yellow-400',
-  low: 'bg-green-400',
+  high: '#8B2332',
+  medium: '#C4953A',
+  low: '#5B7553',
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -17,12 +17,12 @@ const CATEGORY_LABELS: Record<string, string> = {
   prazo: 'Prazo',
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  judicial: 'bg-blue-100 text-blue-700',
-  administrativa: 'bg-gray-100 text-gray-700',
-  parecer: 'bg-purple-100 text-purple-700',
-  publicacao_dje: 'bg-orange-100 text-orange-700',
-  prazo: 'bg-red-100 text-red-700',
+const CATEGORY_COLORS: Record<string, { color: string }> = {
+  judicial: { color: '#1B2838' },
+  administrativa: { color: '#6B6860' },
+  parecer: { color: '#C4953A' },
+  publicacao_dje: { color: '#A69B8D' },
+  prazo: { color: '#8B2332' },
 }
 
 interface TaskCardProps {
@@ -49,50 +49,58 @@ export default function TaskCard({ task }: TaskCardProps) {
     ? String(task.source_ref!.process_id).slice(0, 8)
     : null
 
+  const priorityColor = PRIORITY_COLORS[task.priority] ?? '#A69B8D'
+
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{ ...style, background: '#FAF8F5', border: '1.5px solid #DDD9D2' }}
       {...attributes}
       {...listeners}
-      className="bg-white rounded-lg shadow-sm border border-gray-200 cursor-grab active:cursor-grabbing select-none overflow-hidden"
+      className="rounded-xl cursor-grab active:cursor-grabbing select-none overflow-hidden"
     >
       {/* Priority bar */}
-      <div className={`h-1 w-full ${PRIORITY_COLORS[task.priority] ?? 'bg-gray-300'}`} />
+      <div className="h-1 w-full" style={{ background: priorityColor }} />
 
       <div className="p-3 space-y-2">
         {/* Title */}
-        <p className="text-sm font-medium text-gray-900 leading-tight line-clamp-2">
+        <p className="text-sm font-medium leading-tight line-clamp-2" style={{ color: '#2D2D3A' }}>
           {task.title}
         </p>
 
         {/* Process ref */}
         {processId && (
-          <p className="text-xs text-gray-400 font-mono">#{processId}</p>
+          <p className="text-xs font-mono" style={{ color: '#A69B8D' }}>#{processId}</p>
         )}
 
         <div className="flex items-center justify-between gap-2 flex-wrap">
           {/* Category badge */}
-          {task.category && (
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${CATEGORY_COLORS[task.category] ?? 'bg-gray-100 text-gray-600'}`}>
-              {CATEGORY_LABELS[task.category] ?? task.category}
-            </span>
-          )}
+          {task.category && (() => {
+            const cat = CATEGORY_COLORS[task.category]
+            const color = cat?.color ?? '#6B6860'
+            return (
+              <span className="text-xs px-2 py-0.5 rounded-lg font-medium"
+                style={{ background: `${color}18`, color }}>
+                {CATEGORY_LABELS[task.category] ?? task.category}
+              </span>
+            )
+          })()}
 
           <div className="flex items-center gap-2 ml-auto">
             {/* Assignee avatar */}
             {task.assigned_to && (
               <div
-                className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center"
+                className="w-6 h-6 rounded-full flex items-center justify-center"
+                style={{ background: '#C4953A18' }}
                 title={task.assigned_to}
               >
-                <User className="w-3 h-3 text-indigo-600" />
+                <User className="w-3 h-3" style={{ color: '#C4953A' }} />
               </div>
             )}
 
             {/* Due date */}
             {dueDateStr && (
-              <div className={`flex items-center gap-1 text-xs ${isOverdue ? 'text-red-600' : 'text-gray-400'}`}>
+              <div className="flex items-center gap-1 text-xs" style={{ color: isOverdue ? '#8B2332' : '#A69B8D' }}>
                 <Calendar className="w-3 h-3" />
                 <span>{dueDateStr}</span>
               </div>
