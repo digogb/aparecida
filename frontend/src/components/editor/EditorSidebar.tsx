@@ -13,9 +13,10 @@ interface Props {
 
 const statusLabels: Record<string, string> = {
   pendente: 'Pendente',
-  classificado: 'Classificado',
-  gerado: 'Gerado',
-  em_revisao: 'Em Revisão',
+  classificado: 'Pendente',
+  gerado: 'Aguardando revisão',
+  em_correcao: 'Em correção',
+  em_revisao: 'Aguardando revisão',
   devolvido: 'Devolvido',
   aprovado: 'Aprovado',
   enviado: 'Enviado',
@@ -24,14 +25,17 @@ const statusLabels: Record<string, string> = {
 function getReviewFlow(status: string): ReviewFlowStep[] {
   const steps: ReviewFlowStep[] = [
     { label: 'Recebido', status: 'done' },
-    { label: 'Classificado', status: 'pending' },
-    { label: 'IA Gerou', status: 'pending' },
-    { label: 'Em Revisão', status: 'pending' },
+    { label: 'IA processando', status: 'pending' },
+    { label: 'Aguardando revisão', status: 'pending' },
+    { label: 'Em correção', status: 'pending' },
     { label: 'Aprovado', status: 'pending' },
     { label: 'Enviado', status: 'pending' },
   ]
-  const order = ['pendente', 'classificado', 'gerado', 'em_revisao', 'aprovado', 'enviado']
-  const idx = order.indexOf(status)
+  const statusToStep: Record<string, number> = {
+    pendente: 0, classificado: 1, gerado: 2, em_correcao: 3,
+    em_revisao: 2, devolvido: 3, aprovado: 4, enviado: 5,
+  }
+  const idx = statusToStep[status] ?? -1
   for (let i = 0; i <= idx && i < steps.length; i++) {
     steps[i].status = i === idx ? 'current' : 'done'
   }
@@ -62,6 +66,7 @@ export default function EditorSidebar({
   onVersionRestored,
 }: Props) {
   const [isRestoring, setIsRestoring] = useState(false)
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false)
   const queryClient = useQueryClient()
   const flow = getReviewFlow(parecer.status)
   const sortedVersions = [...parecer.versions].sort(
@@ -81,36 +86,37 @@ export default function EditorSidebar({
       console.error('Restore failed:', err)
     } finally {
       setIsRestoring(false)
+      setShowRestoreConfirm(false)
     }
   }
 
   return (
-    <aside className="w-[220px] border-l border-gray-200 bg-gray-50 overflow-y-auto flex-shrink-0">
+    <aside className="w-[220px] overflow-y-auto flex-shrink-0" style={{ borderLeft: '1px solid #EBE8E2', background: '#EBE8E2' }}>
       {/* Info */}
-      <div className="p-3 border-b border-gray-200">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
+      <div className="p-3" style={{ borderBottom: '1px solid #DDD9D2' }}>
+        <h3 className="text-sm font-medium uppercase tracking-widest mb-2" style={{ color: '#A69B8D' }}>
           Informações
         </h3>
         <dl className="space-y-1 text-sm">
           <div>
-            <dt className="text-gray-500 text-xs">Remetente</dt>
-            <dd className="text-gray-900 truncate">{parecer.sender_email || '—'}</dd>
+            <dt className="text-sm" style={{ color: '#A69B8D' }}>Remetente</dt>
+            <dd className="truncate" style={{ color: '#2D2D3A' }}>{parecer.sender_email || '—'}</dd>
           </div>
           <div>
-            <dt className="text-gray-500 text-xs">Data</dt>
-            <dd className="text-gray-900">{formatDate(parecer.created_at)}</dd>
+            <dt className="text-sm" style={{ color: '#A69B8D' }}>Data</dt>
+            <dd style={{ color: '#2D2D3A' }}>{formatDate(parecer.created_at)}</dd>
           </div>
           <div>
-            <dt className="text-gray-500 text-xs">Município</dt>
-            <dd className="text-gray-900">{parecer.municipio_nome || '—'}</dd>
+            <dt className="text-sm" style={{ color: '#A69B8D' }}>Município</dt>
+            <dd style={{ color: '#2D2D3A' }}>{parecer.municipio_nome || '—'}</dd>
           </div>
           <div>
-            <dt className="text-gray-500 text-xs">Tema</dt>
-            <dd className="text-gray-900 capitalize">{parecer.tema || '—'}</dd>
+            <dt className="text-sm" style={{ color: '#A69B8D' }}>Tema</dt>
+            <dd className="capitalize" style={{ color: '#2D2D3A' }}>{parecer.tema || '—'}</dd>
           </div>
           <div>
-            <dt className="text-gray-500 text-xs">Status</dt>
-            <dd className="text-gray-900">
+            <dt className="text-sm" style={{ color: '#A69B8D' }}>Status</dt>
+            <dd style={{ color: '#2D2D3A' }}>
               {statusLabels[parecer.status] || parecer.status}
             </dd>
           </div>
@@ -119,8 +125,8 @@ export default function EditorSidebar({
 
       {/* Attachments */}
       {parecer.attachments.length > 0 && (
-        <div className="p-3 border-b border-gray-200">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
+        <div className="p-3" style={{ borderBottom: '1px solid #DDD9D2' }}>
+          <h3 className="text-sm font-medium uppercase tracking-widest mb-2" style={{ color: '#A69B8D' }}>
             Anexos
           </h3>
           <ul className="space-y-1">
@@ -130,12 +136,13 @@ export default function EditorSidebar({
                   href={`/api/attachments/${att.id}/file`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-indigo-600 hover:underline truncate block"
+                  className="text-sm truncate block"
+                  style={{ color: '#C4953A' }}
                   title={att.filename}
                 >
                   {att.filename}
                 </a>
-                <span className="text-xs text-gray-400">
+                <span className="text-sm" style={{ color: '#A69B8D' }}>
                   {formatBytes(att.size_bytes)}
                 </span>
               </li>
@@ -145,30 +152,34 @@ export default function EditorSidebar({
       )}
 
       {/* Review Flow */}
-      <div className="p-3 border-b border-gray-200">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
+      <div className="p-3" style={{ borderBottom: '1px solid #DDD9D2' }}>
+        <h3 className="text-sm font-medium uppercase tracking-widest mb-2" style={{ color: '#A69B8D' }}>
           Fluxo de Revisão
         </h3>
         <ol className="space-y-1">
           {flow.map((step, i) => (
-            <li key={i} className="flex items-center gap-2 text-xs">
+            <li key={i} className="flex items-center gap-2 text-sm">
               <span
-                className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                  step.status === 'done'
-                    ? 'bg-green-500'
-                    : step.status === 'current'
-                      ? 'bg-indigo-500'
-                      : 'bg-gray-300'
-                }`}
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{
+                  background:
+                    step.status === 'done'
+                      ? '#5B7553'
+                      : step.status === 'current'
+                        ? '#C4953A'
+                        : '#DDD9D2',
+                }}
               />
               <span
-                className={
-                  step.status === 'current'
-                    ? 'text-indigo-700 font-medium'
-                    : step.status === 'done'
-                      ? 'text-gray-600'
-                      : 'text-gray-400'
-                }
+                style={{
+                  color:
+                    step.status === 'current'
+                      ? '#C4953A'
+                      : step.status === 'done'
+                        ? '#6B6860'
+                        : '#A69B8D',
+                  fontWeight: step.status === 'current' ? 500 : 400,
+                }}
               >
                 {step.label}
               </span>
@@ -179,31 +190,57 @@ export default function EditorSidebar({
 
       {/* Versions */}
       <div className="p-3">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
+        <h3 className="text-sm font-medium uppercase tracking-widest mb-2" style={{ color: '#A69B8D' }}>
           Versões
         </h3>
-        {isViewingOld && (
+        {isViewingOld && !showRestoreConfirm && (
           <button
-            onClick={handleRestore}
-            disabled={isRestoring}
-            className="w-full mb-2 px-2 py-1.5 text-xs rounded bg-amber-50 border border-amber-300 text-amber-700 hover:bg-amber-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => setShowRestoreConfirm(true)}
+            className="w-full mb-2 px-2 py-1.5 text-sm rounded-lg transition-all duration-150 cursor-pointer"
+            style={{ background: '#C4953A18', border: '1.5px solid #C4953A44', color: '#C4953A' }}
           >
-            {isRestoring ? 'Restaurando...' : `↩ Restaurar v${activeVersion?.version_number}`}
+            ↩ Restaurar v{activeVersion?.version_number}
           </button>
+        )}
+        {isViewingOld && showRestoreConfirm && (
+          <div className="mb-2 p-2 rounded-lg text-sm space-y-2" style={{ background: '#C4953A12', border: '1.5px solid #C4953A44' }}>
+            <p style={{ color: '#6B6860' }}>
+              Restaurar a <strong style={{ color: '#2D2D3A' }}>v{activeVersion?.version_number}</strong> como nova versão?
+            </p>
+            <div className="flex gap-1.5">
+              <button
+                onClick={handleRestore}
+                disabled={isRestoring}
+                className="flex-1 px-2 py-1 text-sm font-medium rounded-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: '#C4953A', color: '#FAF8F5' }}
+              >
+                {isRestoring ? 'Restaurando...' : 'Confirmar'}
+              </button>
+              <button
+                onClick={() => setShowRestoreConfirm(false)}
+                disabled={isRestoring}
+                className="flex-1 px-2 py-1 text-sm rounded-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ color: '#6B6860', border: '1px solid #DDD9D2' }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
         )}
         <ul className="space-y-1">
           {sortedVersions.map((v) => (
             <li key={v.id}>
               <button
                 onClick={() => onVersionSelect(v)}
-                className={`w-full text-left px-2 py-1 rounded text-xs transition-colors ${
+                className="w-full text-left px-2 py-1 rounded-lg text-sm transition-all duration-150 cursor-pointer"
+                style={
                   activeVersion?.id === v.id
-                    ? 'bg-indigo-100 text-indigo-700 font-medium'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
+                    ? { background: '#C4953A18', color: '#C4953A', fontWeight: 500 }
+                    : { color: '#6B6860' }
+                }
               >
                 <div>v{v.version_number} — {v.source}</div>
-                <div className="text-gray-400">{formatDate(v.created_at)}</div>
+                <div style={{ color: '#A69B8D' }}>{formatDate(v.created_at)}</div>
               </button>
             </li>
           ))}

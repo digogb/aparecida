@@ -225,44 +225,12 @@ def render_parecer_html(parecer: dict) -> str:
             line-height: 1.4;
         }}
 
-        /* ═══ IMPRESSÃO ═══ */
+        /* ═══ IMPRESSÃO (browser) ═══ */
         @media print {{
-            body {{
-                background: none;
-            }}
-            .parecer-container {{
-                box-shadow: none;
-                margin: 0;
-                padding: 0;
-                max-width: none;
-            }}
-            
-            /* Cabeçalho e rodapé em todas as páginas */
-            .cabecalho {{
-                position: running(cabecalho);
-            }}
-            .rodape {{
-                position: running(rodape);
-            }}
-            
-            @page {{
-                size: A4;
-                margin: 2cm;
-                @top-center {{
-                    content: element(cabecalho);
-                }}
-                @bottom-center {{
-                    content: element(rodape);
-                }}
-            }}
-            
-            /* Evitar quebra no meio de citações e conclusão */
-            blockquote {{
-                break-inside: avoid;
-            }}
-            .assinaturas {{
-                break-inside: avoid;
-            }}
+            body {{ background: none; }}
+            .parecer-container {{ box-shadow: none; margin: 0; padding: 0; max-width: none; }}
+            blockquote {{ break-inside: avoid; }}
+            .assinaturas {{ break-inside: avoid; }}
         }}
     </style>
 </head>
@@ -484,7 +452,7 @@ def parse_parecer_xml(xml_text: str) -> dict:
     tags = [
         "metadata", "ementa", "relatorio", "fundamentos",
         "conclusao", "citacoes_verificar", "ressalvas",
-        "secoes_alteradas", "notas_revisor"
+        "secoes_alteradas", "notas_revisor", "trechos_revisados"
     ]
     
     for tag in tags:
@@ -493,7 +461,7 @@ def parse_parecer_xml(xml_text: str) -> dict:
         if match:
             content = match.group(1).strip()
             # Tentar parse JSON para campos estruturados
-            if tag in ("metadata", "citacoes_verificar", "ressalvas", "secoes_alteradas", "notas_revisor"):
+            if tag in ("metadata", "citacoes_verificar", "ressalvas", "secoes_alteradas", "notas_revisor", "trechos_revisados"):
                 try:
                     content = json.loads(content)
                 except (json.JSONDecodeError, TypeError):

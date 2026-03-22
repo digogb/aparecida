@@ -6,7 +6,7 @@ Sua tarefa e classificar uma consulta juridica recebida por email de uma prefeit
 Analise o texto da consulta e retorne APENAS um JSON valido (sem markdown, sem explicacao) com os seguintes campos:
 
 {
-  "tema": "<administrativo|tributario|financeiro|previdenciario|licitacao>",
+  "tema": "<administrativo|licitacao>",
   "subtema": "<string descritivo curto do subtema especifico>",
   "modelo_parecer": "<generico|licitacao>",
   "municipio_detectado": "<nome do municipio se identificavel no texto, ou null>",
@@ -15,16 +15,11 @@ Analise o texto da consulta e retorne APENAS um JSON valido (sem markdown, sem e
 
 Regras de classificacao:
 - tema "licitacao": quando o assunto envolve licitacao, pregao, contratacao publica, \
-Lei 14.133/2021, Lei 8.666/93, dispensa de licitacao, inexigibilidade, ou ata de \
-registro de precos.
-- tema "tributario": quando envolve IPTU, ISS, ITBI, taxas municipais, imunidade, \
-isencao tributaria, execucao fiscal, divida ativa.
-- tema "financeiro": quando envolve orcamento publico, LDO, LOA, PPA, precatorios, \
-repasses, fundos municipais, operacoes de credito.
-- tema "previdenciario": quando envolve RPPS, aposentadoria de servidor, pensao, \
-contribuicao previdenciaria municipal, compensacao previdenciaria.
-- tema "administrativo": para demais assuntos de direito publico municipal \
-(servidores, concurso, contratos administrativos gerais, bens publicos, etc).
+Lei 14.133/2021, Lei 8.666/93, dispensa de licitacao, inexigibilidade, ata de \
+registro de precos, ou analise de edital e seus anexos.
+- tema "administrativo": para todos os demais assuntos de direito publico municipal \
+(servidores, concurso, contratos administrativos gerais, bens publicos, tributario, \
+financeiro, previdenciario, etc).
 
 Regra para modelo_parecer:
 - Use "licitacao" se tema == "licitacao" OU se o texto menciona explicitamente \

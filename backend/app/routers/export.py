@@ -85,7 +85,7 @@ def _latest_version(req: ParecerRequest) -> ParecerVersion:
             status_code=400,
             detail="Parecer request sem versoes — gere uma versao antes de exportar",
         )
-    return req.versions[-1]
+    return max(req.versions, key=lambda v: v.version_number)
 
 
 async def _transition_status(
@@ -202,7 +202,10 @@ async def export_docx(
     return Response(
         content=docx_bytes,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        },
     )
 
 
@@ -221,7 +224,10 @@ async def export_pdf(
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        },
     )
 
 

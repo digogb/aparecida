@@ -161,7 +161,7 @@ class TestListParecerRequests:
 
         try:
             with TestClient(app) as client:
-                resp = client.get("/api/parecer-requests?tema=tributario")
+                resp = client.get("/api/parecer-requests?tema=licitacao")
             assert resp.status_code == 200
         finally:
             app.dependency_overrides.clear()

@@ -14,14 +14,14 @@ const TYPE_LABELS: Record<MovementType, string> = {
   outros: 'Outros',
 }
 
-const TYPE_COLORS: Record<MovementType, { color: string; bg: string }> = {
-  intimacao:    { color: '#991B1B', bg: '#FEE2E2' },
-  sentenca:     { color: '#3730A3', bg: '#E0E7FF' },
-  despacho:     { color: '#0C4A6E', bg: '#E0F2FE' },
-  acordao:      { color: '#065F46', bg: '#D1FAE5' },
-  publicacao:   { color: '#92400E', bg: '#FEF3C7' },
-  distribuicao: { color: '#5B21B6', bg: '#EDE9FE' },
-  outros:       { color: '#374151', bg: '#F3F4F6' },
+const TYPE_COLORS: Record<MovementType, string> = {
+  intimacao:    '#8B2332',
+  sentenca:     '#1B2838',
+  despacho:     '#6B6860',
+  acordao:      '#5B7553',
+  publicacao:   '#C4953A',
+  distribuicao: '#A69B8D',
+  outros:       '#6B6860',
 }
 
 /**
@@ -110,7 +110,7 @@ export default function MovementDetail({
   onSelectRelated,
 }: MovementDetailProps) {
   const markRead = useMarkMovementRead()
-  const colors = TYPE_COLORS[movement.type] ?? TYPE_COLORS.outros
+  const color = TYPE_COLORS[movement.type] ?? TYPE_COLORS.outros
 
   useEffect(() => {
     if (!movement.is_read) {
@@ -123,25 +123,25 @@ export default function MovementDetail({
   const processNumber = movement.process?.number ?? '—'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(28,28,46,0.5)' }}>
-      <div className="rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col" style={{ background: '#fff', border: '1px solid #E5E3DC' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(27,40,56,0.5)' }}>
+      <div className="rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col" style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
         {/* Header */}
-        <div className="flex items-start justify-between p-5" style={{ borderBottom: '1px solid #E5E3DC' }}>
+        <div className="flex items-start justify-between p-5" style={{ borderBottom: '1px solid #EBE8E2' }}>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                style={{ background: colors.bg, color: colors.color }}>
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-lg"
+                style={{ background: `${color}18`, color }}>
                 {TYPE_LABELS[movement.type]}
               </span>
               {movement.process?.court && (
-                <span className="text-xs" style={{ color: '#9CA3AF' }}>{movement.process.court}</span>
+                <span className="text-sm" style={{ color: '#A69B8D' }}>{movement.process.court}</span>
               )}
             </div>
-            <h2 className="font-display" style={{ fontSize: 20, fontWeight: 500, color: '#1C1C2E' }}>
+            <h2 className="font-display" style={{ fontSize: 20, fontWeight: 500, color: '#1B2838' }}>
               {processNumber}
             </h2>
           </div>
-          <button onClick={onClose} className="ml-4 p-1.5 rounded-lg hover:bg-gray-100" style={{ color: '#9CA3AF' }}>
+          <button onClick={onClose} className="ml-4 p-1.5 rounded-lg transition-all duration-150 hover:brightness-[0.97] cursor-pointer" style={{ color: '#A69B8D' }}>
             <X size={18} />
           </button>
         </div>
@@ -151,14 +151,14 @@ export default function MovementDetail({
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <span className="text-xs font-semibold uppercase tracking-widest block mb-1" style={{ color: '#9CA3AF' }}>Publicação</span>
-                <p style={{ color: '#1C1C2E' }}>{pubDate}</p>
+                <span className="text-sm font-medium uppercase tracking-widest block mb-1" style={{ color: '#A69B8D' }}>Publicação</span>
+                <p style={{ color: '#2D2D3A' }}>{pubDate}</p>
               </div>
               {typeof meta.link === 'string' && meta.link && (
                 <div>
-                  <span className="text-xs font-semibold uppercase tracking-widest block mb-1" style={{ color: '#9CA3AF' }}>Link</span>
+                  <span className="text-sm font-medium uppercase tracking-widest block mb-1" style={{ color: '#A69B8D' }}>Link</span>
                   <a href={meta.link} target="_blank" rel="noopener noreferrer"
-                    className="text-xs underline" style={{ color: '#4F46E5' }}>
+                    className="text-sm underline" style={{ color: '#C4953A' }}>
                     Abrir no DJE
                   </a>
                 </div>
@@ -166,18 +166,18 @@ export default function MovementDetail({
             </div>
 
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Conteúdo</p>
-              <div className="rounded-xl p-4 text-sm leading-relaxed max-h-96 overflow-y-auto"
-                style={{ background: '#F5F3EE', color: '#374151', border: '1px solid #E5E3DC' }}>
-                {movement.content ? <FormattedContent text={movement.content} /> : <span style={{ color: '#9CA3AF' }}>Texto não disponível.</span>}
+              <p className="text-sm font-medium uppercase tracking-widest mb-2" style={{ color: '#A69B8D' }}>Conteúdo</p>
+              <div className="rounded-xl p-4 text-base leading-relaxed max-h-96 overflow-y-auto"
+                style={{ background: '#EBE8E2', color: '#2D2D3A', border: '1px solid #DDD9D2' }}>
+                {movement.content ? <FormattedContent text={movement.content} /> : <span style={{ color: '#A69B8D' }}>Texto não disponível.</span>}
               </div>
             </div>
           </div>
 
           {/* Sidebar: Timeline */}
           {relatedMovements.length > 1 && (
-            <div className="w-52 overflow-y-auto flex-shrink-0 p-4" style={{ borderLeft: '1px solid #E5E3DC' }}>
-              <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#9CA3AF' }}>Histórico</p>
+            <div className="w-52 overflow-y-auto flex-shrink-0 p-4" style={{ borderLeft: '1px solid #EBE8E2' }}>
+              <p className="text-sm font-medium uppercase tracking-widest mb-3" style={{ color: '#A69B8D' }}>Histórico</p>
               <ProcessTimeline
                 movements={relatedMovements}
                 currentId={movement.id}

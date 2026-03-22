@@ -13,6 +13,7 @@ export type ParecerStatus =
   | 'pendente'
   | 'classificado'
   | 'gerado'
+  | 'em_correcao'
   | 'em_revisao'
   | 'devolvido'
   | 'aprovado'
@@ -20,9 +21,6 @@ export type ParecerStatus =
 
 export type ParecerTema =
   | 'administrativo'
-  | 'tributario'
-  | 'financeiro'
-  | 'previdenciario'
   | 'licitacao'
 
 export type MovementType =

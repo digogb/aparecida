@@ -15,11 +15,8 @@ logger = logging.getLogger(__name__)
 _AREA_TO_TEMA: dict[str, ParecerTema] = {
     "licitacoes": ParecerTema.licitacao,
     "licitações": ParecerTema.licitacao,
-    "tributario": ParecerTema.tributario,
-    "tributário": ParecerTema.tributario,
-    "financeiro": ParecerTema.financeiro,
-    "previdenciario": ParecerTema.previdenciario,
-    "previdenciário": ParecerTema.previdenciario,
+    "licitacao": ParecerTema.licitacao,
+    "licitação": ParecerTema.licitacao,
 }
 
 _AREA_TO_MODELO: dict[str, ParecerModelo] = {

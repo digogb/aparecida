@@ -13,10 +13,10 @@ import CreateTaskModal from './CreateTaskModal'
 import type { Task, TaskCategory } from '../../types/task'
 
 const METRIC_DEFS = [
-  { key: 'total',   label: 'Total',          accent: '#1C1C2E', bg: '#F5F3EE', textColor: '#1C1C2E' },
-  { key: 'high',    label: 'Alta prioridade',accent: '#DC2626', bg: '#FFF5F5', textColor: '#991B1B' },
-  { key: 'overdue', label: 'Vencidas',        accent: '#D97706', bg: '#FFFBF0', textColor: '#92400E' },
-  { key: 'done',    label: 'Concluídas',      accent: '#059669', bg: '#F0FDF9', textColor: '#065F46' },
+  { key: 'total',   label: 'Total',           tone: '#2D2D3A' },
+  { key: 'high',    label: 'Alta prioridade',  tone: '#8B2332' },
+  { key: 'overdue', label: 'Vencidas',         tone: '#C4953A' },
+  { key: 'done',    label: 'Concluídas',       tone: '#5B7553' },
 ]
 
 export default function KanbanBoard() {
@@ -78,10 +78,10 @@ export default function KanbanBoard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-full flex items-center justify-center" style={{ background: '#F5F3EE' }}>
+      <div className="min-h-full flex items-center justify-center" style={{ background: '#FAF8F5' }}>
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#1C1C2E44', borderTopColor: '#1C1C2E' }} />
-          <p className="text-sm" style={{ color: '#9CA3AF' }}>Carregando quadro…</p>
+          <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#DDD9D244', borderTopColor: '#A69B8D' }} />
+          <p className="text-sm" style={{ color: '#A69B8D' }}>Carregando quadro…</p>
         </div>
       </div>
     )
@@ -89,8 +89,8 @@ export default function KanbanBoard() {
 
   if (isError || !board) {
     return (
-      <div className="min-h-full flex items-center justify-center" style={{ background: '#F5F3EE' }}>
-        <div className="rounded-2xl px-6 py-5 text-sm" style={{ background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A522' }}>
+      <div className="min-h-full flex items-center justify-center" style={{ background: '#FAF8F5' }}>
+        <div className="rounded-xl px-6 py-5 text-base" style={{ background: '#8B233218', color: '#8B2332', border: '1.5px solid #8B233222' }}>
           Erro ao carregar o quadro Kanban.
         </div>
       </div>
@@ -104,21 +104,17 @@ export default function KanbanBoard() {
   }))
 
   return (
-    <div className="min-h-full flex flex-col" style={{ background: '#F5F3EE' }}>
+    <div className="min-h-full flex flex-col" style={{ background: '#FAF8F5' }}>
       <div className="px-6 py-8 space-y-6">
 
         {/* Header */}
         <div className="animate-fade-up flex items-end justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: '#9CA3AF' }}>Módulo</p>
-            <h1 className="font-display" style={{ fontSize: 40, fontWeight: 500, color: '#1C1C2E', letterSpacing: '-0.02em', lineHeight: 1 }}>
-              Tarefas
-            </h1>
-            <p className="text-sm mt-1.5" style={{ color: '#6B7280' }}>{board.name}</p>
-          </div>
+          <h1 className="font-display" style={{ fontSize: 32, fontWeight: 400, color: '#1B2838', letterSpacing: '-0.02em' }}>
+            Tarefas
+          </h1>
           <button onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
-            style={{ background: '#1C1C2E', color: '#fff' }}>
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 hover:brightness-[0.95] cursor-pointer"
+            style={{ background: '#1B2838', color: '#FAF8F5' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
@@ -126,27 +122,25 @@ export default function KanbanBoard() {
           </button>
         </div>
 
-        <div style={{ height: 1, background: 'linear-gradient(to right, #1C1C2E22, transparent)' }} />
-
         {/* Metrics */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {METRIC_DEFS.map((m, i) => (
-            <div key={m.key} className="animate-count rounded-2xl overflow-hidden"
-              style={{ background: m.bg, border: `1px solid ${m.accent}22`, animationDelay: `${i * 60}ms` }}>
-              <div style={{ height: 3, background: m.accent }} />
-              <div className="p-4">
+            <div key={m.key} className="animate-count rounded-xl overflow-hidden"
+              style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', animationDelay: `${i * 50}ms` }}>
+              <div className="h-1" style={{ background: m.tone }} />
+              <div className="px-5 py-4">
                 <span className="font-display leading-none block"
-                  style={{ fontSize: 38, fontWeight: 600, color: m.accent, letterSpacing: '-0.03em' }}>
+                  style={{ fontSize: 38, fontWeight: 500, color: m.tone, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
                   {metricValues[i]}
                 </span>
-                <span className="text-xs font-semibold" style={{ color: m.textColor }}>{m.label}</span>
+                <span className="text-sm font-medium" style={{ color: '#6B6860' }}>{m.label}</span>
               </div>
             </div>
           ))}
         </div>
 
         {/* Filters */}
-        <div className="animate-fade-up" style={{ animationDelay: '200ms' }}>
+        <div className="animate-fade-up" style={{ animationDelay: '180ms' }}>
           <TaskFilters selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
         </div>
       </div>

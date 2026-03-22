@@ -440,4 +440,16 @@ async def to_pdf(
     if not html_str:
         html_str = "<html><body><p>Conteúdo não disponível.</p></body></html>"
 
-    return HTML(string=html_str).write_pdf()
+    # WeasyPrint ignora @media print — o .parecer-container mantém padding: 2cm
+    # da regra base, que duplica com @page margin. Forçar padding/margin 0.
+    override_css = (
+        "@page { size: A4; margin: 2.5cm 2cm 2cm 2cm; }"
+        "body { background: none; }"
+        ".parecer-container { padding: 0; margin: 0; max-width: none; box-shadow: none; }"
+        "blockquote { break-inside: avoid; }"
+        ".assinaturas { break-inside: avoid; }"
+    )
+    from weasyprint import CSS
+    return HTML(string=html_str).write_pdf(
+        stylesheets=[CSS(string=override_css)]
+    )

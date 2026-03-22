@@ -10,14 +10,14 @@ export default function SplitView({ originalText, editor }: Props) {
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* Left: Original consultation (read-only) */}
-      <div className="w-1/2 border-r border-gray-200 overflow-y-auto bg-gray-50">
+      <div className="w-1/2 overflow-y-auto" style={{ borderRight: '1px solid #EBE8E2', background: '#EBE8E2' }}>
         <div className="px-6 py-4">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase mb-3">
+          <h3 className="text-sm font-medium uppercase tracking-widest mb-3" style={{ color: '#A69B8D' }}>
             Consulta Original
           </h3>
-          <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">
+          <div className="prose prose-sm max-w-none whitespace-pre-wrap" style={{ color: '#2D2D3A' }}>
             {originalText || (
-              <span className="text-gray-400 italic">
+              <span className="italic" style={{ color: '#A69B8D' }}>
                 Texto original não disponível
               </span>
             )}
@@ -26,7 +26,7 @@ export default function SplitView({ originalText, editor }: Props) {
       </div>
 
       {/* Right: Editor */}
-      <div className="w-1/2 overflow-y-auto bg-white">
+      <div className="w-1/2 overflow-y-auto" style={{ background: '#FAF8F5' }}>
         <EditorContent editor={editor} />
       </div>
     </div>

@@ -13,6 +13,7 @@ class ParecerStatus(str, enum.Enum):
     pendente = "pendente"
     classificado = "classificado"
     gerado = "gerado"
+    em_correcao = "em_correcao"
     em_revisao = "em_revisao"
     devolvido = "devolvido"
     aprovado = "aprovado"
@@ -22,9 +23,6 @@ class ParecerStatus(str, enum.Enum):
 
 class ParecerTema(str, enum.Enum):
     administrativo = "administrativo"
-    tributario = "tributario"
-    financeiro = "financeiro"
-    previdenciario = "previdenciario"
     licitacao = "licitacao"
 
 

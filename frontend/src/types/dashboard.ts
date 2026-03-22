@@ -1,5 +1,5 @@
 export interface DashboardStats {
-  pareceres_pendentes: number
+  aguardando_revisao: number
   em_revisao: number
   movimentacoes_nao_lidas: number
   tarefas_urgentes: number

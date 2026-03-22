@@ -55,21 +55,18 @@ async def get_dashboard_stats(
     now = datetime.now(timezone.utc)
     week_ago = now - timedelta(days=7)
 
-    # Pareceres pendentes (pendente + classificado + gerado)
-    pendentes_q = await db.execute(
+    # Aguardando revisão (gerado + em_revisao — ainda não tocados pelo advogado)
+    aguardando_q = await db.execute(
         select(func.count()).select_from(ParecerRequest).where(
-            ParecerRequest.status.in_(_PENDING_STATUSES)
+            ParecerRequest.status.in_([
+                ParecerStatus.gerado,
+                ParecerStatus.em_revisao,
+            ])
         )
     )
-    pareceres_pendentes = pendentes_q.scalar() or 0
+    aguardando_revisao = aguardando_q.scalar() or 0
 
-    # Em revisão
-    revisao_q = await db.execute(
-        select(func.count()).select_from(ParecerRequest).where(
-            ParecerRequest.status == ParecerStatus.em_revisao
-        )
-    )
-    em_revisao = revisao_q.scalar() or 0
+    em_revisao = aguardando_revisao
 
     # Movimentações não lidas
     nao_lidas_q = await db.execute(
@@ -113,7 +110,7 @@ async def get_dashboard_stats(
     enviados_total = enviados_q.scalar() or 0
 
     return DashboardStats(
-        pareceres_pendentes=pareceres_pendentes,
+        aguardando_revisao=aguardando_revisao,
         em_revisao=em_revisao,
         movimentacoes_nao_lidas=movimentacoes_nao_lidas,
         tarefas_urgentes=tarefas_urgentes,

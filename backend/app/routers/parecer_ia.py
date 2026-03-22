@@ -8,9 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.parecer import ParecerRequest, ParecerVersion
 from app.schemas.parecer_version import (
+    ApplyCorrectionIn,
     ClassifyOut,
     ParecerVersionDetail,
     ParecerVersionListItem,
+    PreviewCorrectionOut,
     ReprocessIn,
 )
 
@@ -67,19 +69,43 @@ async def generate_parecer(
 
 
 @router.post(
-    "/parecer-requests/{id}/reprocess",
-    response_model=ParecerVersionDetail,
+    "/parecer-requests/{id}/preview-correction",
+    response_model=PreviewCorrectionOut,
 )
-async def reprocess_parecer(
+async def preview_correction(
     id: uuid.UUID,
     body: ReprocessIn,
     db: AsyncSession = Depends(get_db),
-) -> ParecerVersionDetail:
+) -> PreviewCorrectionOut:
+    """Chama P3 e retorna preview das correções sem salvar."""
     try:
-        version = await parecer_engine.reprocess(str(id), body.observacoes, db)
+        preview = await parecer_engine.preview_correction(str(id), body.observacoes, db)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    return PreviewCorrectionOut(**preview)
 
+
+@router.post(
+    "/parecer-requests/{id}/apply-correction",
+    response_model=ParecerVersionDetail,
+)
+async def apply_correction(
+    id: uuid.UUID,
+    body: ApplyCorrectionIn,
+    db: AsyncSession = Depends(get_db),
+) -> ParecerVersionDetail:
+    """Aplica as seções aprovadas pelo advogado e cria nova versão."""
+    try:
+        version = await parecer_engine.apply_correction(
+            str(id),
+            body.secoes_aprovadas,
+            body.observacoes,
+            body.notas_revisor,
+            body.citacoes_verificar,
+            db,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     return ParecerVersionDetail.model_validate(version)
 
 
@@ -178,11 +204,11 @@ async def restore_version(
     db.add(new_version)
 
     old_status = pr.status
-    pr.status = ParecerStatus.gerado
+    pr.status = ParecerStatus.em_correcao
     db.add(ParecerStatusHistory(
         request_id=pr.id,
         from_status=old_status,
-        to_status=ParecerStatus.gerado,
+        to_status=ParecerStatus.em_correcao,
         notes=f"Versão restaurada da v{src.version_number}",
     ))
 
@@ -212,6 +238,23 @@ async def update_version(
         raise HTTPException(status_code=404, detail="Versao nao encontrada")
 
     version.content_html = body.content_html
+
+    # Atualizar status para em_correcao ao editar manualmente
+    from app.models.parecer import ParecerStatus, ParecerStatusHistory
+    pr_result = await db.execute(
+        select(ParecerRequest).where(ParecerRequest.id == id)
+    )
+    pr = pr_result.scalar_one_or_none()
+    if pr and pr.status not in (ParecerStatus.aprovado, ParecerStatus.enviado, ParecerStatus.em_correcao):
+        old_status = pr.status
+        pr.status = ParecerStatus.em_correcao
+        db.add(ParecerStatusHistory(
+            request_id=pr.id,
+            from_status=old_status,
+            to_status=ParecerStatus.em_correcao,
+            notes="Edição manual pelo advogado",
+        ))
+
     await db.commit()
     await db.refresh(version)
     return ParecerVersionDetail.model_validate(version)

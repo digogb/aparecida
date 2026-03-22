@@ -24,38 +24,41 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white rounded-xl shadow-sm border p-8 w-full max-w-sm">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2">Ione Jurídico</h1>
-        <p className="text-gray-500 text-sm mb-6">Faça login para continuar</p>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: '#FAF8F5' }}>
+      <div className="rounded-xl shadow-sm p-8 w-full max-w-sm" style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2' }}>
+        <h1 className="font-display mb-1" style={{ fontSize: 28, fontWeight: 500, color: '#C4953A' }}>Ione</h1>
+        <p className="text-base mb-6" style={{ color: '#A69B8D' }}>Faça login para continuar</p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: '#6B6860' }}>Email</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2"
+              style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
               placeholder="seu@email.com"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: '#6B6860' }}>Senha</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2"
+              style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
               placeholder="••••••"
             />
           </div>
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+          {error && <p className="text-sm" style={{ color: '#8B2332' }}>{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+            className="py-2.5 rounded-xl text-base font-medium disabled:opacity-50 transition-all duration-150 hover:brightness-[0.95] cursor-pointer"
+            style={{ background: '#1B2838', color: '#FAF8F5' }}
           >
             {loading ? 'Entrando...' : 'Entrar'}
           </button>

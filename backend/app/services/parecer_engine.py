@@ -156,12 +156,86 @@ def _sections_to_tiptap(sections: dict) -> dict:
             "attrs": {"level": 2},
             "content": [{"type": "text", "text": title}],
         })
-        # Dividir por parágrafos (linhas duplas) e parsear cada bloco
         blocks = [b.strip() for b in text.split("\n\n") if b.strip()]
         for block in blocks:
             content.extend(_parse_block(block))
 
     return {"type": "doc", "content": content}
+
+
+def _build_merged_tiptap(
+    sections: dict,
+    original_nodes: dict[str, list[dict]],
+    secoes_alteradas: list[str],
+) -> dict:
+    """Constrói TipTap mesclando nodes originais (seções inalteradas) com
+    reconstrução formatada (seções alteradas pela IA)."""
+    import copy
+
+    section_map = [
+        ("EMENTA", "ementa"),
+        ("I — RELATÓRIO", "relatorio"),
+        ("II — FUNDAMENTOS", "fundamentos"),
+        ("III — CONCLUSÃO", "conclusao"),
+    ]
+    content: list[dict] = []
+    for title, key in section_map:
+        content.append({
+            "type": "heading",
+            "attrs": {"level": 2},
+            "content": [{"type": "text", "text": title}],
+        })
+
+        if key in secoes_alteradas:
+            # Seção alterada: reconstruir do texto da IA
+            text = sections.get(key, "")
+            blocks = [b.strip() for b in text.split("\n\n") if b.strip()]
+            for block in blocks:
+                content.extend(_parse_block(block))
+        else:
+            # Seção inalterada: preservar nodes TipTap originais
+            orig = original_nodes.get(key, [])
+            if orig:
+                content.extend(copy.deepcopy(orig))
+            else:
+                text = sections.get(key, "")
+                blocks = [b.strip() for b in text.split("\n\n") if b.strip()]
+                for block in blocks:
+                    content.extend(_parse_block(block))
+
+    return {"type": "doc", "content": content}
+
+
+def _extract_text_from_node(node: dict) -> str:
+    """Extrai texto de qualquer node TipTap recursivamente, preservando
+    formatação markdown (bold, blockquotes, subtítulos)."""
+    ntype = node.get("type", "")
+
+    if ntype == "text":
+        text = node.get("text", "")
+        marks = node.get("marks", [])
+        has_bold = any(m.get("type") == "bold" for m in marks)
+        if has_bold and text.strip():
+            return f"**{text}**"
+        return text
+
+    parts = []
+    for child in node.get("content", []):
+        parts.append(_extract_text_from_node(child))
+    inner = "".join(parts)
+
+    if ntype == "blockquote":
+        # Prefixar cada linha com >
+        lines = inner.split("\n")
+        return "\n".join(f"> {line}" for line in lines)
+
+    if ntype == "heading":
+        level = node.get("attrs", {}).get("level", 3)
+        if level == 3:
+            # Subtítulo numerado — manter como está
+            return inner
+
+    return inner
 
 
 def _build_metadata(pr: ParecerRequest, classification: dict) -> dict:
@@ -266,16 +340,56 @@ async def generate(parecer_request_id: str, db: AsyncSession) -> ParecerVersion:
     return version
 
 
-async def reprocess(
-    parecer_request_id: str, observacoes: str, db: AsyncSession
-) -> ParecerVersion:
-    result = await db.execute(
-        select(ParecerRequest).where(ParecerRequest.id == parecer_request_id)
-    )
-    pr = result.scalar_one_or_none()
-    if pr is None:
-        raise ValueError(f"ParecerRequest {parecer_request_id} nao encontrado")
+_SECTION_KEYS = {
+    "EMENTA": "ementa",
+    "I \u2014 RELATÓRIO": "relatorio",
+    "II \u2014 FUNDAMENTOS": "fundamentos",
+    "III \u2014 CONCLUSÃO": "conclusao",
+}
 
+_MAIN_SECTIONS = ["ementa", "relatorio", "fundamentos", "conclusao"]
+
+
+def _extract_sections_from_tiptap(tiptap: dict) -> dict[str, str]:
+    sections: dict[str, str] = {s: "" for s in _MAIN_SECTIONS}
+    current_section = None
+    text_buffer: list[str] = []
+    for node in tiptap.get("content", []):
+        if node.get("type") == "heading":
+            if current_section and text_buffer:
+                sections[current_section] = "\n\n".join(text_buffer)
+                text_buffer = []
+            title = "".join(c.get("text", "") for c in node.get("content", []))
+            current_section = _SECTION_KEYS.get(title)
+        elif current_section:
+            text = _extract_text_from_node(node)
+            if text:
+                text_buffer.append(text)
+    if current_section and text_buffer:
+        sections[current_section] = "\n\n".join(text_buffer)
+    return sections
+
+
+def _extract_sections_as_nodes(tiptap: dict) -> dict[str, list[dict]]:
+    """Extrai os nodes TipTap originais agrupados por seção (preserva formatação)."""
+    sections: dict[str, list[dict]] = {s: [] for s in _MAIN_SECTIONS}
+    current_section = None
+    for node in tiptap.get("content", []):
+        if node.get("type") == "heading":
+            title = "".join(c.get("text", "") for c in node.get("content", []))
+            matched = _SECTION_KEYS.get(title)
+            if matched is not None:
+                current_section = matched
+                continue
+        if current_section:
+            sections[current_section].append(node)
+    return sections
+
+
+async def _load_current_sections(
+    pr: ParecerRequest, db: AsyncSession,
+) -> tuple[dict[str, str], dict[str, list[dict]], ParecerVersion]:
+    """Carrega seções texto + nodes TipTap originais da melhor versão disponível."""
     all_versions_result = await db.execute(
         select(ParecerVersion)
         .where(ParecerVersion.request_id == pr.id)
@@ -287,47 +401,46 @@ async def reprocess(
 
     last_version = all_versions[0]
 
-    section_keys = {
-        "EMENTA": "ementa",
-        "I \u2014 RELATÓRIO": "relatorio",
-        "II \u2014 FUNDAMENTOS": "fundamentos",
-        "III \u2014 CONCLUSÃO": "conclusao",
-    }
-
-    def _extract_sections_from_tiptap(tiptap: dict) -> dict[str, str]:
-        sections: dict[str, str] = {"ementa": "", "relatorio": "", "fundamentos": "", "conclusao": ""}
-        current_section = None
-        text_buffer: list[str] = []
-        for node in tiptap.get("content", []):
-            if node.get("type") == "heading":
-                if current_section and text_buffer:
-                    sections[current_section] = "\n\n".join(text_buffer)
-                    text_buffer = []
-                title = "".join(c.get("text", "") for c in node.get("content", []))
-                current_section = section_keys.get(title)
-            elif node.get("type") == "paragraph" and current_section:
-                text = "".join(c.get("text", "") for c in node.get("content", []))
-                if text:
-                    text_buffer.append(text)
-        if current_section and text_buffer:
-            sections[current_section] = "\n\n".join(text_buffer)
-        return sections
-
-    # Tentar extrair seções de versões do mais recente ao mais antigo
-    # até encontrar uma com todas as seções principais preenchidas
-    parecer_atual: dict = {}
+    parecer_atual: dict[str, str] = {}
+    original_nodes: dict[str, list[dict]] = {}
     for version in all_versions:
         if not version.content_tiptap:
             continue
         extracted = _extract_sections_from_tiptap(version.content_tiptap)
-        main_sections = ["ementa", "relatorio", "fundamentos", "conclusao"]
-        if all(extracted.get(s) for s in main_sections):
+        if all(extracted.get(s) for s in _MAIN_SECTIONS):
             parecer_atual = extracted
+            original_nodes = _extract_sections_as_nodes(version.content_tiptap)
             break
 
     if not parecer_atual:
-        # Fallback: usar a versão mais recente mesmo incompleta
         parecer_atual = _extract_sections_from_tiptap(last_version.content_tiptap or {})
+        original_nodes = _extract_sections_as_nodes(last_version.content_tiptap or {})
+
+    return parecer_atual, original_nodes, last_version
+
+
+async def preview_correction(
+    parecer_request_id: str, observacoes: str, db: AsyncSession,
+) -> dict:
+    """Chama P3 e retorna preview das correções sem salvar.
+
+    Retorna:
+        {
+            "secoes_alteradas": ["fundamentos", "conclusao"],
+            "original": {"ementa": "...", "relatorio": "...", ...},
+            "revisado": {"fundamentos": "...", "conclusao": "..."},
+            "notas_revisor": [...],
+            "citacoes_verificar": [...],
+        }
+    """
+    result = await db.execute(
+        select(ParecerRequest).where(ParecerRequest.id == parecer_request_id)
+    )
+    pr = result.scalar_one_or_none()
+    if pr is None:
+        raise ValueError(f"ParecerRequest {parecer_request_id} nao encontrado")
+
+    parecer_atual, _, last_version = await _load_current_sections(pr, db)
 
     parecer_atual.update({
         "citacoes_verificar": last_version.citacoes_verificar or [],
@@ -335,34 +448,73 @@ async def reprocess(
         "notas_revisor": last_version.notas_revisor or [],
     })
 
-    # P3 — Revisar com observações
-    secoes = ["ementa", "relatorio", "fundamentos", "conclusao"]
-
-    revisao = await revise_parecer(parecer_atual, observacoes, secoes)
+    revisao = await revise_parecer(parecer_atual, observacoes, _MAIN_SECTIONS)
 
     secoes_alteradas = revisao.get("secoes_alteradas", [])
     if isinstance(secoes_alteradas, str):
         secoes_alteradas = [s.strip() for s in secoes_alteradas.split(",") if s.strip()]
 
+    # Montar dict de seções revisadas (só as que mudaram)
+    revisado: dict[str, str] = {}
     for secao in secoes_alteradas:
         if secao in revisao:
-            parecer_atual[secao] = revisao[secao]
+            revisado[secao] = revisao[secao]
 
-    # Acumular notas e citações
     novas_notas = revisao.get("notas_revisor") or []
     if isinstance(novas_notas, str):
         novas_notas = [novas_notas] if novas_notas else []
-    novas_citacoes = revisao.get("citacoes_verificar") or []
 
-    parecer_atual["notas_revisor"] = (parecer_atual.get("notas_revisor") or []) + novas_notas
-    parecer_atual["citacoes_verificar"] = (parecer_atual.get("citacoes_verificar") or []) + novas_citacoes
+    # Extrair trechos_revisados da resposta da IA
+    trechos = revisao.get("trechos_revisados") or []
+    if isinstance(trechos, str):
+        trechos = []
 
-    # Re-renderizar HTML e TipTap
+    return {
+        "secoes_alteradas": secoes_alteradas,
+        "revisado": revisado,
+        "trechos": trechos,
+        "notas_revisor": novas_notas,
+        "citacoes_verificar": revisao.get("citacoes_verificar") or [],
+    }
+
+
+async def apply_correction(
+    parecer_request_id: str,
+    secoes_aprovadas: dict[str, str],
+    observacoes: str,
+    notas_revisor: list[str],
+    citacoes_verificar: list,
+    db: AsyncSession,
+) -> ParecerVersion:
+    """Aplica apenas as seções aprovadas pelo advogado e cria nova versão."""
+    result = await db.execute(
+        select(ParecerRequest).where(ParecerRequest.id == parecer_request_id)
+    )
+    pr = result.scalar_one_or_none()
+    if pr is None:
+        raise ValueError(f"ParecerRequest {parecer_request_id} nao encontrado")
+
+    parecer_atual, original_nodes, last_version = await _load_current_sections(pr, db)
+
+    # Mesclar: seções aprovadas substituem as originais
+    for secao, texto in secoes_aprovadas.items():
+        if secao in _MAIN_SECTIONS:
+            parecer_atual[secao] = texto
+
+    # Acumular notas/citações
+    all_notas = (last_version.notas_revisor or []) + notas_revisor
+    all_citacoes = (last_version.citacoes_verificar or []) + citacoes_verificar
+
+    # Renderizar
     classification = pr.classificacao or {}
     metadata = _build_metadata(pr, classification)
     parecer_dict = {**parecer_atual, "metadata": metadata}
     html = render_parecer_html(parecer_dict)
-    tiptap = _sections_to_tiptap(parecer_atual)
+
+    # TipTap: preservar nodes originais para seções NÃO aprovadas,
+    # reconstruir apenas as aprovadas
+    secoes_alteradas = list(secoes_aprovadas.keys())
+    tiptap = _build_merged_tiptap(parecer_atual, original_nodes, secoes_alteradas)
 
     next_version_num = last_version.version_number + 1
 
@@ -374,22 +526,22 @@ async def reprocess(
         content_html=html,
         reprocess_instructions=observacoes,
         prompt_version=get_prompt_version(),
-        citacoes_verificar=parecer_atual.get("citacoes_verificar") or [],
-        ressalvas=parecer_atual.get("ressalvas") or [],
-        notas_revisor=parecer_atual.get("notas_revisor") or [],
+        citacoes_verificar=all_citacoes,
+        ressalvas=last_version.ressalvas or [],
+        notas_revisor=all_notas,
     )
     db.add(version)
 
     old_status = pr.status
-    pr.status = ParecerStatus.gerado
+    pr.status = ParecerStatus.em_correcao
     pr.revisoes = (pr.revisoes or 0) + 1
 
     db.add(
         ParecerStatusHistory(
             request_id=pr.id,
             from_status=old_status,
-            to_status=ParecerStatus.gerado,
-            notes=f"Minuta v{next_version_num} revisada por IA (P3, revisao #{pr.revisoes})",
+            to_status=ParecerStatus.em_correcao,
+            notes=f"Minuta v{next_version_num} revisada por IA — {len(secoes_aprovadas)} seção(ões) aprovada(s)",
         )
     )
 
