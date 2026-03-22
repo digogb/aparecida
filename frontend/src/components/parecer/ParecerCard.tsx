@@ -22,6 +22,9 @@ export default function ParecerCard({ parecer }: { parecer: ParecerRequest }) {
   const s = STATUS[parecer.status]
   const t = parecer.tema ? TEMA[parecer.tema] : null
   const date = new Date(parecer.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const enviadoEm = parecer.status === 'enviado' && parecer.updated_at
+    ? new Date(parecer.updated_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : null
 
   return (
     <div onClick={() => navigate(`/pareceres/${parecer.id}`)}
@@ -49,6 +52,11 @@ export default function ParecerCard({ parecer }: { parecer: ParecerRequest }) {
             {parecer.sender_email || '—'}
             {parecer.municipio_nome && <span className="ml-1">· {parecer.municipio_nome}</span>}
           </p>
+          {enviadoEm && (
+            <p className="text-sm mt-1" style={{ color: '#5B7553' }}>
+              Enviado em {enviadoEm}{parecer.sent_to_email && <span style={{ color: '#A69B8D' }}> · para {parecer.sent_to_email}</span>}
+            </p>
+          )}
         </div>
         <span className="text-sm shrink-0" style={{ color: '#A69B8D' }}>{date}</span>
       </div>

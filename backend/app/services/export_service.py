@@ -55,11 +55,48 @@ MESES = [
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _formatar_data_extenso(municipio_uf: str) -> str:
+def _formatar_data_extenso(municipio_uf: str = "Fortaleza/CE") -> str:
     now = datetime.now(timezone.utc)
-    municipio = municipio_uf.split("/")[0].strip() if "/" in municipio_uf else municipio_uf
-    uf = municipio_uf.split("/")[1].strip() if "/" in municipio_uf else "CE"
-    return f"{municipio}/{uf}, {now.day} de {MESES[now.month]} de {now.year}."
+    return f"{municipio_uf}, {now.day} de {MESES[now.month]} de {now.year}."
+
+
+_ADVOGADO_NOMES = {n for n, _ in ADVOGADOS}
+_SKIP_TEXTS = {
+    ESCRITORIO_LINHA1, ESCRITORIO_LINHA2, "PARECER JURÍDICO",
+}
+
+
+def _is_decoration_node(node: dict[str, Any]) -> bool:
+    """Detect nodes that are 'decoration' (header, signatures, footer) — skip in export."""
+    text = _extract_text(node.get("content", []))
+    if not text:
+        return False
+    # Header lines
+    if text.strip() in _SKIP_TEXTS:
+        return True
+    # Identification fields (added by builder)
+    if text.startswith("Órgão Consulente:") or text.startswith("Referência:") or text.startswith("Assunto:"):
+        return True
+    # Signature block: contains multiple OAB references
+    if text.count("OAB/") >= 2:
+        return True
+    # Individual advogado name or OAB line
+    stripped = text.strip()
+    if stripped in _ADVOGADO_NOMES or stripped.startswith("OAB/"):
+        return True
+    # Footer (endereço)
+    if "Rua Gen. Caiado de Castro" in text:
+        return True
+    # Date line (added by builder)
+    for m in MESES[1:]:
+        if f" de {m} de " in text and text.strip().endswith("."):
+            return True
+    return False
+
+
+def _filter_tiptap_content(content: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Remove decoration nodes from TipTap content — header, signatures, footer."""
+    return [node for node in content if not _is_decoration_node(node)]
 
 
 def _get_metadata(req: ParecerRequest) -> dict:
@@ -401,10 +438,10 @@ async def to_docx(
     _build_header(doc)
     _build_title_and_meta(doc, parecer_request)
 
-    # Body from TipTap JSON
+    # Body from TipTap JSON (filter out decoration: header, sigs, footer)
     tiptap = version.content_tiptap
     if tiptap and isinstance(tiptap, dict):
-        content = tiptap.get("content", [])
+        content = _filter_tiptap_content(tiptap.get("content", []))
         _add_tiptap_content(doc, content)
     elif version.content_html:
         doc.add_paragraph(version.content_html)
@@ -426,30 +463,207 @@ async def to_docx(
 # PDF generation (public)
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# PDF: TipTap JSON → HTML (mesma estrutura do DOCX)
+# ---------------------------------------------------------------------------
+
+def _escape_html(text: str) -> str:
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _tiptap_inline_to_html(content: list[dict[str, Any]], force_italic: bool = False) -> str:
+    """Convert TipTap inline content (text nodes with marks) to HTML."""
+    parts: list[str] = []
+    for item in content:
+        if item.get("type") == "text":
+            text = _escape_html(item.get("text", ""))
+            marks = item.get("marks", [])
+            for mark in marks:
+                mt = mark.get("type", "")
+                if mt == "bold":
+                    text = f"<strong>{text}</strong>"
+                elif mt == "italic":
+                    text = f"<em>{text}</em>"
+                elif mt == "underline":
+                    text = f"<u>{text}</u>"
+                elif mt == "strike":
+                    text = f"<s>{text}</s>"
+            if force_italic and not any(m.get("type") == "italic" for m in marks):
+                text = f"<em>{text}</em>"
+            parts.append(text)
+        elif item.get("type") == "hardBreak":
+            parts.append("<br>")
+    return "".join(parts)
+
+
+def _tiptap_body_to_html(content: list[dict[str, Any]]) -> str:
+    """Convert TipTap JSON body nodes to styled HTML, matching DOCX formatting."""
+    html_parts: list[str] = []
+    for node in content:
+        nt = node.get("type", "")
+
+        if nt == "paragraph":
+            inline = _tiptap_inline_to_html(node.get("content", []))
+            html_parts.append(
+                f'<p style="text-indent:1.25cm; margin-bottom:6px; text-align:justify;">{inline}</p>'
+            )
+
+        elif nt == "heading":
+            level = node.get("attrs", {}).get("level", 2)
+            inline = _tiptap_inline_to_html(node.get("content", []))
+            if level == 2:
+                html_parts.append(
+                    f'<h2 style="font-size:12pt; font-weight:bold; text-transform:uppercase; '
+                    f'letter-spacing:0.5px; margin-top:20px; margin-bottom:8px;">{inline}</h2>'
+                )
+            elif level == 3:
+                html_parts.append(
+                    f'<h3 style="font-size:12pt; font-weight:bold; margin-top:14px; '
+                    f'margin-bottom:6px;">{inline}</h3>'
+                )
+            else:
+                html_parts.append(f'<p>{inline}</p>')
+
+        elif nt == "blockquote":
+            bq_parts = []
+            for child in node.get("content", []):
+                inline = _tiptap_inline_to_html(child.get("content", []), force_italic=True)
+                bq_parts.append(f"<p>{inline}</p>")
+            html_parts.append(
+                f'<blockquote style="margin:10px 2cm 10px 1.2cm; padding:8px 12px; '
+                f'border-left:3px solid #666; background:#f5f5f5; font-size:11pt; '
+                f'text-align:justify; font-style:italic;">{"".join(bq_parts)}</blockquote>'
+            )
+
+        elif nt in ("bulletList", "orderedList"):
+            tag = "ul" if nt == "bulletList" else "ol"
+            items = []
+            for item in node.get("content", []):
+                if item.get("type") == "listItem":
+                    for child in item.get("content", []):
+                        inline = _tiptap_inline_to_html(child.get("content", []))
+                        items.append(f"<li>{inline}</li>")
+            html_parts.append(f'<{tag} style="margin-left:2em; margin-bottom:10px;">{"".join(items)}</{tag}>')
+
+        else:
+            children = node.get("content", [])
+            if children:
+                html_parts.append(_tiptap_body_to_html(children))
+
+    return "\n".join(html_parts)
+
+
+def _build_pdf_html(req: ParecerRequest, version: ParecerVersion) -> str:
+    """Build complete styled HTML from TipTap JSON, matching DOCX structure exactly."""
+    meta = _get_metadata(req)
+
+    # Body content from TipTap JSON (filter out decoration: header, sigs, footer)
+    body_html = ""
+    tiptap = version.content_tiptap
+    if tiptap and isinstance(tiptap, dict):
+        body_html = _tiptap_body_to_html(_filter_tiptap_content(tiptap.get("content", [])))
+    elif version.content_html:
+        body_html = version.content_html
+
+    # Assinaturas
+    sigs = ""
+    for nome, oab in ADVOGADOS:
+        sigs += f"""
+        <div class="assinatura">
+            <div class="linha-assinatura">
+                <div class="nome">{_escape_html(nome)}</div>
+                <div class="oab">{oab}</div>
+            </div>
+        </div>"""
+
+    return f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+@page {{ size: A4; margin: 2.5cm 2cm 2cm 2cm; }}
+* {{ box-sizing: border-box; margin: 0; padding: 0; }}
+body {{ font-family: 'Times New Roman', 'Noto Serif', serif; font-size: 12pt;
+        line-height: 1.6; color: #000; background: none; }}
+
+.cabecalho {{ border-bottom: 1.5pt solid #000; padding-bottom: 0.35cm; margin-bottom: 0.7cm; }}
+.cabecalho .linha1 {{ text-align: center; font-variant: small-caps; font-size: 13pt; letter-spacing: 2px; }}
+.cabecalho .linha2 {{ text-align: center; font-weight: bold; font-variant: small-caps; font-size: 11pt;
+                      letter-spacing: 1px; padding-top: 3px; }}
+
+h1.titulo {{ text-align: center; font-size: 13pt; font-weight: bold; margin: 14px 0 16px;
+             letter-spacing: 1px; }}
+
+.identificacao {{ margin-bottom: 16px; }}
+.identificacao p {{ margin: 3px 0; font-size: 11.5pt; }}
+
+.conteudo {{ text-align: justify; }}
+.conteudo p {{ font-size: 12pt; margin-bottom: 6px; }}
+
+blockquote {{ break-inside: avoid; }}
+
+.local-data {{ margin-top: 30px; text-align: right; font-size: 12pt; }}
+
+.assinaturas {{ display: flex; flex-wrap: wrap; justify-content: space-between;
+                margin-top: 50px; break-inside: avoid; }}
+.assinatura {{ width: 46%; text-align: center; margin-bottom: 38px; }}
+.assinatura .linha-assinatura {{ border-top: 1px solid #000; margin-top: 42px; padding-top: 5px; }}
+.assinatura .nome {{ font-weight: bold; font-variant: small-caps; font-size: 11pt; }}
+.assinatura .oab {{ font-size: 10pt; margin-top: 2px; }}
+
+.rodape {{ border-top: 1pt solid #000; padding-top: 0.25cm; margin-top: 1cm;
+           font-size: 9pt; text-align: center; color: #333; line-height: 1.4; }}
+</style>
+</head>
+<body>
+
+<!-- CABEÇALHO -->
+<div class="cabecalho">
+    <div class="linha1">{_escape_html(ESCRITORIO_LINHA1)}</div>
+    <div class="linha2">{_escape_html(ESCRITORIO_LINHA2)}</div>
+</div>
+
+<!-- TÍTULO -->
+<h1 class="titulo">PARECER JURÍDICO</h1>
+
+<!-- IDENTIFICAÇÃO -->
+<div class="identificacao">
+    <p><strong>Órgão Consulente:</strong> {_escape_html(meta["orgao_consulente"])}</p>
+    <p><strong>Referência:</strong> {_escape_html(meta["referencia"])}</p>
+    <p><strong>Assunto:</strong> {_escape_html(meta["assunto"])}</p>
+</div>
+
+<!-- CORPO -->
+<div class="conteudo">
+{body_html}
+</div>
+
+<!-- LOCAL E DATA -->
+<div class="local-data">
+    {_escape_html(_formatar_data_extenso(meta["municipio_uf"]))}
+</div>
+
+<!-- ASSINATURAS -->
+<div class="assinaturas">
+{sigs}
+</div>
+
+<!-- RODAPÉ -->
+<div class="rodape">
+    {_escape_html(ESCRITORIO_ENDERECO)}
+</div>
+
+</body>
+</html>"""
+
+
 async def to_pdf(
     parecer_request: ParecerRequest,
     version: ParecerVersion,
     db: AsyncSession,
 ) -> bytes:
-    """Generate PDF bytes from the pre-rendered HTML (P4 template)."""
+    """Generate PDF from TipTap JSON — same structure as DOCX."""
     from weasyprint import HTML
 
-    # content_html is already rendered by render_parecer_html (P4 template)
-    # which matches the reference format exactly
-    html_str = version.content_html
-    if not html_str:
-        html_str = "<html><body><p>Conteúdo não disponível.</p></body></html>"
-
-    # WeasyPrint ignora @media print — o .parecer-container mantém padding: 2cm
-    # da regra base, que duplica com @page margin. Forçar padding/margin 0.
-    override_css = (
-        "@page { size: A4; margin: 2.5cm 2cm 2cm 2cm; }"
-        "body { background: none; }"
-        ".parecer-container { padding: 0; margin: 0; max-width: none; box-shadow: none; }"
-        "blockquote { break-inside: avoid; }"
-        ".assinaturas { break-inside: avoid; }"
-    )
-    from weasyprint import CSS
-    return HTML(string=html_str).write_pdf(
-        stylesheets=[CSS(string=override_css)]
-    )
+    html_str = _build_pdf_html(parecer_request, version)
+    return HTML(string=html_str).write_pdf()

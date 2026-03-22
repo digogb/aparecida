@@ -20,6 +20,7 @@ export interface ParecerRequest {
   assigned_to: string | null
   subject: string | null
   sender_email: string | null
+  sent_to_email: string | null
   status: ParecerStatus
   tema: ParecerTema | null
   created_at: string

@@ -61,6 +61,7 @@ class ParecerRequest(Base):
     gmail_message_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
     subject: Mapped[str | None] = mapped_column(String(500), nullable=True)
     sender_email: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    sent_to_email: Mapped[str | None] = mapped_column(String(200), nullable=True)
     extracted_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     extraction_method: Mapped[ExtractionMethod | None] = mapped_column(Enum(ExtractionMethod, name="extraction_method"), nullable=True)
     extraction_status: Mapped[ExtractionStatus | None] = mapped_column(Enum(ExtractionStatus, name="extraction_status"), nullable=True)

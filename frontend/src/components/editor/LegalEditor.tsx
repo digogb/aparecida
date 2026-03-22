@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { EditorContent } from '@tiptap/react'
 import { useParecer } from '../../hooks/useParecer'
@@ -334,6 +334,18 @@ export default function LegalEditor() {
     correctionCount,
   } = useEditorInstance(parecer ?? null)
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleApproveWithLoading = useCallback(async (sendEmail: boolean) => {
+    setIsSubmitting(true)
+    try {
+      const ok = await handleApprove(sendEmail)
+      if (ok && sendEmail) navigate('/pareceres')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }, [handleApprove, navigate])
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full" style={{ background: '#FAF8F5' }}>
@@ -474,22 +486,28 @@ export default function LegalEditor() {
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => handleApprove(false)}
-              disabled={isReprocessing || isGenerating}
-              className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: '#5B7553', color: '#FAF8F5' }}
-            >
-              Aprovar
-            </button>
-            <button
-              onClick={() => handleApprove(true)}
-              disabled={isReprocessing || isGenerating}
-              className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: '#1B2838', color: '#FAF8F5' }}
-            >
-              Aprovar e enviar
-            </button>
+            {parecer.status !== 'aprovado' && parecer.status !== 'enviado' && (
+              <button
+                onClick={() => handleApproveWithLoading(false)}
+                disabled={isSubmitting || isReprocessing || isGenerating}
+                className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                style={{ background: '#5B7553', color: '#FAF8F5' }}
+              >
+                {isSubmitting && <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+                Aprovar
+              </button>
+            )}
+            {parecer.status !== 'enviado' && (
+              <button
+                onClick={() => handleApproveWithLoading(true)}
+                disabled={isSubmitting || isReprocessing || isGenerating}
+                className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                style={{ background: '#1B2838', color: '#FAF8F5' }}
+              >
+                {isSubmitting && <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+                {parecer.status === 'aprovado' ? 'Enviar' : 'Aprovar e enviar'}
+              </button>
+            )}
           </div>
         </div>
       )}

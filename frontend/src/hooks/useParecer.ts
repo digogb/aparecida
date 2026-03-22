@@ -10,6 +10,16 @@ export function usePareceres(filters: ParecerFiltersState) {
   })
 }
 
+const EMPTY_FILTERS: ParecerFiltersState = { status: '', tema: '', remetente: '' }
+
+export function useParecerMetrics() {
+  return useQuery({
+    queryKey: ['pareceres-metrics'],
+    queryFn: () => fetchPareceres(EMPTY_FILTERS),
+    staleTime: 30_000,
+  })
+}
+
 export function useParecer(id: string | undefined) {
   return useQuery({
     queryKey: ['parecer', id],

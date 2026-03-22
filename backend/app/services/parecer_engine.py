@@ -141,13 +141,67 @@ def _make_blockquote(lines: list[str]) -> dict:
     }
 
 
-def _sections_to_tiptap(sections: dict) -> dict:
+_ADVOGADOS = [
+    ("Francisco Ione Pereira Lima", "OAB/CE 4.585"),
+    ("Matheus Nogueira Pereira Lima", "OAB/CE 31.251"),
+    ("Flavio Henrique Luna Silva", "OAB/CE 31.252"),
+    ("Valéria Matias de Alencar", "OAB/CE 36.666"),
+]
+
+_MESES = [
+    "", "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+    "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+]
+
+# Nomes dos advogados usados para detectar bloco de assinatura duplicado
+_NOMES_ADVOGADOS = [nome for nome, _ in _ADVOGADOS]
+
+
+def _strip_signature_block(text: str) -> str:
+    """Remove bloco de assinaturas/data duplicado do final do texto da conclusão.
+
+    A IA às vezes inclui local/data e nomes dos advogados no corpo da conclusão,
+    mas o código já adiciona essas informações separadamente. Esta função detecta
+    e remove o bloco duplicado.
+    """
+    import re as _re
+
+    lines = text.rstrip().split("\n")
+    # Procurar de baixo para cima: encontrar a primeira linha que NÃO seja
+    # assinatura, data/local, ou linha em branco
+    cut_index = len(lines)
+    for i in range(len(lines) - 1, -1, -1):
+        stripped = lines[i].strip()
+        if not stripped:
+            continue
+        # Linha com nome de advogado + OAB
+        if any(nome in stripped for nome in _NOMES_ADVOGADOS):
+            cut_index = i
+            continue
+        # Linha de data/local (ex: "Potengi/CE, 22 de março de 2026.")
+        if _re.match(r'^[\w\s]+/[A-Z]{2},\s+\d+\s+de\s+\w+\s+de\s+\d{4}', stripped):
+            cut_index = i
+            continue
+        # Linha com apenas traços (separador)
+        if _re.match(r'^[-—–]+$', stripped):
+            cut_index = i
+            continue
+        break
+
+    if cut_index < len(lines):
+        text = "\n".join(lines[:cut_index]).rstrip()
+
+    return text
+
+
+def _sections_to_tiptap(sections: dict, metadata: dict | None = None) -> dict:
     """Converte seções do parecer para formato TipTap JSON com formatação rica."""
+    conclusao = _strip_signature_block(sections.get("conclusao", ""))
     section_map = [
         ("EMENTA", sections.get("ementa", "")),
         ("I — RELATÓRIO", sections.get("relatorio", "")),
         ("II — FUNDAMENTOS", sections.get("fundamentos", "")),
-        ("III — CONCLUSÃO", sections.get("conclusao", "")),
+        ("III — CONCLUSÃO", conclusao),
     ]
     content: list[dict] = []
     for title, text in section_map:
@@ -189,6 +243,8 @@ def _build_merged_tiptap(
         if key in secoes_alteradas:
             # Seção alterada: reconstruir do texto da IA
             text = sections.get(key, "")
+            if key == "conclusao":
+                text = _strip_signature_block(text)
             blocks = [b.strip() for b in text.split("\n\n") if b.strip()]
             for block in blocks:
                 content.extend(_parse_block(block))
@@ -294,7 +350,7 @@ async def generate(parecer_request_id: str, db: AsyncSession) -> ParecerVersion:
     metadata = _build_metadata(pr, classification)
     parecer_dict = {**sections, "metadata": metadata}
     html = render_parecer_html(parecer_dict)
-    tiptap = _sections_to_tiptap(sections)
+    tiptap = _sections_to_tiptap(sections, metadata)
 
     # Próximo número de versão
     version_result = await db.execute(

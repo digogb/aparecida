@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
-import { usePareceres } from '../../hooks/useParecer'
+import { usePareceres, useParecerMetrics } from '../../hooks/useParecer'
 import type { ParecerFiltersState } from '../../types/parecer'
 import ParecerCard from './ParecerCard'
 import ParecerFilters from './ParecerFilters'
@@ -24,6 +24,7 @@ export default function ParecerList() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { data, isLoading, isError } = usePareceres(filters)
+  const { data: metricsData } = useParecerMetrics()
 
   async function handleEmlUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -48,11 +49,12 @@ export default function ParecerList() {
   }
 
   const items = data?.items ?? []
-  const total = data?.total ?? 0
-  const aguardando = items.filter(p => p.status === 'gerado' || p.status === 'em_revisao').length
-  const emCorrecao = items.filter(p => p.status === 'em_correcao').length
+  const allItems = metricsData?.items ?? []
+  const total = metricsData?.total ?? 0
+  const aguardando = allItems.filter(p => p.status === 'gerado' || p.status === 'em_revisao').length
+  const emCorrecao = allItems.filter(p => p.status === 'em_correcao').length
   const oneWeekAgo = new Date(); oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-  const enviadosSemana = items.filter(p => p.status === 'enviado' && new Date(p.created_at) >= oneWeekAgo).length
+  const enviadosSemana = allItems.filter(p => p.status === 'enviado' && new Date(p.created_at) >= oneWeekAgo).length
   const values = [total, aguardando, emCorrecao, enviadosSemana]
 
   const sorted = [...items].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())

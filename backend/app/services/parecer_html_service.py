@@ -19,6 +19,42 @@ import json
 import re
 
 
+_NOMES_ADVOGADOS = [
+    "Francisco Ione Pereira Lima",
+    "Matheus Nogueira Pereira Lima",
+    "Flavio Henrique Luna Silva",
+    "Valéria Matias de Alencar",
+]
+
+
+def _strip_conclusion_signatures(text: str) -> str:
+    """Remove bloco de assinaturas/data duplicado do final da conclusão."""
+    if not text:
+        return text
+
+    lines = text.rstrip().split("\n")
+    cut_index = len(lines)
+    for i in range(len(lines) - 1, -1, -1):
+        stripped = lines[i].strip()
+        if not stripped:
+            continue
+        if any(nome in stripped for nome in _NOMES_ADVOGADOS):
+            cut_index = i
+            continue
+        if re.match(r'^[\w\s]+/[A-Z]{2},\s+\d+\s+de\s+\w+\s+de\s+\d{4}', stripped):
+            cut_index = i
+            continue
+        if re.match(r'^[-—–]+$', stripped):
+            cut_index = i
+            continue
+        break
+
+    if cut_index < len(lines):
+        text = "\n".join(lines[:cut_index]).rstrip()
+
+    return text
+
+
 def render_parecer_html(parecer: dict) -> str:
     """
     Renderiza parecer jurídico em HTML profissional.
@@ -53,7 +89,7 @@ def render_parecer_html(parecer: dict) -> str:
     ementa_html = _texto_para_html(parecer.get("ementa", ""))
     relatorio_html = _texto_para_html(parecer.get("relatorio", ""))
     fundamentos_html = _texto_para_html(parecer.get("fundamentos", ""))
-    conclusao_html = _texto_para_html(parecer.get("conclusao", ""))
+    conclusao_html = _texto_para_html(_strip_conclusion_signatures(parecer.get("conclusao", "")))
     
     return f"""<!DOCTYPE html>
 <html lang="pt-BR">
@@ -65,7 +101,7 @@ def render_parecer_html(parecer: dict) -> str:
         * {{ box-sizing: border-box; margin: 0; padding: 0; }}
         
         body {{
-            font-family: 'Garamond', 'Times New Roman', 'Noto Serif', serif;
+            font-family: 'Times New Roman', 'Noto Serif', serif;
             font-size: 12pt;
             line-height: 1.6;
             color: #000;
@@ -151,6 +187,7 @@ def render_parecer_html(parecer: dict) -> str:
         }}
         .conteudo p.sem-recuo {{
             text-indent: 0;
+            text-align: left;
         }}
         .conteudo p.subtitulo {{
             text-indent: 0;
@@ -183,8 +220,15 @@ def render_parecer_html(parecer: dict) -> str:
         /* ═══ LOCAL E DATA ═══ */
         .local-data {{
             margin-top: 30px;
-            text-align: right;
+            text-align: center;
             font-size: 12pt;
+        }}
+
+        /* ═══ SEPARADOR DUPLO ═══ */
+        .separador-assinaturas {{
+            margin-top: 40px;
+            border: none;
+            border-top: 3px double #000;
         }}
 
         /* ═══ ASSINATURAS ═══ */
@@ -192,7 +236,7 @@ def render_parecer_html(parecer: dict) -> str:
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between;
-            margin-top: 50px;
+            margin-top: 30px;
         }}
         .assinatura {{
             width: 46%;
@@ -280,6 +324,8 @@ def render_parecer_html(parecer: dict) -> str:
     <div class="local-data">
         {_escape(data_extenso)}
     </div>
+
+    <hr class="separador-assinaturas">
 
     <div class="assinaturas">
         <div class="assinatura">
@@ -391,7 +437,8 @@ def _texto_para_html(texto: str) -> str:
         
         # Parágrafo normal
         css_class = ""
-        if stripped.startswith("É o breve relatório") or stripped.startswith("É o parecer") or stripped.startswith("Diante do exposto"):
+        if (stripped.startswith("É o breve relatório") or stripped.startswith("É o parecer")
+                or stripped.startswith("Diante do exposto") or stripped.startswith("Este parecer expressa")):
             css_class = ' class="sem-recuo"'
         
         html_parts.append(
