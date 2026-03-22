@@ -25,11 +25,12 @@ export async function generateParecer(parecerId: string): Promise<ParecerVersion
 export async function saveVersion(
   parecerId: string,
   versionId: string,
-  contentHtml: string
+  contentHtml: string,
+  contentTiptap?: Record<string, unknown>
 ): Promise<ParecerVersion> {
   const { data } = await api.put<ParecerVersion>(
     `/api/parecer-requests/${parecerId}/versions/${versionId}`,
-    { content_html: contentHtml }
+    { content_html: contentHtml, content_tiptap: contentTiptap }
   )
   return data
 }

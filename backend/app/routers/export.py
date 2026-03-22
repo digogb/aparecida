@@ -140,7 +140,7 @@ async def approve(
     """Approve a parecer (transition to 'aprovado')."""
     req = await _load_request_with_versions(id, db)
 
-    allowed = {ParecerStatus.em_revisao, ParecerStatus.gerado, ParecerStatus.devolvido}
+    allowed = {ParecerStatus.em_revisao, ParecerStatus.gerado, ParecerStatus.devolvido, ParecerStatus.em_correcao}
     if req.status not in allowed:
         raise HTTPException(
             status_code=400,
@@ -165,25 +165,31 @@ async def approve_and_send(
     """Approve and immediately send the parecer by email."""
     req = await _load_request_with_versions(id, db)
 
-    allowed = {ParecerStatus.em_revisao, ParecerStatus.gerado, ParecerStatus.devolvido}
+    allowed = {
+        ParecerStatus.em_revisao, ParecerStatus.gerado,
+        ParecerStatus.devolvido, ParecerStatus.em_correcao,
+        ParecerStatus.aprovado,
+    }
     if req.status not in allowed:
         raise HTTPException(
             status_code=400,
-            detail=f"Nao e possivel aprovar um parecer com status '{req.status.value}'",
+            detail=f"Nao e possivel enviar um parecer com status '{req.status.value}'",
         )
 
-    # Approve first
-    await _transition_status(
-        req, ParecerStatus.aprovado, db, changed_by=user_id, notes="Parecer aprovado"
-    )
+    # Approve if not already approved
+    if req.status != ParecerStatus.aprovado:
+        await _transition_status(
+            req, ParecerStatus.aprovado, db, changed_by=user_id, notes="Parecer aprovado"
+        )
 
-    # Generate DOCX and send
+    # Generate DOCX + PDF and send
     version = _latest_version(req)
     docx_bytes = await to_docx(req, version, db)
-    await send_parecer(req, docx_bytes, db, changed_by_id=user_id)
+    pdf_bytes = await to_pdf(req, version, db)
+    await send_parecer(req, docx_bytes, pdf_bytes, db, changed_by_id=user_id)
 
     return StatusOut(
-        id=req.id, status=req.status, message="Parecer aprovado e enviado com sucesso"
+        id=req.id, status=req.status, message="Parecer enviado com sucesso"
     )
 
 
