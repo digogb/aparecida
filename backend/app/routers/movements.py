@@ -85,7 +85,7 @@ async def _run_dje_search(body: DJESearchRequest) -> None:
                     db=db,
                     dje_id=com.id,
                     process_number=com.numero_processo,
-                    raw_type=com.tipo_comunicacao or "publicacao",
+                    raw_type=com.tipo_documento or com.tipo_comunicacao or "publicacao",
                     content=com.texto,
                     published_at=_parse_dje_date(com.data_disponibilizacao),
                     court=com.tribunal or com.orgao or None,
@@ -95,8 +95,12 @@ async def _run_dje_search(body: DJESearchRequest) -> None:
                         "orgao": com.orgao,
                         "polos": com.polos.to_dict(),
                         "destinatarios": com.destinatarios,
+                        "advogados": [a.to_dict() for a in com.advogados],
                         "data_disponibilizacao": com.data_disponibilizacao,
                         "termo_buscado": com.termo_buscado,
+                        "tipo_documento": com.tipo_documento,
+                        "nome_classe": com.nome_classe,
+                        "meio_completo": com.meio_completo,
                     },
                 )
                 if movement is not None:

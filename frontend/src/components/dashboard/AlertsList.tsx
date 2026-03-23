@@ -31,7 +31,8 @@ export default function AlertsList({ alerts }: { alerts: DashboardAlert[] }) {
             role={isClickable ? 'button' : undefined}
             tabIndex={isClickable ? 0 : undefined}
             onKeyDown={(e) => { if (isClickable && (e.key === 'Enter' || e.key === ' ')) navigate(alert.ref_path!) }}
-            className={`rounded-xl flex items-center gap-4 px-5 py-3 ${isClickable ? 'cursor-pointer hover:brightness-[0.97] transition-all duration-150' : ''}`}
+            className={`rounded-xl flex items-center gap-4 px-5 py-3 overflow-hidden ${isClickable ? 'cursor-pointer hover:brightness-[0.97] transition-all duration-150' : ''}`}
+            title={alert.description || alert.title}
             style={{
               background: '#FAF8F5',
               border: '1.5px solid #DDD9D2',
@@ -41,7 +42,7 @@ export default function AlertsList({ alerts }: { alerts: DashboardAlert[] }) {
             <span className="text-sm font-semibold shrink-0" style={{ color: cfg.text, minWidth: 72 }}>
               {cfg.label}
             </span>
-            <span className="text-base truncate" style={{ color: '#2D2D3A' }}>
+            <span className="text-base truncate flex-1 min-w-0" style={{ color: '#2D2D3A' }}>
               {alert.title}
             </span>
             {alert.description && (

@@ -42,6 +42,7 @@ class RecentMovement(BaseModel):
     id: uuid.UUID
     process_number: str
     type: str
+    tipo_documento: Optional[str] = None
     published_at: Optional[datetime] = None
     created_at: datetime
     is_read: bool

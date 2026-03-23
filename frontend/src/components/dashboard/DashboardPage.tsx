@@ -37,6 +37,11 @@ const MOV_TYPE: Record<string, string> = {
   acordao: 'Acórdão', publicacao: 'Publicação', distribuicao: 'Distribuição', outros: 'Outros',
 }
 
+const MOV_COLOR: Record<string, string> = {
+  intimacao: '#8B2332', sentenca: '#1B2838', despacho: '#6B6860',
+  acordao: '#5B7553', publicacao: '#C4953A', distribuicao: '#A69B8D', outros: '#6B6860',
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate()
   const { data: user } = useCurrentUser()
@@ -85,7 +90,7 @@ export default function DashboardPage() {
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-up" style={{ animationDelay: '120ms' }}>
 
         {/* Alertas */}
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-medium uppercase tracking-widest mb-2.5" style={{ color: '#A69B8D' }}>
             Alertas
             {hasAlerts && (
@@ -110,7 +115,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Movimentações */}
-        <div>
+        <div className="min-w-0">
           <div className="flex items-baseline justify-between mb-2.5">
             <p className="text-sm font-medium uppercase tracking-widest" style={{ color: '#A69B8D' }}>Movimentações</p>
             <button onClick={() => navigate('/movimentacoes')} className="text-sm font-medium cursor-pointer hover:underline" style={{ color: '#C4953A' }}>
@@ -139,10 +144,10 @@ export default function DashboardPage() {
                 style={{ borderBottom: i < recent.movimentacoes.length - 1 ? '1px solid #EBE8E2' : 'none' }}
               >
                 {!m.is_read && (
-                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: '#8B2332' }} />
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: MOV_COLOR[m.type] ?? '#6B6860' }} />
                 )}
                 <span className="text-sm font-semibold shrink-0" style={{ color: '#6B6860', minWidth: 72 }}>
-                  {MOV_TYPE[m.type] ?? m.type}
+                  {m.tipo_documento || MOV_TYPE[m.type] || m.type}
                 </span>
                 <span className="text-base truncate" style={{ color: '#2D2D3A' }}>{m.process_number}</span>
                 {m.published_at && (

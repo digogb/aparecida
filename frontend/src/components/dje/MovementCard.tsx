@@ -27,9 +27,29 @@ function formatDate(iso: string | null): string {
   return d.toLocaleDateString('pt-BR')
 }
 
-function excerpt(text: string | null): string {
-  if (!text) return ''
-  return text.length > 120 ? text.slice(0, 120) + '…' : text
+function titleCase(s: string): string {
+  const MINOR = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'no', 'na', 'nos', 'nas', 'à', 'ao', 'às', 'aos', 'por', 'para', 'com'])
+  return s.toLowerCase().split(' ').map((w, i) =>
+    i > 0 && MINOR.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)
+  ).join(' ')
+}
+
+function buildSummary(movement: Movement): string | null {
+  const meta = movement.metadata_ as Record<string, unknown> | null
+  if (!meta) return null
+
+  const parts: string[] = []
+
+  const nomeClasse = meta.nome_classe as string | undefined
+  if (nomeClasse) parts.push(titleCase(nomeClasse))
+
+  const orgao = meta.orgao as string | undefined
+  if (orgao) parts.push(titleCase(orgao))
+
+  const dest = meta.destinatarios as string[] | undefined
+  if (dest?.length) parts.push(dest.map(d => titleCase(d)).join(', '))
+
+  return parts.length > 0 ? parts.join(' · ') : null
 }
 
 interface MovementCardProps {
@@ -41,6 +61,7 @@ export default function MovementCard({ movement, onClick }: MovementCardProps) {
   const color = TYPE_COLORS[movement.type] ?? TYPE_COLORS.outros
   const processNumber = movement.process?.number ?? '—'
   const pubDate = formatDate(movement.published_at ?? movement.metadata_?.data_disponibilizacao as string ?? null)
+  const summary = buildSummary(movement)
 
   return (
     <button
@@ -64,8 +85,8 @@ export default function MovementCard({ movement, onClick }: MovementCardProps) {
             )}
           </div>
           <p className="text-base font-medium truncate" style={{ color: '#2D2D3A' }}>{processNumber}</p>
-          {movement.content && (
-            <p className="text-sm mt-1 line-clamp-2" style={{ color: '#A69B8D' }}>{excerpt(movement.content)}</p>
+          {summary && (
+            <p className="text-sm mt-1 line-clamp-2" style={{ color: '#A69B8D' }}>{summary}</p>
           )}
         </div>
         <div className="text-right flex-shrink-0 space-y-0.5">

@@ -245,6 +245,7 @@ async def get_dashboard_recent(
             id=row.Movement.id,
             process_number=row.process_number or "—",
             type=row.Movement.type.value,
+            tipo_documento=(row.Movement.metadata_ or {}).get("tipo_documento"),
             published_at=row.Movement.published_at,
             created_at=row.Movement.created_at,
             is_read=row.Movement.is_read,

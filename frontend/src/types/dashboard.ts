@@ -36,6 +36,7 @@ export interface RecentMovement {
   id: string
   process_number: string
   type: string
+  tipo_documento: string | null
   published_at: string | null
   created_at: string
   is_read: boolean

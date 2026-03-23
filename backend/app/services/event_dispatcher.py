@@ -14,7 +14,8 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.movement import Movement, MovementType
+from app.models.movement import Movement, MovementType, Process
+from app.models.parecer import ParecerRequest
 from app.models.task import Board, Column, TaskCategory, TaskPriority
 from app.schemas.task import TaskCreate
 from app.services.task_service import create_task
@@ -84,7 +85,13 @@ async def dispatch_movement_event(movement: Movement, db: AsyncSession) -> None:
         MovementType.outros:       "Movimentação",
     }
     prefix = title_prefix.get(movement.type, "Movimentação")
-    title = f"{prefix} — Processo {movement.process_id}"
+
+    # Buscar número do processo legível
+    process_result = await db.execute(
+        select(Process.number).where(Process.id == movement.process_id)
+    )
+    process_number = process_result.scalar_one_or_none() or str(movement.process_id)
+    title = f"{prefix} — {process_number}"
 
     source_ref: dict = {
         "type": "movement",
@@ -125,7 +132,12 @@ async def dispatch_parecer_event(parecer_request_id: str, db: AsyncSession) -> N
         logger.warning("dispatch_parecer_event: no Entrada column found, skipping")
         return
 
-    title = f"Revisar Parecer — {parecer_request_id[:8]}"
+    # Buscar numero_parecer legível
+    pr_result = await db.execute(
+        select(ParecerRequest.numero_parecer).where(ParecerRequest.id == parecer_request_id)
+    )
+    numero = pr_result.scalar_one_or_none() or parecer_request_id[:8]
+    title = f"Revisar Parecer — {numero}"
 
     source_ref: dict = {
         "type": "parecer",

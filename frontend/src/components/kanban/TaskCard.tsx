@@ -45,9 +45,7 @@ export default function TaskCard({ task }: TaskCardProps) {
     ? new Date(task.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
     : null
 
-  const processId = (task.source_ref?.process_id as string | undefined)
-    ? String(task.source_ref!.process_id).slice(0, 8)
-    : null
+  const processId = null
 
   const priorityColor = PRIORITY_COLORS[task.priority] ?? '#A69B8D'
 

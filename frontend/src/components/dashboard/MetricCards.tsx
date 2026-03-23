@@ -12,7 +12,7 @@ export default function MetricCards({ stats }: { stats: DashboardStats }) {
   const navigate = useNavigate()
 
   const cards: CardDef[] = [
-    { label: 'Aguardando revisão',       value: stats.aguardando_revisao,      path: '/pareceres',     tone: '#C4953A' },
+    { label: 'Pareceres aguardando revisão', value: stats.aguardando_revisao, path: '/pareceres', tone: '#C4953A' },
     { label: 'Movimentações não lidas', value: stats.movimentacoes_nao_lidas, path: '/movimentacoes', tone: '#6B6860' },
     { label: 'Tarefas urgentes',        value: stats.tarefas_urgentes,        path: '/tarefas',       tone: '#8B2332' },
   ]
