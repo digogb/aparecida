@@ -3,6 +3,13 @@ import { Bell } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '../../hooks/useNotifications'
 import { useMovementWebSocket } from '../../hooks/useMovementWebSocket'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  fetchAppNotifications,
+  fetchUnreadNotificationCount,
+  markNotificationRead,
+} from '../../services/editorApi'
+import type { AppNotification } from '../../services/editorApi'
 import type { MovementType } from '../../types/movement'
 
 const TYPE_LABELS: Record<MovementType, string> = {
@@ -25,13 +32,47 @@ const TYPE_COLORS: Record<MovementType, string> = {
   outros:       '#6B6860',
 }
 
+function formatTimeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(diff / 60_000)
+  if (mins < 1) return 'agora'
+  if (mins < 60) return `${mins}min`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h`
+  const days = Math.floor(hours / 24)
+  return `${days}d`
+}
+
 export default function NotificationBell() {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
-  const { notifications, count } = useNotifications()
+  const queryClient = useQueryClient()
+  const { notifications: movementNotifs, count: movementCount } = useNotifications()
 
   useMovementWebSocket()
+
+  // Notificações genéricas (peer review, etc.)
+  const { data: appNotifs = [] } = useQuery({
+    queryKey: ['app-notifications'],
+    queryFn: () => fetchAppNotifications(20, 0),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  })
+
+  const { data: appUnreadCount = 0 } = useQuery({
+    queryKey: ['app-notifications-count'],
+    queryFn: fetchUnreadNotificationCount,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  })
+
+  // Filtrar apenas notificações não lidas de peer review
+  const peerReviewNotifs = appNotifs.filter(
+    (n) => n.metadata_?.type === 'peer_review' && n.status !== 'read'
+  )
+
+  const totalCount = movementCount + peerReviewNotifs.length
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -48,6 +89,24 @@ export default function NotificationBell() {
     navigate('/movimentacoes')
   }
 
+  async function handlePeerReviewClick(notif: AppNotification) {
+    setOpen(false)
+    // Marcar como lida
+    if (notif.status !== 'read') {
+      try {
+        await markNotificationRead(notif.id)
+        queryClient.invalidateQueries({ queryKey: ['app-notifications'] })
+        queryClient.invalidateQueries({ queryKey: ['app-notifications-count'] })
+      } catch (err) {
+        console.error('Mark read failed:', err)
+      }
+    }
+    // Navegar para o parecer
+    if (notif.link) {
+      navigate(notif.link)
+    }
+  }
+
   return (
     <div ref={ref} className="relative">
       <button
@@ -57,10 +116,10 @@ export default function NotificationBell() {
         aria-label="Notificações"
       >
         <Bell size={18} />
-        {count > 0 && (
+        {totalCount > 0 && (
           <span className="absolute top-1 right-1 w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center leading-none"
             style={{ background: '#8B2332', color: '#FAF8F5' }}>
-            {count > 99 ? '99+' : count}
+            {totalCount > 99 ? '99+' : totalCount}
           </span>
         )}
       </button>
@@ -70,7 +129,7 @@ export default function NotificationBell() {
           style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', boxShadow: '0 12px 40px rgba(27,40,56,0.12)' }}>
           <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid #EBE8E2' }}>
             <span className="text-sm font-medium" style={{ color: '#2D2D3A' }}>
-              Não lidas {count > 0 && `(${count})`}
+              Não lidas {totalCount > 0 && `(${totalCount})`}
             </span>
             <button
               onClick={handleViewAll}
@@ -82,12 +141,40 @@ export default function NotificationBell() {
           </div>
 
           <ul className="max-h-80 overflow-y-auto" style={{ borderColor: '#EBE8E2' }}>
-            {notifications.length === 0 ? (
+            {/* Notificações de peer review */}
+            {peerReviewNotifs.map((n) => (
+              <li key={n.id} style={{ borderBottom: '1px solid #EBE8E2' }}>
+                <button
+                  className="w-full text-left px-4 py-3 transition-all duration-150 hover:brightness-[0.97] cursor-pointer"
+                  onClick={() => handlePeerReviewClick(n)}
+                >
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-lg"
+                      style={{ background: '#1B283818', color: '#1B2838' }}>
+                      Revisão
+                    </span>
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#1B2838' }} />
+                    <span className="text-xs ml-auto" style={{ color: '#A69B8D' }}>
+                      {formatTimeAgo(n.created_at)}
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium truncate" style={{ color: '#2D2D3A' }}>
+                    {n.title}
+                  </p>
+                  {n.body && (
+                    <p className="text-sm truncate mt-0.5" style={{ color: '#A69B8D' }}>{n.body}</p>
+                  )}
+                </button>
+              </li>
+            ))}
+
+            {/* Notificações de movimentações */}
+            {movementNotifs.length === 0 && peerReviewNotifs.length === 0 ? (
               <li className="px-4 py-6 text-center text-sm" style={{ color: '#A69B8D' }}>
-                Nenhuma movimentação não lida
+                Nenhuma notificação não lida
               </li>
             ) : (
-              notifications.slice(0, 10).map((n) => {
+              movementNotifs.slice(0, 10).map((n) => {
                 const color = TYPE_COLORS[n.type] ?? '#6B6860'
                 return (
                   <li key={n.id} style={{ borderBottom: '1px solid #EBE8E2' }}>
@@ -119,14 +206,14 @@ export default function NotificationBell() {
             )}
           </ul>
 
-          {notifications.length > 10 && (
+          {(movementNotifs.length > 10 || peerReviewNotifs.length > 0) && (
             <div className="px-4 py-2 text-center" style={{ borderTop: '1px solid #EBE8E2' }}>
               <button
                 onClick={handleViewAll}
                 className="text-sm cursor-pointer"
                 style={{ color: '#C4953A' }}
               >
-                +{notifications.length - 10} mais — ver todas
+                Ver todas
               </button>
             </div>
           )}

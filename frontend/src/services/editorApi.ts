@@ -153,3 +153,37 @@ export async function cancelPeerReview(reviewId: string): Promise<PeerReview> {
   return data
 }
 
+// ── Notificações genéricas ───────────────────────────────────────────────────
+
+export interface AppNotification {
+  id: string
+  user_id: string
+  channel: string
+  status: string
+  title: string
+  body: string | null
+  link: string | null
+  metadata_: Record<string, unknown> | null
+  read_at: string | null
+  created_at: string
+}
+
+export async function fetchAppNotifications(
+  limit = 20,
+  offset = 0
+): Promise<AppNotification[]> {
+  const { data } = await api.get<AppNotification[]>('/api/notifications', {
+    params: { limit, offset },
+  })
+  return data
+}
+
+export async function fetchUnreadNotificationCount(): Promise<number> {
+  const { data } = await api.get<{ count: number }>('/api/notifications/unread-count')
+  return data.count
+}
+
+export async function markNotificationRead(notificationId: string): Promise<void> {
+  await api.patch(`/api/notifications/${notificationId}/read`)
+}
+
