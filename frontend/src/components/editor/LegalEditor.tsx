@@ -7,6 +7,7 @@ import type { CorrectionPreview } from '../../services/editorApi'
 import EditorToolbar from './EditorToolbar'
 import EditorSidebar from './EditorSidebar'
 import SplitView from './SplitView'
+import PeerReviewModal from './PeerReviewModal'
 
 const SECTION_LABELS: Record<string, string> = {
   ementa: 'Ementa',
@@ -332,6 +333,10 @@ export default function LegalEditor() {
     handleExport,
     getMarkedTexts,
     correctionCount,
+    showPeerReviewModal,
+    setShowPeerReviewModal,
+    handleRequestPeerReview,
+    isPeerReviewSending,
   } = useEditorInstance(parecer ?? null)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -469,7 +474,7 @@ export default function LegalEditor() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowReturnModal(true)}
-              disabled={isReprocessing || isGenerating}
+              disabled={isReprocessing || isGenerating || isPeerReviewSending}
               className="px-4 py-2 text-sm rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ border: '1.5px solid #C4953A44', color: '#C4953A', background: '#C4953A18' }}
             >
@@ -480,6 +485,25 @@ export default function LegalEditor() {
               Solicitar correção para IA
               {correctionCount > 0 && (
                 <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full" style={{ background: '#C4953A', color: '#FAF8F5' }}>
+                  {correctionCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setShowPeerReviewModal(true)}
+              disabled={isReprocessing || isGenerating || isPeerReviewSending}
+              className="px-4 py-2 text-sm rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ border: '1.5px solid #1B283844', color: '#1B2838', background: '#1B283812' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              Enviar para colega
+              {correctionCount > 0 && (
+                <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full" style={{ background: '#1B2838', color: '#FAF8F5' }}>
                   {correctionCount}
                 </span>
               )}
@@ -522,6 +546,16 @@ export default function LegalEditor() {
           isLoading={isReprocessing}
           isApplying={isApplying}
           preview={correctionPreview}
+        />
+      )}
+
+      {/* Peer Review Modal */}
+      {showPeerReviewModal && (
+        <PeerReviewModal
+          markedTexts={getMarkedTexts()}
+          onSubmit={handleRequestPeerReview}
+          onClose={() => setShowPeerReviewModal(false)}
+          isLoading={isPeerReviewSending}
         />
       )}
     </div>

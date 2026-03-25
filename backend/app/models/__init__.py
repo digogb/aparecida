@@ -6,6 +6,7 @@ from app.models.parecer import (  # noqa: F401
     ParecerRequest, ParecerVersion, Attachment, ParecerStatusHistory,
     ParecerStatus, ParecerTema, ParecerModelo, VersionSource,
     ExtractionMethod, ExtractionStatus,
+    PeerReview, PeerReviewStatus,
 )
 from app.models.movement import Process, ProcessLawyer, Movement, MovementType  # noqa: F401
 from app.models.task import Board, Column, Task, TaskHistory, TaskCategory, TaskPriority  # noqa: F401
@@ -18,6 +19,7 @@ __all__ = [
     "ParecerRequest", "ParecerVersion", "Attachment", "ParecerStatusHistory",
     "ParecerStatus", "ParecerTema", "ParecerModelo", "VersionSource",
     "ExtractionMethod", "ExtractionStatus",
+    "PeerReview", "PeerReviewStatus",
     "Process", "ProcessLawyer", "Movement", "MovementType",
     "Board", "Column", "Task", "TaskHistory", "TaskCategory", "TaskPriority",
     "Notification", "Holiday", "NotificationChannel", "NotificationStatus",

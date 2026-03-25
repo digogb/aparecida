@@ -8,6 +8,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
+# Forward reference — User is defined in app.models.user
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.models.user import User
+
 
 class ParecerStatus(str, enum.Enum):
     pendente = "pendente"
@@ -36,6 +41,13 @@ class VersionSource(str, enum.Enum):
     ia_reprocessado = "ia_reprocessado"
     manual_edit = "manual_edit"
     restaurado = "restaurado"
+    peer_review = "peer_review"
+
+
+class PeerReviewStatus(str, enum.Enum):
+    pendente = "pendente"
+    concluida = "concluida"
+    cancelada = "cancelada"
 
 
 class ExtractionMethod(str, enum.Enum):
@@ -130,3 +142,25 @@ class ParecerStatusHistory(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     request: Mapped["ParecerRequest"] = relationship("ParecerRequest", back_populates="status_history")
+
+
+class PeerReview(Base):
+    __tablename__ = "peer_reviews"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    request_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("parecer_requests.id"), nullable=False, index=True)
+    version_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("parecer_versions.id"), nullable=False)
+    requested_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    reviewer_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    status: Mapped[PeerReviewStatus] = mapped_column(Enum(PeerReviewStatus, name="peer_review_status"), nullable=False, default=PeerReviewStatus.pendente)
+    trechos_marcados: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    observacoes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resposta_geral: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resposta_trechos: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    result_version_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("parecer_versions.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    request: Mapped["ParecerRequest"] = relationship("ParecerRequest", foreign_keys=[request_id])
+    requester: Mapped["User"] = relationship("User", foreign_keys=[requested_by])
+    reviewer: Mapped["User"] = relationship("User", foreign_keys=[reviewer_id])

@@ -1,8 +1,20 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ParecerRequestDetail, ParecerVersion } from '../../types/parecer'
 import type { ReviewFlowStep } from '../../types/editor'
 import { restoreVersion } from '../../services/editorApi'
 import { useQueryClient } from '@tanstack/react-query'
+import PeerReviewPanel from './PeerReviewPanel'
+
+function getCurrentUserId(): string {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) return ''
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.sub ?? ''
+  } catch {
+    return ''
+  }
+}
 
 interface Props {
   parecer: ParecerRequestDetail
@@ -73,6 +85,14 @@ function formatDate(iso: string): string {
   })
 }
 
+const VERSION_SOURCE_LABELS: Record<string, string> = {
+  ia_gerado: 'IA',
+  ia_reprocessado: 'Correção IA',
+  manual_edit: 'Manual',
+  restaurado: 'Restaurada',
+  peer_review: 'Revisão colega',
+}
+
 export default function EditorSidebar({
   parecer,
   activeVersion,
@@ -82,6 +102,7 @@ export default function EditorSidebar({
   const [isRestoring, setIsRestoring] = useState(false)
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false)
   const queryClient = useQueryClient()
+  const currentUserId = useMemo(() => getCurrentUserId(), [])
   const flow = getReviewFlow(parecer.status)
   const sortedVersions = [...parecer.versions].sort(
     (a, b) => b.version_number - a.version_number
@@ -253,13 +274,28 @@ export default function EditorSidebar({
                     : { color: '#6B6860' }
                 }
               >
-                <div>v{v.version_number} — {v.source}</div>
+                <div className="flex items-center gap-1.5">
+                  <span>v{v.version_number}</span>
+                  <span
+                    className="text-xs px-1.5 py-0.5 rounded"
+                    style={
+                      v.source === 'peer_review'
+                        ? { background: '#1B283818', color: '#1B2838' }
+                        : { background: '#EBE8E2', color: '#A69B8D' }
+                    }
+                  >
+                    {VERSION_SOURCE_LABELS[v.source] ?? v.source}
+                  </span>
+                </div>
                 <div style={{ color: '#A69B8D' }}>{formatDate(v.created_at)}</div>
               </button>
             </li>
           ))}
         </ul>
       </div>
+
+      {/* Peer Reviews */}
+      <PeerReviewPanel parecerId={parecer.id} currentUserId={currentUserId} />
     </aside>
   )
 }
