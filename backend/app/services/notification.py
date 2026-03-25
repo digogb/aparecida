@@ -150,6 +150,74 @@ async def send_email_alert(movement: Movement) -> None:
     logger.info("Email alert sent for intimação movement %s", movement.id)
 
 
+async def notify_peer_review_requested(
+    db: AsyncSession,
+    peer_review: Any,
+    parecer: Any,
+) -> None:
+    """Notifica o revisor que uma revisão foi solicitada."""
+    numero = getattr(parecer, "numero_parecer", None) or str(parecer.id)[:8]
+    notif = Notification(
+        user_id=peer_review.reviewer_id,
+        channel=NotificationChannel.in_app,
+        status=NotificationStatus.pending,
+        title=f"Revisão solicitada: {numero}",
+        body="Um colega enviou trechos para você revisar.",
+        link=f"/pareceres/{parecer.id}",
+        metadata_={
+            "type": "peer_review",
+            "peer_review_id": str(peer_review.id),
+            "parecer_request_id": str(parecer.id),
+        },
+    )
+    db.add(notif)
+    await db.flush()
+
+    payload = {
+        "event": "peer_review.requested",
+        "data": {
+            "peer_review_id": str(peer_review.id),
+            "parecer_id": str(parecer.id),
+            "reviewer_id": str(peer_review.reviewer_id),
+        },
+    }
+    asyncio.create_task(ws_manager.broadcast(payload))
+
+
+async def notify_peer_review_completed(
+    db: AsyncSession,
+    peer_review: Any,
+    parecer: Any,
+) -> None:
+    """Notifica o solicitante que a revisão foi concluída."""
+    numero = getattr(parecer, "numero_parecer", None) or str(parecer.id)[:8]
+    notif = Notification(
+        user_id=peer_review.requested_by,
+        channel=NotificationChannel.in_app,
+        status=NotificationStatus.pending,
+        title=f"Revisão concluída: {numero}",
+        body="Seu colega concluiu a revisão dos trechos.",
+        link=f"/pareceres/{parecer.id}",
+        metadata_={
+            "type": "peer_review",
+            "peer_review_id": str(peer_review.id),
+            "parecer_request_id": str(parecer.id),
+        },
+    )
+    db.add(notif)
+    await db.flush()
+
+    payload = {
+        "event": "peer_review.completed",
+        "data": {
+            "peer_review_id": str(peer_review.id),
+            "parecer_id": str(parecer.id),
+            "requested_by": str(peer_review.requested_by),
+        },
+    }
+    asyncio.create_task(ws_manager.broadcast(payload))
+
+
 async def get_unread_count(db: AsyncSession, user_id: str) -> int:
     """Return count of unread in-app notifications for a user."""
     result = await db.execute(

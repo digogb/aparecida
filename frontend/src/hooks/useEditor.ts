@@ -16,8 +16,9 @@ import {
   approveParecer,
   exportParecer,
   generateParecer,
+  createPeerReview,
 } from '../services/editorApi'
-import type { CorrectionPreview } from '../services/editorApi'
+import type { CorrectionPreview, PeerReviewCreatePayload } from '../services/editorApi'
 import type { ParecerRequestDetail, ParecerVersion } from '../types/parecer'
 
 /** Extract all text fragments marked with correctionMark from the editor */
@@ -63,6 +64,8 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
   const [correctionPreview, setCorrectionPreview] = useState<CorrectionPreview | null>(null)
   const [isApplying, setIsApplying] = useState(false)
   const [correctionInstructions, setCorrectionInstructions] = useState('')
+  const [showPeerReviewModal, setShowPeerReviewModal] = useState(false)
+  const [isPeerReviewSending, setIsPeerReviewSending] = useState(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const saveRef = useRef<() => void>(() => {})
   const queryClient = useQueryClient()
@@ -229,6 +232,31 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     setCorrectionInstructions('')
   }, [])
 
+  const handleRequestPeerReview = useCallback(
+    async (reviewerId: string, observacoes: string) => {
+      if (!parecer) return
+      setIsPeerReviewSending(true)
+      try {
+        const trechos = getMarkedFragments(editor)
+        const payload: PeerReviewCreatePayload = {
+          reviewer_id: reviewerId,
+          trechos_marcados: trechos.map((t) => ({ texto: t, instrucao: '' })),
+          observacoes,
+        }
+        await createPeerReview(parecer.id, payload)
+        clearAllCorrectionMarks(editor)
+        setShowPeerReviewModal(false)
+        queryClient.invalidateQueries({ queryKey: ['parecer', parecer.id] })
+        queryClient.invalidateQueries({ queryKey: ['peer-reviews', parecer.id] })
+      } catch (err) {
+        console.error('Peer review request failed:', err)
+      } finally {
+        setIsPeerReviewSending(false)
+      }
+    },
+    [parecer, editor, queryClient]
+  )
+
   const handleApprove = useCallback(
     async (sendEmail: boolean): Promise<boolean> => {
       if (!parecer) return false
@@ -302,5 +330,9 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     handleExport,
     getMarkedTexts,
     correctionCount,
+    showPeerReviewModal,
+    setShowPeerReviewModal,
+    handleRequestPeerReview,
+    isPeerReviewSending,
   }
 }

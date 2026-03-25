@@ -72,3 +72,56 @@ export interface ParecerMetrics {
   em_revisao: number
   enviados_semana: number
 }
+
+export type PeerReviewStatus = 'pendente' | 'concluida' | 'cancelada'
+
+export interface TrechoMarcado {
+  texto: string
+  instrucao: string
+}
+
+export interface RespostaTrecho {
+  original: string
+  sugestao: string
+  comentario: string
+}
+
+export interface PeerReview {
+  id: string
+  request_id: string
+  version_id: string
+  requested_by: string
+  requested_by_name: string
+  reviewer_id: string
+  reviewer_name: string
+  status: PeerReviewStatus
+  trechos_marcados: TrechoMarcado[] | null
+  observacoes: string | null
+  resposta_geral: string | null
+  resposta_trechos: RespostaTrecho[] | null
+  result_version_id: string | null
+  created_at: string
+  completed_at: string | null
+}
+
+export interface PeerReviewListItem {
+  id: string
+  request_id: string
+  requested_by: string
+  requested_by_name: string
+  reviewer_id: string
+  reviewer_name: string
+  status: PeerReviewStatus
+  observacoes: string | null
+  created_at: string
+  completed_at: string | null
+}
+
+export interface Lawyer {
+  id: string
+  name: string
+  email: string
+  role: string
+  is_active: boolean
+  created_at: string
+}

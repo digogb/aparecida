@@ -1,5 +1,5 @@
 import api from './api'
-import type { ParecerVersion } from '../types/parecer'
+import type { Lawyer, ParecerVersion, PeerReview, PeerReviewListItem } from '../types/parecer'
 
 export interface TrechoRevisado {
   original: string
@@ -88,6 +88,67 @@ export async function exportParecer(
     `/api/parecer-requests/${parecerId}/export/${format}`,
     {},
     { responseType: 'blob' }
+  )
+  return data
+}
+
+// ── Peer Review ──────────────────────────────────────────────────────────────
+
+export async function fetchLawyers(): Promise<Lawyer[]> {
+  const { data } = await api.get<Lawyer[]>('/api/users/lawyers')
+  return data
+}
+
+export interface PeerReviewCreatePayload {
+  reviewer_id: string
+  trechos_marcados: Array<{ texto: string; instrucao: string }>
+  observacoes: string
+}
+
+export async function createPeerReview(
+  parecerId: string,
+  payload: PeerReviewCreatePayload
+): Promise<PeerReview> {
+  const { data } = await api.post<PeerReview>(
+    `/api/parecer-requests/${parecerId}/peer-review`,
+    payload
+  )
+  return data
+}
+
+export async function fetchPeerReviews(
+  parecerId: string
+): Promise<PeerReviewListItem[]> {
+  const { data } = await api.get<PeerReviewListItem[]>(
+    `/api/parecer-requests/${parecerId}/peer-reviews`
+  )
+  return data
+}
+
+export async function fetchPendingReviews(): Promise<PeerReview[]> {
+  const { data } = await api.get<PeerReview[]>('/api/peer-reviews/pending')
+  return data
+}
+
+export interface PeerReviewRespondPayload {
+  resposta_geral: string
+  resposta_trechos: Array<{ original: string; sugestao: string; comentario: string }>
+}
+
+export async function respondToPeerReview(
+  reviewId: string,
+  payload: PeerReviewRespondPayload
+): Promise<PeerReview> {
+  const { data } = await api.post<PeerReview>(
+    `/api/peer-reviews/${reviewId}/respond`,
+    payload
+  )
+  return data
+}
+
+export async function cancelPeerReview(reviewId: string): Promise<PeerReview> {
+  const { data } = await api.post<PeerReview>(
+    `/api/peer-reviews/${reviewId}/cancel`
   )
   return data
 }
