@@ -5,7 +5,7 @@ export function Sidebar() {
   return (
     <aside
       className="w-56 h-screen p-4 flex-shrink-0 flex flex-col"
-      style={{ background: '#142038' }}
+      style={{ background: 'linear-gradient(180deg, #0A1020 0%, #142038 60%, #1a2847 100%)' }}
     >
       <div className="flex items-center gap-3 mb-8 px-3 pt-1">
         <div>

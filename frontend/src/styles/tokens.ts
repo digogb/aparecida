@@ -17,7 +17,8 @@ export const colors = {
     page:    '#F5F0E8',   // fundo principal das páginas
     card:    '#F5F0E8',   // fundo de cards e listas
     topbar:  '#EDE8DF',   // barra superior
-    sidebar: '#142038',   // navegação lateral
+    sidebar: '#142038',   // navegação lateral (base)
+    sidebarGradient: 'linear-gradient(180deg, #0A1020 0%, #142038 60%, #1a2847 100%)',
   },
 
   /** Bordas e separadores */
@@ -160,7 +161,7 @@ export const animations = {
 export const layout = {
   sidebar: {
     width: '224px',       // w-56
-    background: '#142038',
+    background: 'linear-gradient(180deg, #0A1020 0%, #142038 60%, #1a2847 100%)',
     brandColor: '#C9A94E',
     activeItemBg: '#C9A94E18',
     activeItemText: '#C9A94E',
