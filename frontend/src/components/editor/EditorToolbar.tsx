@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import type { Editor } from '@tiptap/react'
 
 interface Props {
@@ -6,9 +7,16 @@ interface Props {
   onSave: () => void
   isSaving: boolean
   isDirty: boolean
+  showSearch: boolean
+  searchTerm: string
+  searchResults: number
+  onToggleSearch: () => void
+  onSearchChange: (value: string) => void
+  onCloseSearch: () => void
 }
 
-export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDirty }: Props) {
+export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDirty, showSearch, searchTerm, searchResults, onToggleSearch, onSearchChange, onCloseSearch }: Props) {
+  const searchInputRef = useRef<HTMLInputElement>(null)
   if (!editor) return null
 
   const btnClass = (active: boolean) =>
@@ -170,6 +178,57 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
           Corrigir
         </span>
       </button>
+
+      <div className="w-px h-5 mx-1" style={{ background: '#DDD9D2' }} />
+
+      {/* Search */}
+      {showSearch ? (
+        <div className="flex items-center gap-1.5">
+          <div className="relative">
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Escape') onCloseSearch() }}
+              placeholder="Buscar..."
+              autoFocus
+              className="pl-7 pr-2 py-1 text-sm rounded-lg w-44 focus:outline-none"
+              style={{ border: '1.5px solid #DDD9D2', background: '#FAF8F5', color: '#2D2D3A' }}
+            />
+            <svg className="absolute left-2 top-1/2 -translate-y-1/2" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A69B8D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </div>
+          {searchTerm.length >= 2 && (
+            <span className="text-xs whitespace-nowrap" style={{ color: '#A69B8D' }}>
+              {searchResults}
+            </span>
+          )}
+          <button
+            onClick={onCloseSearch}
+            className="p-0.5 rounded cursor-pointer"
+            style={{ color: '#A69B8D' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => { onToggleSearch(); setTimeout(() => searchInputRef.current?.focus(), 50) }}
+          className="px-2 py-1 rounded text-sm transition-all duration-150 cursor-pointer"
+          style={{ color: '#6B6860' }}
+          title="Buscar (Ctrl+F)"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+        </button>
+      )}
 
       <div className="flex-1" />
 

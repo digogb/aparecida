@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { EditorContent } from '@tiptap/react'
 import { useParecer } from '../../hooks/useParecer'
 import { useEditorInstance } from '../../hooks/useEditor'
-import type { CorrectionPreview } from '../../services/editorApi'
+import type { CorrectionPreview, PeerReviewRespondPayload } from '../../services/editorApi'
+import type { PeerReviewListItem, RespostaTrecho } from '../../types/parecer'
 import EditorToolbar from './EditorToolbar'
 import EditorSidebar from './EditorSidebar'
 import SplitView from './SplitView'
@@ -84,7 +85,7 @@ function CorrectionModal({
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(27,40,56,0.5)' }}>
-        <div className="rounded-xl w-full max-w-3xl mx-4 max-h-[85vh] flex flex-col" style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
+        <div className="rounded-xl w-full max-w-5xl mx-4 max-h-[85vh] flex flex-col" style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
           {/* Header */}
           <div className="p-4" style={{ borderBottom: '1px solid #EBE8E2' }}>
             <h3 className="text-base font-medium" style={{ color: '#2D2D3A' }}>
@@ -221,7 +222,7 @@ function CorrectionModal({
   // ── Fase 1: Input de instruções ──
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(27,40,56,0.5)' }}>
-      <div className="rounded-xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col" style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
+      <div className="rounded-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
         <div className="p-4" style={{ borderBottom: '1px solid #EBE8E2' }}>
           <h3 className="text-base font-medium" style={{ color: '#2D2D3A' }}>
             Solicitar correção para IA
@@ -304,6 +305,140 @@ function CorrectionModal({
   )
 }
 
+function ReviewResponseModal({
+  review,
+  onSubmit,
+  onClose,
+  isLoading,
+}: {
+  review: PeerReviewListItem
+  onSubmit: (payload: PeerReviewRespondPayload) => void
+  onClose: () => void
+  isLoading?: boolean
+}) {
+  const [respostaGeral, setRespostaGeral] = useState('')
+  const [respostasTrechos, setRespostasTrechos] = useState<RespostaTrecho[]>(
+    (review.trechos_marcados ?? []).map((t) => ({
+      original: t.texto,
+      sugestao: '',
+      comentario: '',
+    }))
+  )
+
+  const updateTrecho = (idx: number, field: keyof RespostaTrecho, value: string) => {
+    setRespostasTrechos((prev) =>
+      prev.map((rt, i) => (i === idx ? { ...rt, [field]: value } : rt))
+    )
+  }
+
+  const canSubmit = respostaGeral.trim() && !isLoading
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(27,40,56,0.5)' }}>
+      <div className="rounded-xl w-full max-w-5xl mx-4 max-h-[85vh] flex flex-col" style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
+        {/* Header */}
+        <div className="p-4" style={{ borderBottom: '1px solid #EBE8E2' }}>
+          <h3 className="text-base font-medium" style={{ color: '#2D2D3A' }}>
+            Revisar parecer
+          </h3>
+          <p className="text-sm mt-1" style={{ color: '#A69B8D' }}>
+            Solicitado por {review.requested_by_name}
+            {review.trechos_marcados && review.trechos_marcados.length > 0
+              ? ` — ${review.trechos_marcados.length} trecho(s) marcado(s)`
+              : ''}
+          </p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Observações do solicitante */}
+          {review.observacoes && (
+            <div className="rounded-xl p-3" style={{ background: '#C4953A12', border: '1.5px solid #C4953A33' }}>
+              <p className="text-xs font-medium uppercase tracking-widest mb-1.5" style={{ color: '#C4953A' }}>
+                Observações do solicitante
+              </p>
+              <p className="text-sm leading-relaxed" style={{ color: '#6B6860' }}>
+                {review.observacoes}
+              </p>
+            </div>
+          )}
+
+          {/* Trechos marcados com campos de sugestão */}
+          {respostasTrechos.length > 0 && respostasTrechos.map((rt, i) => (
+            <div key={i} className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #DDD9D2' }}>
+              {/* Trecho original */}
+              <div className="px-4 py-3" style={{ background: '#1B283808' }}>
+                <p className="text-xs font-medium uppercase tracking-widest mb-1.5" style={{ color: '#A69B8D' }}>
+                  Trecho {i + 1}
+                </p>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: '#6B6860' }}>
+                  "{rt.original}"
+                </p>
+              </div>
+              {/* Campo de sugestão */}
+              <div className="px-4 py-3" style={{ borderTop: '1px solid #EBE8E2' }}>
+                <p className="text-xs font-medium uppercase tracking-widest mb-1.5" style={{ color: '#1B2838' }}>
+                  Sua sugestão
+                </p>
+                <textarea
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 resize-none disabled:opacity-50"
+                  style={{ border: '1.5px solid #DDD9D2', background: '#FAF8F5', color: '#2D2D3A' } as React.CSSProperties}
+                  rows={3}
+                  placeholder="Sua sugestão para este trecho..."
+                  value={rt.sugestao}
+                  onChange={(e) => updateTrecho(i, 'sugestao', e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+          ))}
+
+          {/* Parecer geral */}
+          <div>
+            <label className="text-xs font-medium uppercase tracking-widest" style={{ color: '#A69B8D' }}>
+              Seu parecer geral
+            </label>
+            <textarea
+              className="mt-2 w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 resize-none disabled:opacity-50"
+              style={{ border: '1.5px solid #DDD9D2', color: '#2D2D3A', background: '#FAF8F5' } as React.CSSProperties}
+              rows={4}
+              placeholder="Seu comentário geral sobre o parecer..."
+              value={respostaGeral}
+              onChange={(e) => setRespostaGeral(e.target.value)}
+              disabled={isLoading}
+              autoFocus={respostasTrechos.length === 0}
+            />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-2 p-4" style={{ borderTop: '1px solid #EBE8E2' }}>
+          <button
+            onClick={onClose}
+            disabled={isLoading}
+            className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ color: '#6B6860', background: '#FAF8F5', border: '1.5px solid #DDD9D2' }}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => onSubmit({ resposta_geral: respostaGeral, resposta_trechos: respostasTrechos })}
+            disabled={!canSubmit}
+            className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            style={{ background: '#1B2838', color: '#FAF8F5' }}
+          >
+            {isLoading && (
+              <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+            )}
+            {isLoading ? 'Enviando...' : 'Enviar revisão'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function LegalEditor() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -337,9 +472,46 @@ export default function LegalEditor() {
     setShowPeerReviewModal,
     handleRequestPeerReview,
     isPeerReviewSending,
+    pendingReviewForMe,
+    showReviewResponseModal,
+    setShowReviewResponseModal,
+    handleRespondPeerReview,
+    isReviewResponding,
   } = useEditorInstance(parecer ?? null)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+
+  const searchResults = editor?.storage.searchHighlight?.results ?? 0
+
+  // Ctrl+F to toggle search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault()
+        setShowSearch((v) => {
+          if (v) {
+            setSearchTerm('')
+            editor?.commands.setSearchTerm('')
+          }
+          return !v
+        })
+      }
+      if (e.key === 'Escape' && showSearch) {
+        setShowSearch(false)
+        setSearchTerm('')
+        editor?.commands.setSearchTerm('')
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [editor, showSearch])
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value)
+    editor?.commands.setSearchTerm(value)
+  }
 
   const handleApproveWithLoading = useCallback(async (sendEmail: boolean) => {
     setIsSubmitting(true)
@@ -424,6 +596,12 @@ export default function LegalEditor() {
           onSave={handleSave}
           isSaving={isSaving}
           isDirty={isDirty}
+          showSearch={showSearch}
+          searchTerm={searchTerm}
+          searchResults={searchResults}
+          onToggleSearch={() => setShowSearch(true)}
+          onSearchChange={handleSearchChange}
+          onCloseSearch={() => { setShowSearch(false); setSearchTerm(''); editor?.commands.setSearchTerm('') }}
         />
       )}
 
@@ -489,25 +667,40 @@ export default function LegalEditor() {
                 </span>
               )}
             </button>
-            <button
-              onClick={() => setShowPeerReviewModal(true)}
-              disabled={isReprocessing || isGenerating || isPeerReviewSending}
-              className="px-4 py-2 text-sm rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ border: '1.5px solid #1B283844', color: '#1B2838', background: '#1B283812' }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-              Enviar para colega
-              {correctionCount > 0 && (
-                <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full" style={{ background: '#1B2838', color: '#FAF8F5' }}>
-                  {correctionCount}
-                </span>
-              )}
-            </button>
+            {pendingReviewForMe ? (
+              <button
+                onClick={() => setShowReviewResponseModal(true)}
+                disabled={isReprocessing || isGenerating || isReviewResponding}
+                className="px-4 py-2 text-sm rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ border: '1.5px solid #1B283844', color: '#1B2838', background: '#1B283812' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                Revisar parecer
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowPeerReviewModal(true)}
+                disabled={isReprocessing || isGenerating || isPeerReviewSending}
+                className="px-4 py-2 text-sm rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ border: '1.5px solid #1B283844', color: '#1B2838', background: '#1B283812' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                Enviar para colega
+                {correctionCount > 0 && (
+                  <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full" style={{ background: '#1B2838', color: '#FAF8F5' }}>
+                    {correctionCount}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {parecer.status !== 'aprovado' && parecer.status !== 'enviado' && (
@@ -549,13 +742,23 @@ export default function LegalEditor() {
         />
       )}
 
-      {/* Peer Review Modal */}
+      {/* Peer Review Modal — solicitar revisão */}
       {showPeerReviewModal && (
         <PeerReviewModal
           markedTexts={getMarkedTexts()}
           onSubmit={handleRequestPeerReview}
           onClose={() => setShowPeerReviewModal(false)}
           isLoading={isPeerReviewSending}
+        />
+      )}
+
+      {/* Review Response Modal — responder revisão */}
+      {showReviewResponseModal && pendingReviewForMe && (
+        <ReviewResponseModal
+          review={pendingReviewForMe}
+          onSubmit={handleRespondPeerReview}
+          onClose={() => setShowReviewResponseModal(false)}
+          isLoading={isReviewResponding}
         />
       )}
     </div>

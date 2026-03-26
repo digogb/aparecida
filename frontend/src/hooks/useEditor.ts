@@ -9,6 +9,7 @@ import CitacaoLegal from '../components/editor/extensions/CitacaoLegal'
 import Ementa from '../components/editor/extensions/Ementa'
 import AIContent from '../components/editor/extensions/AIContent'
 import CorrectionMark from '../components/editor/extensions/CorrectionMark'
+import SearchHighlight from '../components/editor/extensions/SearchHighlight'
 import {
   saveVersion,
   previewCorrection,
@@ -17,23 +18,76 @@ import {
   exportParecer,
   generateParecer,
   createPeerReview,
+  fetchPeerReviews,
+  respondToPeerReview,
 } from '../services/editorApi'
-import type { CorrectionPreview, PeerReviewCreatePayload } from '../services/editorApi'
-import type { ParecerRequestDetail, ParecerVersion } from '../types/parecer'
+import type { CorrectionPreview, PeerReviewCreatePayload, PeerReviewRespondPayload } from '../services/editorApi'
+import type { ParecerRequestDetail, ParecerVersion, PeerReviewListItem } from '../types/parecer'
+
+function getCurrentUserId(): string {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) return ''
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.sub ?? ''
+  } catch {
+    return ''
+  }
+}
 
 /** Extract all text fragments marked with correctionMark from the editor */
 function getMarkedFragments(editor: ReturnType<typeof useTipTapEditor>): string[] {
   if (!editor) return []
   const fragments: string[] = []
+  let current = ''
+  let lastEnd = -1
   const { doc } = editor.state
-  doc.descendants((node) => {
-    if (!node.isText) return
+  doc.descendants((node, pos) => {
+    if (!node.isText) {
+      // Non-text node breaks adjacency — flush current fragment
+      if (current) { fragments.push(current); current = '' }
+      lastEnd = -1
+      return
+    }
     const hasMark = node.marks.some((m) => m.type.name === 'correctionMark')
     if (hasMark && node.text) {
-      fragments.push(node.text)
+      if (pos === lastEnd) {
+        // Adjacent marked text node — merge into current fragment
+        current += node.text
+      } else {
+        // New fragment — flush previous if any
+        if (current) fragments.push(current)
+        current = node.text
+      }
+      lastEnd = pos + node.nodeSize
+    } else {
+      // Unmarked text node breaks adjacency
+      if (current) { fragments.push(current); current = '' }
+      lastEnd = -1
     }
   })
+  if (current) fragments.push(current)
   return fragments
+}
+
+/** Apply correctionMark to text fragments that match the given strings */
+function applyCorrectionsMarks(editor: ReturnType<typeof useTipTapEditor>, trechos: string[]) {
+  if (!editor || trechos.length === 0) return
+  const { doc, tr } = editor.state
+  const markType = editor.schema.marks.correctionMark
+  if (!markType) return
+
+  doc.descendants((node, pos) => {
+    if (!node.isText || !node.text) return
+    for (const trecho of trechos) {
+      let idx = node.text.indexOf(trecho)
+      while (idx !== -1) {
+        tr.addMark(pos + idx, pos + idx + trecho.length, markType.create())
+        idx = node.text.indexOf(trecho, idx + trecho.length)
+      }
+    }
+  })
+  editor.view.dispatch(tr)
 }
 
 /** Remove all correctionMark marks from the entire document */
@@ -66,6 +120,9 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
   const [correctionInstructions, setCorrectionInstructions] = useState('')
   const [showPeerReviewModal, setShowPeerReviewModal] = useState(false)
   const [isPeerReviewSending, setIsPeerReviewSending] = useState(false)
+  const [showReviewResponseModal, setShowReviewResponseModal] = useState(false)
+  const [isReviewResponding, setIsReviewResponding] = useState(false)
+  const [pendingReviewForMe, setPendingReviewForMe] = useState<PeerReviewListItem | null>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const saveRef = useRef<() => void>(() => {})
   const queryClient = useQueryClient()
@@ -90,6 +147,7 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
       Ementa,
       AIContent,
       CorrectionMark,
+      SearchHighlight,
     ],
     content: activeVersion?.content_tiptap || activeVersion?.content_html || '',
     onUpdate: () => {
@@ -153,6 +211,33 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     }
   }, [isDirty, editor, parecer, activeVersion, queryClient])
+
+  // Fetch peer reviews to detect pending review for current user
+  useEffect(() => {
+    if (!parecer) return
+    const userId = getCurrentUserId()
+    if (!userId) return
+    fetchPeerReviews(parecer.id).then((reviews) => {
+      const pending = reviews.find(
+        (r) => r.reviewer_id === userId && r.status === 'pendente'
+      )
+      setPendingReviewForMe(pending ?? null)
+    }).catch(() => setPendingReviewForMe(null))
+  }, [parecer])
+
+  // Aplicar marcações amarelas no editor quando o revisor abre o parecer
+  const appliedMarksRef = useRef(false)
+  useEffect(() => {
+    if (!editor || !pendingReviewForMe || !activeVersion || appliedMarksRef.current) return
+    const trechos = (pendingReviewForMe.trechos_marcados ?? []).map((t) => t.texto)
+    if (trechos.length === 0) return
+    // Pequeno delay para garantir que o conteúdo foi renderizado
+    const timer = setTimeout(() => {
+      applyCorrectionsMarks(editor, trechos)
+      appliedMarksRef.current = true
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [editor, pendingReviewForMe, activeVersion])
 
   const handleSave = useCallback(async () => {
     if (!editor || !parecer || !activeVersion) return
@@ -257,6 +342,26 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     [parecer, editor, queryClient]
   )
 
+  const handleRespondPeerReview = useCallback(
+    async (payload: PeerReviewRespondPayload) => {
+      if (!parecer || !pendingReviewForMe) return
+      setIsReviewResponding(true)
+      try {
+        await respondToPeerReview(pendingReviewForMe.id, payload)
+        clearAllCorrectionMarks(editor)
+        setShowReviewResponseModal(false)
+        setPendingReviewForMe(null)
+        queryClient.invalidateQueries({ queryKey: ['parecer', parecer.id] })
+        queryClient.invalidateQueries({ queryKey: ['peer-reviews', parecer.id] })
+      } catch (err) {
+        console.error('Respond to peer review failed:', err)
+      } finally {
+        setIsReviewResponding(false)
+      }
+    },
+    [parecer, pendingReviewForMe, queryClient]
+  )
+
   const handleApprove = useCallback(
     async (sendEmail: boolean): Promise<boolean> => {
       if (!parecer) return false
@@ -334,5 +439,10 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     setShowPeerReviewModal,
     handleRequestPeerReview,
     isPeerReviewSending,
+    pendingReviewForMe,
+    showReviewResponseModal,
+    setShowReviewResponseModal,
+    handleRespondPeerReview,
+    isReviewResponding,
   }
 }
