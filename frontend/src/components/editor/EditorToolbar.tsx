@@ -28,15 +28,15 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
 
   const btnStyle = (active: boolean) =>
     active
-      ? { background: '#C4953A18', color: '#C4953A' }
+      ? { background: '#C9A94E18', color: '#C9A94E' }
       : { color: '#6B6860' }
 
   return (
-    <div className="flex items-center gap-1 px-4 py-2 flex-wrap" style={{ background: '#FAF8F5', borderBottom: '1px solid #EBE8E2' }}>
+    <div className="flex items-center gap-1 px-4 py-2 flex-wrap" style={{ background: '#F5F0E8', borderBottom: '1px solid #EDE8DF' }}>
       {/* Block type dropdown */}
       <select
         className="text-sm rounded-lg px-2 py-1 mr-2 focus:outline-none"
-        style={{ border: '1.5px solid #DDD9D2', color: '#2D2D3A', background: '#FAF8F5' }}
+        style={{ border: '1.5px solid #E0D9CE', color: '#0A1120', background: '#F5F0E8' }}
         value={
           editor.isActive('heading', { level: 1 })
             ? 'h1'
@@ -63,7 +63,7 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
         <option value="h3">Título 3</option>
       </select>
 
-      <div className="w-px h-5 mx-1" style={{ background: '#DDD9D2' }} />
+      <div className="w-px h-5 mx-1" style={{ background: '#E0D9CE' }} />
 
       {/* Inline formatting */}
       <button
@@ -91,7 +91,7 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
         <u>U</u>
       </button>
 
-      <div className="w-px h-5 mx-1" style={{ background: '#DDD9D2' }} />
+      <div className="w-px h-5 mx-1" style={{ background: '#E0D9CE' }} />
 
       {/* Legal blocks */}
       <button
@@ -125,7 +125,7 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
         Art.
       </button>
 
-      <div className="w-px h-5 mx-1" style={{ background: '#DDD9D2' }} />
+      <div className="w-px h-5 mx-1" style={{ background: '#E0D9CE' }} />
 
       {/* Lists */}
       <button
@@ -145,7 +145,7 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
         •
       </button>
 
-      <div className="w-px h-5 mx-1" style={{ background: '#DDD9D2' }} />
+      <div className="w-px h-5 mx-1" style={{ background: '#E0D9CE' }} />
 
       {/* Clear formatting */}
       <button
@@ -157,15 +157,15 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
         T̶
       </button>
 
-      <div className="w-px h-5 mx-1" style={{ background: '#DDD9D2' }} />
+      <div className="w-px h-5 mx-1" style={{ background: '#E0D9CE' }} />
 
       {/* Correction mark */}
       <button
         className="px-2 py-1 rounded text-sm font-medium transition-all duration-150 cursor-pointer"
         style={
           editor.isActive('correctionMark')
-            ? { background: '#C4953A18', color: '#C4953A', border: '1px solid #C4953A44' }
-            : { color: '#C4953A' }
+            ? { background: '#C9A94E18', color: '#C9A94E', border: '1px solid #C9A94E44' }
+            : { color: '#C9A94E' }
         }
         onClick={() => editor.chain().focus().toggleCorrectionMark().run()}
         title="Marcar trecho para correção (Ctrl+Shift+M)"
@@ -179,7 +179,7 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
         </span>
       </button>
 
-      <div className="w-px h-5 mx-1" style={{ background: '#DDD9D2' }} />
+      <div className="w-px h-5 mx-1" style={{ background: '#E0D9CE' }} />
 
       {/* Search */}
       {showSearch ? (
@@ -194,7 +194,7 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
               placeholder="Buscar..."
               autoFocus
               className="pl-7 pr-2 py-1 text-sm rounded-lg w-44 focus:outline-none"
-              style={{ border: '1.5px solid #DDD9D2', background: '#FAF8F5', color: '#2D2D3A' }}
+              style={{ border: '1.5px solid #E0D9CE', background: '#F5F0E8', color: '#0A1120' }}
             />
             <svg className="absolute left-2 top-1/2 -translate-y-1/2" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A69B8D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />
@@ -239,8 +239,8 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
           isSaving
             ? { color: '#A69B8D', cursor: 'not-allowed' }
             : isDirty
-              ? { background: '#1B2838', color: '#FAF8F5' }
-              : { color: '#A69B8D', border: '1.5px solid #DDD9D2' }
+              ? { background: '#142038', color: '#F5F0E8' }
+              : { color: '#A69B8D', border: '1.5px solid #E0D9CE' }
         }
         onClick={onSave}
         disabled={isSaving || !isDirty}
@@ -249,7 +249,7 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
         {isSaving ? 'Salvando…' : 'Salvar'}
       </button>
 
-      <div className="w-px h-5 mx-1" style={{ background: '#DDD9D2' }} />
+      <div className="w-px h-5 mx-1" style={{ background: '#E0D9CE' }} />
 
       {/* Export */}
       <button

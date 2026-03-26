@@ -10,26 +10,26 @@
 
 export const colors = {
   /** Cor de identidade — logo, links, CTAs, item ativo sidebar */
-  brand: '#C4953A',
+  brand: '#C9A94E',
 
   /** Superfícies */
   surface: {
-    page:    '#FAF8F5',   // fundo principal das páginas
-    card:    '#FAF8F5',   // fundo de cards e listas
-    topbar:  '#E8E5DE',   // barra superior
-    sidebar: '#1B2838',   // navegação lateral
+    page:    '#F5F0E8',   // fundo principal das páginas
+    card:    '#F5F0E8',   // fundo de cards e listas
+    topbar:  '#EDE8DF',   // barra superior
+    sidebar: '#142038',   // navegação lateral
   },
 
   /** Bordas e separadores */
   border: {
-    card:    '#DDD9D2',   // borda de cards (1.5px)
-    divider: '#EBE8E2',   // separador entre itens de lista (1px)
+    card:    '#E0D9CE',   // borda de cards (1.5px)
+    divider: '#EDE8DF',   // separador entre itens de lista (1px)
   },
 
   /** Textos */
   text: {
-    primary:   '#2D2D3A', // títulos e conteúdo principal
-    heading:   '#1B2838', // headings de destaque (h1)
+    primary:   '#0A1120', // títulos e conteúdo principal
+    heading:   '#142038', // headings de destaque (h1)
     secondary: '#A69B8D', // labels, subtítulos, datas
     muted:     '#6B6860', // labels dentro de cards
     sidebar:   '#8A9BB0', // itens inativos da sidebar
@@ -37,7 +37,7 @@ export const colors = {
 
   /** Semânticas — cada cor tem um significado claro */
   semantic: {
-    attention: '#C4953A',  // pendentes, aguardando ação (âmbar)
+    attention: '#C9A94E',  // pendentes, aguardando ação (âmbar)
     urgency:   '#8B2332',  // urgente, atrasado, devolvido (bordô)
     success:   '#5B7553',  // concluído, aprovado (oliva)
     neutral:   '#6B6860',  // informativo, sem ação necessária (cinza quente)
@@ -46,7 +46,7 @@ export const colors = {
 
   /** Status de pareceres — mapeamento direto */
   status: {
-    pendente:     '#C4953A',
+    pendente:     '#C9A94E',
     classificado: '#A69B8D',
     gerado:       '#A69B8D',
     em_correcao:  '#D97706',
@@ -118,8 +118,8 @@ export const spacing = {
 /* ── Bordas e raios ───────────────────────────────── */
 
 export const borders = {
-  card:    '1.5px solid #DDD9D2',
-  divider: '1px solid #EBE8E2',
+  card:    '1.5px solid #E0D9CE',
+  divider: '1px solid #EDE8DF',
   radius: {
     card:  '12px',  // rounded-xl
     badge: '8px',   // rounded-lg
@@ -160,17 +160,17 @@ export const animations = {
 export const layout = {
   sidebar: {
     width: '224px',       // w-56
-    background: '#1B2838',
-    brandColor: '#C4953A',
-    activeItemBg: '#C4953A18',
-    activeItemText: '#C4953A',
+    background: '#142038',
+    brandColor: '#C9A94E',
+    activeItemBg: '#C9A94E18',
+    activeItemText: '#C9A94E',
     inactiveText: '#8A9BB0',
     hoverBg: 'white/[0.06]',
   },
   topbar: {
     height: '48px',       // h-12
-    background: '#E8E5DE',
-    border: '1px solid #DDD9D2',
+    background: '#EDE8DF',
+    border: '1px solid #E0D9CE',
   },
 } as const
 
@@ -186,6 +186,6 @@ export function statusBadgeStyle(color: string) {
 /* ── Skeleton loader ──────────────────────────────── */
 
 export const skeleton = {
-  background: '#EBE8E2',
+  background: '#EDE8DF',
   animation: 'animate-pulse',
 } as const

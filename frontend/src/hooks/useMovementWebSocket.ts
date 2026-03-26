@@ -2,7 +2,8 @@ import { useEffect, useRef, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 interface WSMessage {
-  type: 'new_movement' | 'movement_updated' | 'ping'
+  type?: 'new_movement' | 'movement_updated' | 'ping'
+  event?: 'movement.created' | 'peer_review.requested' | 'peer_review.completed'
   data?: unknown
 }
 
@@ -27,10 +28,17 @@ export function useMovementWebSocket() {
       ws.onmessage = (event) => {
         try {
           const msg: WSMessage = JSON.parse(event.data)
-          if (msg.type === 'new_movement' || msg.type === 'movement_updated') {
+
+          if (msg.type === 'new_movement' || msg.type === 'movement_updated' || msg.event === 'movement.created') {
             queryClient.invalidateQueries({ queryKey: ['movements'] })
             queryClient.invalidateQueries({ queryKey: ['movement-metrics'] })
             queryClient.invalidateQueries({ queryKey: ['notifications'] })
+          }
+
+          if (msg.event === 'peer_review.requested' || msg.event === 'peer_review.completed') {
+            queryClient.invalidateQueries({ queryKey: ['app-notifications'] })
+            queryClient.invalidateQueries({ queryKey: ['app-notifications-count'] })
+            queryClient.invalidateQueries({ queryKey: ['dashboard', 'alerts'] })
           }
         } catch {
           // ignore parse errors

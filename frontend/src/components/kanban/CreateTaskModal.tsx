@@ -34,9 +34,9 @@ export default function CreateTaskModal({ columns, defaultColumnId, onClose }: C
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(27,40,56,0.5)' }}>
-      <div className="rounded-xl w-full max-w-md" style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #EBE8E2' }}>
-          <h2 className="text-base font-medium" style={{ color: '#2D2D3A' }}>Nova Tarefa</h2>
+      <div className="rounded-xl w-full max-w-md" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #EDE8DF' }}>
+          <h2 className="text-base font-medium" style={{ color: '#0A1120' }}>Nova Tarefa</h2>
           <button onClick={onClose} className="p-1 rounded-lg transition-all duration-150 hover:brightness-[0.97] cursor-pointer" style={{ color: '#A69B8D' }}>
             <X className="w-5 h-5" />
           </button>
@@ -51,7 +51,7 @@ export default function CreateTaskModal({ columns, defaultColumnId, onClose }: C
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2"
-              style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
+              style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', color: '#0A1120', '--tw-ring-color': '#C9A94E' } as React.CSSProperties}
               placeholder="Descreva a tarefa..."
               required
             />
@@ -65,7 +65,7 @@ export default function CreateTaskModal({ columns, defaultColumnId, onClose }: C
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               className="w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 resize-none"
-              style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
+              style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', color: '#0A1120', '--tw-ring-color': '#C9A94E' } as React.CSSProperties}
               placeholder="Detalhes opcionais..."
             />
           </div>
@@ -78,7 +78,7 @@ export default function CreateTaskModal({ columns, defaultColumnId, onClose }: C
                 value={columnId}
                 onChange={(e) => setColumnId(e.target.value)}
                 className="w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2"
-                style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
+                style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', color: '#0A1120', '--tw-ring-color': '#C9A94E' } as React.CSSProperties}
               >
                 {columns.map((col) => (
                   <option key={col.id} value={col.id}>{col.name}</option>
@@ -93,7 +93,7 @@ export default function CreateTaskModal({ columns, defaultColumnId, onClose }: C
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as TaskPriority)}
                 className="w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2"
-                style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
+                style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', color: '#0A1120', '--tw-ring-color': '#C9A94E' } as React.CSSProperties}
               >
                 <option value="high">Alta</option>
                 <option value="medium">Média</option>
@@ -109,7 +109,7 @@ export default function CreateTaskModal({ columns, defaultColumnId, onClose }: C
               value={category}
               onChange={(e) => setCategory(e.target.value as TaskCategory | '')}
               className="w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2"
-              style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
+              style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', color: '#0A1120', '--tw-ring-color': '#C9A94E' } as React.CSSProperties}
             >
               <option value="">Sem categoria</option>
               <option value="judicial">Judicial</option>
@@ -125,7 +125,7 @@ export default function CreateTaskModal({ columns, defaultColumnId, onClose }: C
               type="button"
               onClick={onClose}
               className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer"
-              style={{ background: '#FAF8F5', color: '#6B6860', border: '1.5px solid #DDD9D2' }}
+              style={{ background: '#F5F0E8', color: '#6B6860', border: '1.5px solid #E0D9CE' }}
             >
               Cancelar
             </button>
@@ -133,7 +133,7 @@ export default function CreateTaskModal({ columns, defaultColumnId, onClose }: C
               type="submit"
               disabled={createTask.isPending}
               className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50"
-              style={{ background: '#1B2838', color: '#FAF8F5' }}
+              style={{ background: '#142038', color: '#F5F0E8' }}
             >
               {createTask.isPending ? 'Criando...' : 'Criar Tarefa'}
             </button>

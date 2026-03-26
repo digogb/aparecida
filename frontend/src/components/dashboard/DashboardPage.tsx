@@ -22,8 +22,8 @@ function useCurrentUser() {
 }
 
 const STATUS_TONE: Record<string, { label: string; color: string }> = {
-  pendente:     { label: 'Pendente',           color: '#C4953A' },
-  classificado: { label: 'Pendente',           color: '#C4953A' },
+  pendente:     { label: 'Pendente',           color: '#C9A94E' },
+  classificado: { label: 'Pendente',           color: '#C9A94E' },
   gerado:       { label: 'Aguardando revisão', color: '#A69B8D' },
   em_correcao:  { label: 'Em correção',        color: '#D97706' },
   em_revisao:   { label: 'Aguardando revisão', color: '#A69B8D' },
@@ -38,8 +38,8 @@ const MOV_TYPE: Record<string, string> = {
 }
 
 const MOV_COLOR: Record<string, string> = {
-  intimacao: '#8B2332', sentenca: '#1B2838', despacho: '#6B6860',
-  acordao: '#5B7553', publicacao: '#C4953A', distribuicao: '#A69B8D', outros: '#6B6860',
+  intimacao: '#8B2332', sentenca: '#142038', despacho: '#6B6860',
+  acordao: '#5B7553', publicacao: '#C9A94E', distribuicao: '#A69B8D', outros: '#6B6860',
 }
 
 export default function DashboardPage() {
@@ -53,11 +53,12 @@ export default function DashboardPage() {
   const isAdvogado = user?.role === 'advogado' || user?.role === 'admin'
   const today = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
 
-  const prazoAlerts = alertsData?.alerts.filter((a) => a.type === 'parecer_atrasado' || a.type === 'prazo_proximo') ?? []
-  const hasAlerts = !alertsLoading && prazoAlerts.length > 0
+  const VISIBLE_TYPES = new Set(['parecer_atrasado', 'prazo_proximo', 'revisao_solicitada'])
+  const allAlerts = (alertsData?.alerts ?? []).filter((a) => VISIBLE_TYPES.has(a.type))
+  const hasAlerts = !alertsLoading && allAlerts.length > 0
 
   return (
-    <div className="min-h-full px-6 py-8 space-y-8" style={{ background: '#FAF8F5' }}>
+    <div className="min-h-full px-6 py-8 space-y-8" style={{ background: '#F5F0E8' }}>
 
       {/* Header */}
       <header className="animate-fade-up">
@@ -65,7 +66,7 @@ export default function DashboardPage() {
           {getGreeting()}
         </p>
         <div className="flex items-baseline justify-between">
-          <h1 className="font-display" style={{ fontSize: 32, fontWeight: 400, color: '#1B2838', letterSpacing: '-0.02em' }}>
+          <h1 className="font-display" style={{ fontSize: 32, fontWeight: 400, color: '#142038', letterSpacing: '-0.02em' }}>
             {isAdvogado ? `Dr. ${firstName}` : firstName}
           </h1>
           <p className="text-base capitalize" style={{ color: '#A69B8D' }}>{today}</p>
@@ -77,9 +78,9 @@ export default function DashboardPage() {
         {statsLoading ? (
           <div className="grid grid-cols-3 gap-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="rounded-xl px-5 py-4" style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2' }}>
-                <div className="w-12 h-8 rounded animate-pulse" style={{ background: '#EBE8E2' }} />
-                <div className="w-16 h-4 rounded mt-2 animate-pulse" style={{ background: '#EBE8E2' }} />
+              <div key={i} className="rounded-xl px-5 py-4" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
+                <div className="w-12 h-8 rounded animate-pulse" style={{ background: '#EDE8DF' }} />
+                <div className="w-16 h-4 rounded mt-2 animate-pulse" style={{ background: '#EDE8DF' }} />
               </div>
             ))}
           </div>
@@ -94,21 +95,21 @@ export default function DashboardPage() {
           <p className="text-sm font-medium uppercase tracking-widest mb-2.5" style={{ color: '#A69B8D' }}>
             Alertas
             {hasAlerts && (
-              <span className="ml-2 font-semibold" style={{ color: '#8B2332' }}>{prazoAlerts.length}</span>
+              <span className="ml-2 font-semibold" style={{ color: '#8B2332' }}>{allAlerts.length}</span>
             )}
           </p>
           {alertsLoading ? (
             <div className="space-y-2">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="rounded-xl px-5 py-3 h-12" style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2' }}>
-                  <div className="w-2/3 h-4 rounded animate-pulse" style={{ background: '#EBE8E2' }} />
+                <div key={i} className="rounded-xl px-5 py-3 h-12" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
+                  <div className="w-2/3 h-4 rounded animate-pulse" style={{ background: '#EDE8DF' }} />
                 </div>
               ))}
             </div>
           ) : hasAlerts ? (
-            <AlertsList alerts={prazoAlerts} />
+            <AlertsList alerts={allAlerts} />
           ) : (
-            <div className="rounded-xl px-5 py-4" style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2' }}>
+            <div className="rounded-xl px-5 py-4" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
               <p className="text-base" style={{ color: '#5B7553' }}>Nenhum alerta no momento.</p>
             </div>
           )}
@@ -118,15 +119,15 @@ export default function DashboardPage() {
         <div className="min-w-0">
           <div className="flex items-baseline justify-between mb-2.5">
             <p className="text-sm font-medium uppercase tracking-widest" style={{ color: '#A69B8D' }}>Movimentações</p>
-            <button onClick={() => navigate('/movimentacoes')} className="text-sm font-medium cursor-pointer hover:underline" style={{ color: '#C4953A' }}>
+            <button onClick={() => navigate('/movimentacoes')} className="text-sm font-medium cursor-pointer hover:underline" style={{ color: '#C9A94E' }}>
               Ver todas &rarr;
             </button>
           </div>
-          <div className="rounded-xl overflow-hidden" style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2' }}>
+          <div className="rounded-xl overflow-hidden" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
             {recentLoading ? (
               Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="px-5 py-3.5" style={{ borderBottom: '1px solid #EBE8E2' }}>
-                  <div className="w-2/3 h-4 rounded animate-pulse" style={{ background: '#EBE8E2' }} />
+                <div key={i} className="px-5 py-3.5" style={{ borderBottom: '1px solid #EDE8DF' }}>
+                  <div className="w-2/3 h-4 rounded animate-pulse" style={{ background: '#EDE8DF' }} />
                 </div>
               ))
             ) : !recent?.movimentacoes.length ? (
@@ -141,7 +142,7 @@ export default function DashboardPage() {
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/movimentacoes') }}
-                style={{ borderBottom: i < recent.movimentacoes.length - 1 ? '1px solid #EBE8E2' : 'none' }}
+                style={{ borderBottom: i < recent.movimentacoes.length - 1 ? '1px solid #EDE8DF' : 'none' }}
               >
                 {!m.is_read && (
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ background: MOV_COLOR[m.type] ?? '#6B6860' }} />
@@ -149,7 +150,7 @@ export default function DashboardPage() {
                 <span className="text-sm font-semibold shrink-0" style={{ color: '#6B6860', minWidth: 72 }}>
                   {m.tipo_documento || MOV_TYPE[m.type] || m.type}
                 </span>
-                <span className="text-base truncate" style={{ color: '#2D2D3A' }}>{m.process_number}</span>
+                <span className="text-base truncate" style={{ color: '#0A1120' }}>{m.process_number}</span>
                 {m.published_at && (
                   <span className="text-sm truncate hidden sm:block ml-auto shrink-0" style={{ color: '#A69B8D' }}>
                     {new Date(m.published_at).toLocaleDateString('pt-BR')}
@@ -165,16 +166,16 @@ export default function DashboardPage() {
       <section className="animate-fade-up" style={{ animationDelay: '180ms' }}>
         <div className="flex items-baseline justify-between mb-2.5">
           <p className="text-sm font-medium uppercase tracking-widest" style={{ color: '#A69B8D' }}>Pareceres recentes</p>
-          <button onClick={() => navigate('/pareceres')} className="text-sm font-medium cursor-pointer hover:underline" style={{ color: '#C4953A' }}>
+          <button onClick={() => navigate('/pareceres')} className="text-sm font-medium cursor-pointer hover:underline" style={{ color: '#C9A94E' }}>
             Ver todos &rarr;
           </button>
         </div>
-        <div className="rounded-xl overflow-hidden" style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2' }}>
+        <div className="rounded-xl overflow-hidden" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
           {recentLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="px-5 py-3.5 flex justify-between" style={{ borderBottom: '1px solid #EBE8E2' }}>
-                <div className="w-2/3 h-4 rounded animate-pulse" style={{ background: '#EBE8E2' }} />
-                <div className="w-16 h-4 rounded animate-pulse" style={{ background: '#EBE8E2' }} />
+              <div key={i} className="px-5 py-3.5 flex justify-between" style={{ borderBottom: '1px solid #EDE8DF' }}>
+                <div className="w-2/3 h-4 rounded animate-pulse" style={{ background: '#EDE8DF' }} />
+                <div className="w-16 h-4 rounded animate-pulse" style={{ background: '#EDE8DF' }} />
               </div>
             ))
           ) : !recent?.pareceres.length ? (
@@ -191,10 +192,10 @@ export default function DashboardPage() {
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/pareceres/${p.id}`) }}
-                style={{ borderBottom: i < recent.pareceres.length - 1 ? '1px solid #EBE8E2' : 'none' }}
+                style={{ borderBottom: i < recent.pareceres.length - 1 ? '1px solid #EDE8DF' : 'none' }}
               >
                 <div className="min-w-0 flex-1 mr-3">
-                  <p className="text-base truncate" style={{ color: '#2D2D3A' }}>{p.subject ?? 'Sem assunto'}</p>
+                  <p className="text-base truncate" style={{ color: '#0A1120' }}>{p.subject ?? 'Sem assunto'}</p>
                   {p.municipio_nome && <p className="text-sm mt-0.5" style={{ color: '#A69B8D' }}>{p.municipio_nome}</p>}
                 </div>
                 {st && (

@@ -22,9 +22,9 @@ function formatDate(iso: string): string {
 }
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
-  pendente:  { bg: '#C4953A18', color: '#C4953A', label: 'Pendente' },
+  pendente:  { bg: '#C9A94E18', color: '#C9A94E', label: 'Pendente' },
   concluida: { bg: '#5B755318', color: '#5B7553', label: 'Concluída' },
-  cancelada: { bg: '#EBE8E2',   color: '#A69B8D', label: 'Cancelada' },
+  cancelada: { bg: '#EDE8DF',   color: '#A69B8D', label: 'Cancelada' },
 }
 
 function ReviewDetailModal({
@@ -39,10 +39,10 @@ function ReviewDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(27,40,56,0.5)' }}>
-      <div className="rounded-xl w-full max-w-5xl mx-4 max-h-[85vh] flex flex-col" style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
+      <div className="rounded-xl w-full max-w-5xl mx-4 max-h-[85vh] flex flex-col" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
         {/* Header */}
-        <div className="p-4" style={{ borderBottom: '1px solid #EBE8E2' }}>
-          <h3 className="text-base font-medium" style={{ color: '#2D2D3A' }}>
+        <div className="p-4" style={{ borderBottom: '1px solid #EDE8DF' }}>
+          <h3 className="text-base font-medium" style={{ color: '#0A1120' }}>
             Revisão de {review.reviewer_name}
           </h3>
           <p className="text-sm mt-1" style={{ color: '#A69B8D' }}>
@@ -54,8 +54,8 @@ function ReviewDetailModal({
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {/* Observações do solicitante */}
           {review.observacoes && (
-            <div className="rounded-xl p-3" style={{ background: '#C4953A12', border: '1.5px solid #C4953A33' }}>
-              <p className="text-xs font-medium uppercase tracking-widest mb-1.5" style={{ color: '#C4953A' }}>
+            <div className="rounded-xl p-3" style={{ background: '#C9A94E12', border: '1.5px solid #C9A94E33' }}>
+              <p className="text-xs font-medium uppercase tracking-widest mb-1.5" style={{ color: '#C9A94E' }}>
                 Observações do solicitante
               </p>
               <p className="text-sm leading-relaxed" style={{ color: '#6B6860' }}>
@@ -68,9 +68,9 @@ function ReviewDetailModal({
           {trechos.length > 0 && trechos.map((t, i) => {
             const resposta = respostas[i]
             return (
-              <div key={i} className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #DDD9D2' }}>
+              <div key={i} className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #E0D9CE' }}>
                 {/* Trecho original */}
-                <div className="px-4 py-3" style={{ background: '#1B283808' }}>
+                <div className="px-4 py-3" style={{ background: '#14203808' }}>
                   <p className="text-xs font-medium uppercase tracking-widest mb-1.5" style={{ color: '#A69B8D' }}>
                     Trecho {i + 1}
                   </p>
@@ -80,11 +80,11 @@ function ReviewDetailModal({
                 </div>
                 {/* Sugestão do revisor */}
                 {resposta?.sugestao && (
-                  <div className="px-4 py-3" style={{ borderTop: '1px solid #EBE8E2', background: '#5B755308' }}>
+                  <div className="px-4 py-3" style={{ borderTop: '1px solid #EDE8DF', background: '#5B755308' }}>
                     <p className="text-xs font-medium uppercase tracking-widest mb-1.5" style={{ color: '#5B7553' }}>
                       Sugestão do revisor
                     </p>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: '#2D2D3A' }}>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: '#0A1120' }}>
                       {resposta.sugestao}
                     </p>
                   </div>
@@ -99,7 +99,7 @@ function ReviewDetailModal({
               <p className="text-xs font-medium uppercase tracking-widest mb-1.5" style={{ color: '#5B7553' }}>
                 Parecer geral de {review.reviewer_name}
               </p>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: '#2D2D3A' }}>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: '#0A1120' }}>
                 {review.resposta_geral}
               </p>
             </div>
@@ -107,11 +107,11 @@ function ReviewDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end p-4" style={{ borderTop: '1px solid #EBE8E2' }}>
+        <div className="flex justify-end p-4" style={{ borderTop: '1px solid #EDE8DF' }}>
           <button
             onClick={onClose}
             className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer"
-            style={{ color: '#6B6860', background: '#FAF8F5', border: '1.5px solid #DDD9D2' }}
+            style={{ color: '#6B6860', background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}
           >
             Fechar
           </button>
@@ -148,7 +148,7 @@ export default function PeerReviewPanel({ parecerId, currentUserId }: Props) {
   }
 
   return (
-    <div className="p-3" style={{ borderTop: '1px solid #DDD9D2' }}>
+    <div className="p-3" style={{ borderTop: '1px solid #E0D9CE' }}>
       <h3 className="text-sm font-medium uppercase tracking-widest mb-2" style={{ color: '#A69B8D' }}>
         Revisões
       </h3>
@@ -162,7 +162,7 @@ export default function PeerReviewPanel({ parecerId, currentUserId }: Props) {
             <li
               key={review.id}
               className="rounded-lg px-2.5 py-2"
-              style={{ background: '#FAF8F5', border: '1px solid #DDD9D2' }}
+              style={{ background: '#F5F0E8', border: '1px solid #E0D9CE' }}
             >
               <div className="flex items-center gap-1.5 mb-1">
                 <span

@@ -24,9 +24,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#FAF8F5' }}>
-      <div className="rounded-xl shadow-sm p-8 w-full max-w-sm" style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2' }}>
-        <h1 className="font-display mb-1" style={{ fontSize: 28, fontWeight: 500, color: '#C4953A' }}>Ione</h1>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: '#F5F0E8' }}>
+      <div className="rounded-xl shadow-sm p-8 w-full max-w-sm" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
+        <h1 className="font-display mb-1" style={{ fontSize: 28, fontWeight: 500, color: '#C9A94E' }}>Ione</h1>
         <p className="text-base mb-6" style={{ color: '#A69B8D' }}>Faça login para continuar</p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
@@ -37,7 +37,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2"
-              style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
+              style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', color: '#0A1120', '--tw-ring-color': '#C9A94E' } as React.CSSProperties}
               placeholder="seu@email.com"
             />
           </div>
@@ -49,7 +49,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2"
-              style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
+              style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', color: '#0A1120', '--tw-ring-color': '#C9A94E' } as React.CSSProperties}
               placeholder="••••••"
             />
           </div>
@@ -58,7 +58,7 @@ export default function LoginPage() {
             type="submit"
             disabled={loading}
             className="py-2.5 rounded-xl text-base font-medium disabled:opacity-50 transition-all duration-150 hover:brightness-[0.95] cursor-pointer"
-            style={{ background: '#1B2838', color: '#FAF8F5' }}
+            style={{ background: '#142038', color: '#F5F0E8' }}
           >
             {loading ? 'Entrando...' : 'Entrar'}
           </button>

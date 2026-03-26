@@ -12,10 +12,10 @@ const TYPE_LABELS: Record<MovementType, string> = {
 
 const TYPE_COLORS: Record<MovementType, string> = {
   intimacao:    '#8B2332',
-  sentenca:     '#1B2838',
+  sentenca:     '#142038',
   despacho:     '#6B6860',
   acordao:      '#5B7553',
-  publicacao:   '#C4953A',
+  publicacao:   '#C9A94E',
   distribuicao: '#A69B8D',
   outros:       '#6B6860',
 }
@@ -67,9 +67,9 @@ export default function MovementCard({ movement, onClick }: MovementCardProps) {
     <button
       className="w-full text-left rounded-xl overflow-hidden transition-all duration-150 hover:brightness-[0.97]"
       style={{
-        background: '#FAF8F5',
-        border: `1.5px solid ${movement.is_read ? '#DDD9D2' : color + '44'}`,
-        borderLeft: `4px solid ${movement.is_read ? '#DDD9D2' : color}`,
+        background: '#F5F0E8',
+        border: `1.5px solid ${movement.is_read ? '#E0D9CE' : color + '44'}`,
+        borderLeft: `4px solid ${movement.is_read ? '#E0D9CE' : color}`,
       }}
       onClick={() => onClick(movement)}
     >
@@ -84,7 +84,7 @@ export default function MovementCard({ movement, onClick }: MovementCardProps) {
               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
             )}
           </div>
-          <p className="text-base font-medium truncate" style={{ color: '#2D2D3A' }}>{processNumber}</p>
+          <p className="text-base font-medium truncate" style={{ color: '#0A1120' }}>{processNumber}</p>
           {summary && (
             <p className="text-sm mt-1 line-clamp-2" style={{ color: '#A69B8D' }}>{summary}</p>
           )}

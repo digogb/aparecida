@@ -12,10 +12,10 @@ const TYPE_LABELS: Record<MovementType, string> = {
 
 const TYPE_COLORS: Record<MovementType, string> = {
   intimacao:    '#8B2332',
-  sentenca:     '#1B2838',
+  sentenca:     '#142038',
   despacho:     '#6B6860',
   acordao:      '#5B7553',
-  publicacao:   '#C4953A',
+  publicacao:   '#C9A94E',
   distribuicao: '#A69B8D',
   outros:       '#6B6860',
 }
@@ -40,7 +40,7 @@ export default function ProcessTimeline({ movements, currentId, onSelect }: Proc
 
   return (
     <div className="relative">
-      <div className="absolute left-3 top-0 bottom-0 w-0.5" style={{ background: '#DDD9D2' }} />
+      <div className="absolute left-3 top-0 bottom-0 w-0.5" style={{ background: '#E0D9CE' }} />
       <ul className="space-y-3">
         {sorted.map((m) => {
           const color = TYPE_COLORS[m.type] ?? TYPE_COLORS.outros
@@ -49,14 +49,14 @@ export default function ProcessTimeline({ movements, currentId, onSelect }: Proc
               <div className="absolute left-1.5 top-2 w-3 h-3 rounded-full"
                 style={{
                   background: color,
-                  border: '2px solid #FAF8F5',
+                  border: '2px solid #F5F0E8',
                   boxShadow: currentId === m.id ? `0 0 0 2px ${color}44` : undefined,
                 }}
               />
               <button className="text-left w-full rounded-lg px-2 py-1 transition-all duration-150 cursor-pointer"
-                style={{ background: currentId === m.id ? '#EBE8E2' : 'transparent' }}
+                style={{ background: currentId === m.id ? '#EDE8DF' : 'transparent' }}
                 onClick={() => onSelect(m)}>
-                <p className="text-sm font-medium" style={{ color: '#2D2D3A' }}>{TYPE_LABELS[m.type]}</p>
+                <p className="text-sm font-medium" style={{ color: '#0A1120' }}>{TYPE_LABELS[m.type]}</p>
                 <p className="text-sm" style={{ color: '#A69B8D' }}>
                   {formatDate(m.published_at ?? m.metadata_?.data_disponibilizacao as string ?? null)}
                 </p>

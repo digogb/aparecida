@@ -72,7 +72,7 @@ const SearchHighlight = Extension.create<Record<string, never>, SearchHighlightS
               while (idx !== -1) {
                 decorations.push(
                   Decoration.inline(pos + idx, pos + idx + term.length, {
-                    style: 'background-color: #C4953A55; border-radius: 2px; color: #1B2838;',
+                    style: 'background-color: #C9A94E55; border-radius: 2px; color: #142038;',
                   })
                 )
                 idx = lowerText.indexOf(lowerTerm, idx + 1)

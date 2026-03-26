@@ -37,14 +37,14 @@ export default function PeerReviewModal({
       <div
         className="rounded-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col"
         style={{
-          background: '#FAF8F5',
-          border: '1.5px solid #DDD9D2',
+          background: '#F5F0E8',
+          border: '1.5px solid #E0D9CE',
           boxShadow: '0 20px 60px rgba(27,40,56,0.15)',
         }}
       >
         {/* Header */}
-        <div className="p-4" style={{ borderBottom: '1px solid #EBE8E2' }}>
-          <h3 className="text-base font-medium" style={{ color: '#2D2D3A' }}>
+        <div className="p-4" style={{ borderBottom: '1px solid #EDE8DF' }}>
+          <h3 className="text-base font-medium" style={{ color: '#0A1120' }}>
             Enviar para revisão de colega
           </h3>
           <p className="text-sm mt-1" style={{ color: '#A69B8D' }}>
@@ -70,8 +70,8 @@ export default function PeerReviewModal({
                     key={i}
                     className="text-sm px-3 py-2 rounded-lg"
                     style={{
-                      background: '#1B283810',
-                      borderLeft: '3px solid #1B2838',
+                      background: '#14203810',
+                      borderLeft: '3px solid #142038',
                       color: '#6B6860',
                     }}
                   >
@@ -102,9 +102,9 @@ export default function PeerReviewModal({
               <select
                 className="mt-2 w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 disabled:opacity-50"
                 style={{
-                  border: '1.5px solid #DDD9D2',
-                  color: selectedReviewerId ? '#2D2D3A' : '#A69B8D',
-                  background: '#FAF8F5',
+                  border: '1.5px solid #E0D9CE',
+                  color: selectedReviewerId ? '#0A1120' : '#A69B8D',
+                  background: '#F5F0E8',
                 } as React.CSSProperties}
                 value={selectedReviewerId}
                 onChange={(e) => setSelectedReviewerId(e.target.value)}
@@ -131,9 +131,9 @@ export default function PeerReviewModal({
             <textarea
               className="mt-2 w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 resize-none disabled:opacity-50"
               style={{
-                border: '1.5px solid #DDD9D2',
-                color: '#2D2D3A',
-                background: '#FAF8F5',
+                border: '1.5px solid #E0D9CE',
+                color: '#0A1120',
+                background: '#F5F0E8',
               } as React.CSSProperties}
               rows={4}
               placeholder="Ex: Verificar a fundamentação legal do parágrafo 3. A citação da Lei 14.133 pode estar desatualizada..."
@@ -148,7 +148,7 @@ export default function PeerReviewModal({
         {/* Footer */}
         <div
           className="flex justify-end gap-2 p-4"
-          style={{ borderTop: '1px solid #EBE8E2' }}
+          style={{ borderTop: '1px solid #EDE8DF' }}
         >
           <button
             onClick={onClose}
@@ -156,8 +156,8 @@ export default function PeerReviewModal({
             className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               color: '#6B6860',
-              background: '#FAF8F5',
-              border: '1.5px solid #DDD9D2',
+              background: '#F5F0E8',
+              border: '1.5px solid #E0D9CE',
             }}
           >
             Cancelar
@@ -166,7 +166,7 @@ export default function PeerReviewModal({
             onClick={() => onSubmit(selectedReviewerId, observacoes)}
             disabled={!canSubmit}
             className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            style={{ background: '#1B2838', color: '#FAF8F5' }}
+            style={{ background: '#142038', color: '#F5F0E8' }}
           >
             {isLoading && (
               <svg

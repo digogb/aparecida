@@ -26,9 +26,9 @@ function SyncModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(27,40,56,0.5)' }}>
-      <div className="rounded-xl p-6 w-full max-w-md" style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
+      <div className="rounded-xl p-6 w-full max-w-md" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
         <div className="flex items-center justify-between mb-5">
-          <h2 className="font-display" style={{ fontSize: 22, fontWeight: 500, color: '#1B2838' }}>Sincronizar DJE</h2>
+          <h2 className="font-display" style={{ fontSize: 22, fontWeight: 500, color: '#142038' }}>Sincronizar DJE</h2>
           <button onClick={onClose} style={{ color: '#A69B8D' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -39,9 +39,9 @@ function SyncModal({ onClose }: { onClose: () => void }) {
             <svg className="mx-auto mb-3 opacity-60" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#5B7553" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
             </svg>
-            <p className="font-medium text-base mb-1" style={{ color: '#2D2D3A' }}>Busca iniciada</p>
+            <p className="font-medium text-base mb-1" style={{ color: '#0A1120' }}>Busca iniciada</p>
             <p className="text-sm" style={{ color: '#A69B8D' }}>O worker está buscando no DJE em segundo plano.<br/>As movimentações aparecem automaticamente quando chegarem.</p>
-            <button onClick={onClose} className="mt-6 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 hover:brightness-[0.95] cursor-pointer" style={{ background: '#1B2838', color: '#FAF8F5' }}>
+            <button onClick={onClose} className="mt-6 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 hover:brightness-[0.95] cursor-pointer" style={{ background: '#142038', color: '#F5F0E8' }}>
               Fechar
             </button>
           </div>
@@ -53,7 +53,7 @@ function SyncModal({ onClose }: { onClose: () => void }) {
                 type="text" placeholder="Ex: JOSE ANTONIO SOUZA"
                 value={form.nome_advogado} onChange={e => setForm(f => ({ ...f, nome_advogado: e.target.value }))}
                 className="w-full px-3 py-2.5 rounded-xl text-base outline-none focus:ring-2"
-                style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
+                style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', color: '#0A1120', '--tw-ring-color': '#C9A94E' } as React.CSSProperties}
               />
             </div>
             <div>
@@ -62,7 +62,7 @@ function SyncModal({ onClose }: { onClose: () => void }) {
                 type="text" placeholder="Ex: 12345/SP"
                 value={form.numero_oab} onChange={e => setForm(f => ({ ...f, numero_oab: e.target.value }))}
                 className="w-full px-3 py-2.5 rounded-xl text-base outline-none focus:ring-2"
-                style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
+                style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', color: '#0A1120', '--tw-ring-color': '#C9A94E' } as React.CSSProperties}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -72,7 +72,7 @@ function SyncModal({ onClose }: { onClose: () => void }) {
                   type="text" placeholder="Ex: TJSP"
                   value={form.sigla_tribunal} onChange={e => setForm(f => ({ ...f, sigla_tribunal: e.target.value }))}
                   className="w-full px-3 py-2.5 rounded-xl text-base outline-none focus:ring-2"
-                  style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
+                  style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', color: '#0A1120', '--tw-ring-color': '#C9A94E' } as React.CSSProperties}
                 />
               </div>
             </div>
@@ -82,7 +82,7 @@ function SyncModal({ onClose }: { onClose: () => void }) {
                 <input
                   type="date" value={form.data_inicio} onChange={e => setForm(f => ({ ...f, data_inicio: e.target.value }))}
                   className="w-full px-3 py-2.5 rounded-xl text-base outline-none focus:ring-2"
-                  style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
+                  style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', color: '#0A1120', '--tw-ring-color': '#C9A94E' } as React.CSSProperties}
                 />
               </div>
               <div>
@@ -90,7 +90,7 @@ function SyncModal({ onClose }: { onClose: () => void }) {
                 <input
                   type="date" value={form.data_fim} onChange={e => setForm(f => ({ ...f, data_fim: e.target.value }))}
                   className="w-full px-3 py-2.5 rounded-xl text-base outline-none focus:ring-2"
-                  style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A', '--tw-ring-color': '#C4953A' } as React.CSSProperties}
+                  style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', color: '#0A1120', '--tw-ring-color': '#C9A94E' } as React.CSSProperties}
                 />
               </div>
             </div>
@@ -101,11 +101,11 @@ function SyncModal({ onClose }: { onClose: () => void }) {
             )}
             <div className="flex gap-2 pt-2">
               <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 hover:brightness-[0.97] cursor-pointer"
-                style={{ background: '#FAF8F5', color: '#6B6860', border: '1.5px solid #DDD9D2' }}>
+                style={{ background: '#F5F0E8', color: '#6B6860', border: '1.5px solid #E0D9CE' }}>
                 Cancelar
               </button>
               <button type="submit" disabled={sync.isPending} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all duration-150 hover:brightness-[0.95] cursor-pointer"
-                style={{ background: '#1B2838', color: '#FAF8F5', opacity: sync.isPending ? 0.7 : 1 }}>
+                style={{ background: '#142038', color: '#F5F0E8', opacity: sync.isPending ? 0.7 : 1 }}>
                 {sync.isPending ? (
                   <>
                     <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -124,8 +124,8 @@ function SyncModal({ onClose }: { onClose: () => void }) {
 }
 
 const METRICS = [
-  { key: 'total',  label: 'Total',     tone: '#2D2D3A' },
-  { key: 'unread', label: 'Não lidas', tone: '#C4953A' },
+  { key: 'total',  label: 'Total',     tone: '#0A1120' },
+  { key: 'unread', label: 'Não lidas', tone: '#C9A94E' },
 ]
 
 export default function MovementList() {
@@ -142,17 +142,17 @@ export default function MovementList() {
   const metricValues = [metrics?.total, metrics?.unread]
 
   return (
-    <div className="min-h-full px-6 py-8 space-y-8" style={{ background: '#FAF8F5' }}>
+    <div className="min-h-full px-6 py-8 space-y-8" style={{ background: '#F5F0E8' }}>
 
         {/* Header */}
         <div className="animate-fade-up flex items-end justify-between">
-          <h1 className="font-display" style={{ fontSize: 32, fontWeight: 400, color: '#1B2838', letterSpacing: '-0.02em' }}>
+          <h1 className="font-display" style={{ fontSize: 32, fontWeight: 400, color: '#142038', letterSpacing: '-0.02em' }}>
             Movimentações DJE
           </h1>
           <button
             onClick={() => setSyncOpen(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 hover:brightness-[0.95] cursor-pointer"
-            style={{ background: '#1B2838', color: '#FAF8F5' }}
+            style={{ background: '#142038', color: '#F5F0E8' }}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
@@ -165,7 +165,7 @@ export default function MovementList() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {METRICS.map((m, i) => (
             <div key={m.key} className="animate-count rounded-xl overflow-hidden"
-              style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', animationDelay: `${i * 50}ms` }}>
+              style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', animationDelay: `${i * 50}ms` }}>
               <div className="h-1" style={{ background: m.tone }} />
               <div className="px-5 py-4">
                 <span className="font-display leading-none block"
@@ -186,7 +186,7 @@ export default function MovementList() {
         {/* List */}
         <div className="space-y-2 animate-fade-up" style={{ animationDelay: '240ms' }}>
           {isLoading && Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-xl h-20 animate-pulse" style={{ background: '#EBE8E2' }} />
+            <div key={i} className="rounded-xl h-20 animate-pulse" style={{ background: '#EDE8DF' }} />
           ))}
           {isError && (
             <div className="rounded-xl px-5 py-4 text-base" style={{ background: '#8B233218', color: '#8B2332', border: '1.5px solid #8B233222' }}>

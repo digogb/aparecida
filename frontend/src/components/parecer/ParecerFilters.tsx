@@ -9,7 +9,7 @@ const STATUS_OPTIONS: { value: ParecerStatus; label: string; color: string }[] =
 ]
 
 const TEMA_OPTIONS: { value: ParecerTema; label: string; color: string }[] = [
-  { value: 'licitacao',      label: 'Licitação',            color: '#C4953A' },
+  { value: 'licitacao',      label: 'Licitação',            color: '#C9A94E' },
   { value: 'administrativo', label: 'Administrativo geral', color: '#6B6860' },
 ]
 
@@ -23,7 +23,7 @@ export default function ParecerFilters({ filters, onChange }: {
   return (
     <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 items-stretch">
       {/* Status */}
-      <div className="rounded-xl px-4 py-3" style={{ background: '#EBE8E2' }}>
+      <div className="rounded-xl px-4 py-3" style={{ background: '#EDE8DF' }}>
         <span className="text-xs font-medium uppercase tracking-widest block mb-2" style={{ color: '#A69B8D' }}>Status</span>
         <div className="flex flex-wrap gap-1.5">
           {STATUS_OPTIONS.map(o => {
@@ -33,7 +33,7 @@ export default function ParecerFilters({ filters, onChange }: {
                 className="px-3 py-1 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer"
                 style={active
                   ? { background: `${o.color}18`, color: o.color, border: `1.5px solid ${o.color}44` }
-                  : { background: '#FAF8F5', color: '#6B6860', border: '1.5px solid #DDD9D2' }}>
+                  : { background: '#F5F0E8', color: '#6B6860', border: '1.5px solid #E0D9CE' }}>
                 {o.label}
               </button>
             )
@@ -42,7 +42,7 @@ export default function ParecerFilters({ filters, onChange }: {
       </div>
 
       {/* Tema */}
-      <div className="rounded-xl px-4 py-3" style={{ background: '#EBE8E2' }}>
+      <div className="rounded-xl px-4 py-3" style={{ background: '#EDE8DF' }}>
         <span className="text-xs font-medium uppercase tracking-widest block mb-2" style={{ color: '#A69B8D' }}>Tema</span>
         <div className="flex flex-wrap gap-1.5">
           {TEMA_OPTIONS.map(o => {
@@ -52,7 +52,7 @@ export default function ParecerFilters({ filters, onChange }: {
                 className="px-3 py-1 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer"
                 style={active
                   ? { background: `${o.color}18`, color: o.color, border: `1.5px solid ${o.color}44` }
-                  : { background: '#FAF8F5', color: '#6B6860', border: '1.5px solid #DDD9D2' }}>
+                  : { background: '#F5F0E8', color: '#6B6860', border: '1.5px solid #E0D9CE' }}>
                 {o.label}
               </button>
             )
@@ -61,13 +61,13 @@ export default function ParecerFilters({ filters, onChange }: {
       </div>
 
       {/* Busca */}
-      <div className="rounded-xl px-4 py-3" style={{ background: '#EBE8E2' }}>
+      <div className="rounded-xl px-4 py-3" style={{ background: '#EDE8DF' }}>
         <span className="text-xs font-medium uppercase tracking-widest block mb-2" style={{ color: '#A69B8D' }}>Busca</span>
         <input type="text" placeholder="Buscar por remetente..."
           value={filters.remetente}
           onChange={e => onChange({ ...filters, remetente: e.target.value })}
           className="w-full rounded-xl px-3 py-1.5 text-base focus:outline-none"
-          style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', color: '#2D2D3A' }} />
+          style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', color: '#0A1120' }} />
       </div>
     </div>
   )

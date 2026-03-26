@@ -7,7 +7,7 @@ export interface DashboardStats {
   enviados_total: number
 }
 
-export type AlertType = 'parecer_atrasado' | 'intimacao_nao_lida' | 'prazo_proximo'
+export type AlertType = 'parecer_atrasado' | 'intimacao_nao_lida' | 'prazo_proximo' | 'revisao_solicitada'
 export type AlertUrgency = 'high' | 'medium'
 
 export interface DashboardAlert {

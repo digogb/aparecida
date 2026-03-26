@@ -37,8 +37,8 @@ export default function QuickActions({ recent }: { recent: DashboardRecent | und
           className="rounded-xl px-5 py-3 text-left transition-all duration-150 hover:brightness-[0.95] active:scale-[0.98] cursor-pointer"
           style={
             a.dark
-              ? { background: '#1B2838', color: '#FAF8F5' }
-              : { background: '#FAF8F5', color: '#2D2D3A', border: '1.5px solid #DDD9D2' }
+              ? { background: '#142038', color: '#F5F0E8' }
+              : { background: '#F5F0E8', color: '#0A1120', border: '1.5px solid #E0D9CE' }
           }
         >
           <span className="text-base font-medium block truncate max-w-[240px]">{a.label}</span>

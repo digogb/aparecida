@@ -5,7 +5,7 @@ import type { Task } from '../../types/task'
 
 const PRIORITY_COLORS: Record<string, string> = {
   high: '#8B2332',
-  medium: '#C4953A',
+  medium: '#C9A94E',
   low: '#5B7553',
 }
 
@@ -18,9 +18,9 @@ const CATEGORY_LABELS: Record<string, string> = {
 }
 
 const CATEGORY_COLORS: Record<string, { color: string }> = {
-  judicial: { color: '#1B2838' },
+  judicial: { color: '#142038' },
   administrativa: { color: '#6B6860' },
-  parecer: { color: '#C4953A' },
+  parecer: { color: '#C9A94E' },
   publicacao_dje: { color: '#A69B8D' },
   prazo: { color: '#8B2332' },
 }
@@ -52,7 +52,7 @@ export default function TaskCard({ task }: TaskCardProps) {
   return (
     <div
       ref={setNodeRef}
-      style={{ ...style, background: '#FAF8F5', border: '1.5px solid #DDD9D2' }}
+      style={{ ...style, background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}
       {...attributes}
       {...listeners}
       className="rounded-xl cursor-grab active:cursor-grabbing select-none overflow-hidden"
@@ -62,7 +62,7 @@ export default function TaskCard({ task }: TaskCardProps) {
 
       <div className="p-3 space-y-2">
         {/* Title */}
-        <p className="text-sm font-medium leading-tight line-clamp-2" style={{ color: '#2D2D3A' }}>
+        <p className="text-sm font-medium leading-tight line-clamp-2" style={{ color: '#0A1120' }}>
           {task.title}
         </p>
 
@@ -89,10 +89,10 @@ export default function TaskCard({ task }: TaskCardProps) {
             {task.assigned_to && (
               <div
                 className="w-6 h-6 rounded-full flex items-center justify-center"
-                style={{ background: '#C4953A18' }}
+                style={{ background: '#C9A94E18' }}
                 title={task.assigned_to}
               >
-                <User className="w-3 h-3" style={{ color: '#C4953A' }} />
+                <User className="w-3 h-3" style={{ color: '#C9A94E' }} />
               </div>
             )}
 

@@ -2,13 +2,16 @@ import { useNavigate } from 'react-router-dom'
 import type { DashboardAlert } from '../../types/dashboard'
 
 const TYPE_CONFIG: Record<string, { label: string; border: string; text: string }> = {
-  parecer_atrasado: { label: 'Atrasado', border: '#8B2332', text: '#8B2332' },
-  prazo_proximo:    { label: 'Prazo',    border: '#C4953A', text: '#A07A2E' },
+  parecer_atrasado:    { label: 'Atrasado', border: '#8B2332', text: '#8B2332' },
+  prazo_proximo:       { label: 'Prazo',    border: '#C9A94E', text: '#A07A2E' },
+  revisao_solicitada:  { label: 'Revisão',  border: '#142038', text: '#142038' },
 }
+
+const SUPPORTED_TYPES = new Set(Object.keys(TYPE_CONFIG))
 
 export default function AlertsList({ alerts }: { alerts: DashboardAlert[] }) {
   const navigate = useNavigate()
-  const filtered = alerts.filter((a) => a.type === 'parecer_atrasado' || a.type === 'prazo_proximo')
+  const filtered = alerts.filter((a) => SUPPORTED_TYPES.has(a.type))
 
   if (filtered.length === 0) {
     return (
@@ -34,15 +37,15 @@ export default function AlertsList({ alerts }: { alerts: DashboardAlert[] }) {
             className={`rounded-xl flex items-center gap-4 px-5 py-3 overflow-hidden ${isClickable ? 'cursor-pointer hover:brightness-[0.97] transition-all duration-150' : ''}`}
             title={alert.description || alert.title}
             style={{
-              background: '#FAF8F5',
-              border: '1.5px solid #DDD9D2',
+              background: '#F5F0E8',
+              border: '1.5px solid #E0D9CE',
               borderLeft: `4px solid ${cfg.border}`,
             }}
           >
             <span className="text-sm font-semibold shrink-0" style={{ color: cfg.text, minWidth: 72 }}>
               {cfg.label}
             </span>
-            <span className="text-base truncate flex-1 min-w-0" style={{ color: '#2D2D3A' }}>
+            <span className="text-base truncate flex-1 min-w-0" style={{ color: '#0A1120' }}>
               {alert.title}
             </span>
             {alert.description && (

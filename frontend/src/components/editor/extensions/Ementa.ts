@@ -36,7 +36,7 @@ const Ementa = Node.create<EmentaOptions>({
         'data-type': 'ementa',
         class:
           'border-l-4 pl-6 py-3 my-3 italic rounded-r',
-        style: 'border-color: #DDD9D2; background: #EBE8E2; color: #6B6860;',
+        style: 'border-color: #E0D9CE; background: #EDE8DF; color: #6B6860;',
       }),
       0,
     ]

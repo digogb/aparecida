@@ -13,9 +13,9 @@ import CreateTaskModal from './CreateTaskModal'
 import type { Task, TaskCategory } from '../../types/task'
 
 const METRIC_DEFS = [
-  { key: 'total',   label: 'Total',           tone: '#2D2D3A' },
+  { key: 'total',   label: 'Total',           tone: '#0A1120' },
   { key: 'high',    label: 'Alta prioridade',  tone: '#8B2332' },
-  { key: 'overdue', label: 'Vencidas',         tone: '#C4953A' },
+  { key: 'overdue', label: 'Vencidas',         tone: '#C9A94E' },
   { key: 'done',    label: 'Concluídas',       tone: '#5B7553' },
 ]
 
@@ -78,9 +78,9 @@ export default function KanbanBoard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-full flex items-center justify-center" style={{ background: '#FAF8F5' }}>
+      <div className="min-h-full flex items-center justify-center" style={{ background: '#F5F0E8' }}>
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#DDD9D244', borderTopColor: '#A69B8D' }} />
+          <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#E0D9CE44', borderTopColor: '#A69B8D' }} />
           <p className="text-sm" style={{ color: '#A69B8D' }}>Carregando quadro…</p>
         </div>
       </div>
@@ -89,7 +89,7 @@ export default function KanbanBoard() {
 
   if (isError || !board) {
     return (
-      <div className="min-h-full flex items-center justify-center" style={{ background: '#FAF8F5' }}>
+      <div className="min-h-full flex items-center justify-center" style={{ background: '#F5F0E8' }}>
         <div className="rounded-xl px-6 py-5 text-base" style={{ background: '#8B233218', color: '#8B2332', border: '1.5px solid #8B233222' }}>
           Erro ao carregar o quadro Kanban.
         </div>
@@ -104,17 +104,17 @@ export default function KanbanBoard() {
   }))
 
   return (
-    <div className="min-h-full flex flex-col" style={{ background: '#FAF8F5' }}>
+    <div className="min-h-full flex flex-col" style={{ background: '#F5F0E8' }}>
       <div className="px-6 py-8 space-y-6">
 
         {/* Header */}
         <div className="animate-fade-up flex items-end justify-between">
-          <h1 className="font-display" style={{ fontSize: 32, fontWeight: 400, color: '#1B2838', letterSpacing: '-0.02em' }}>
+          <h1 className="font-display" style={{ fontSize: 32, fontWeight: 400, color: '#142038', letterSpacing: '-0.02em' }}>
             Tarefas
           </h1>
           <button onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 hover:brightness-[0.95] cursor-pointer"
-            style={{ background: '#1B2838', color: '#FAF8F5' }}>
+            style={{ background: '#142038', color: '#F5F0E8' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
@@ -126,7 +126,7 @@ export default function KanbanBoard() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {METRIC_DEFS.map((m, i) => (
             <div key={m.key} className="animate-count rounded-xl overflow-hidden"
-              style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', animationDelay: `${i * 50}ms` }}>
+              style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', animationDelay: `${i * 50}ms` }}>
               <div className="h-1" style={{ background: m.tone }} />
               <div className="px-5 py-4">
                 <span className="font-display leading-none block"

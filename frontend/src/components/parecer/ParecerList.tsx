@@ -10,7 +10,7 @@ import ParecerFilters from './ParecerFilters'
 const EMPTY: ParecerFiltersState = { status: '', tema: '', remetente: '' }
 
 const METRICS = [
-  { key: 'total', label: 'Total',              tone: '#2D2D3A' },
+  { key: 'total', label: 'Total',              tone: '#0A1120' },
   { key: 'rev',   label: 'Aguardando revisão', tone: '#A69B8D' },
   { key: 'corr',  label: 'Em correção',        tone: '#D97706' },
   { key: 'sent',  label: 'Enviados na semana', tone: '#5B7553' },
@@ -60,11 +60,11 @@ export default function ParecerList() {
   const sorted = [...items].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 
   return (
-    <div className="min-h-full px-6 py-8 space-y-8" style={{ background: '#FAF8F5' }}>
+    <div className="min-h-full px-6 py-8 space-y-8" style={{ background: '#F5F0E8' }}>
 
       {/* Header */}
       <div className="animate-fade-up flex items-end justify-between">
-        <h1 className="font-display" style={{ fontSize: 32, fontWeight: 400, color: '#1B2838', letterSpacing: '-0.02em' }}>
+        <h1 className="font-display" style={{ fontSize: 32, fontWeight: 400, color: '#142038', letterSpacing: '-0.02em' }}>
           Pareceres
         </h1>
         <div className="flex flex-col items-end gap-1">
@@ -73,7 +73,7 @@ export default function ParecerList() {
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 hover:brightness-[0.95] cursor-pointer"
-            style={{ background: '#1B2838', color: '#FAF8F5', opacity: importing ? 0.6 : 1 }}
+            style={{ background: '#142038', color: '#F5F0E8', opacity: importing ? 0.6 : 1 }}
           >
             {importing ? (
               <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
@@ -90,7 +90,7 @@ export default function ParecerList() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {METRICS.map((m, i) => (
           <div key={m.key} className="animate-count rounded-xl overflow-hidden"
-            style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2', animationDelay: `${i * 50}ms` }}>
+            style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', animationDelay: `${i * 50}ms` }}>
             <div className="h-1" style={{ background: m.tone }} />
             <div className="px-5 py-4">
               <span className="font-display leading-none block"
@@ -111,7 +111,7 @@ export default function ParecerList() {
       {/* List */}
       <div className="space-y-2 animate-fade-up" style={{ animationDelay: '240ms' }}>
         {isLoading && Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-xl h-20 animate-pulse" style={{ background: '#EBE8E2' }} />
+          <div key={i} className="rounded-xl h-20 animate-pulse" style={{ background: '#EDE8DF' }} />
         ))}
         {isError && (
           <div className="rounded-xl px-5 py-4 text-base" style={{ background: '#8B233218', color: '#8B2332', border: '1.5px solid #8B233222' }}>

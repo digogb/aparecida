@@ -112,7 +112,10 @@ export interface PeerReviewListItem {
   reviewer_id: string
   reviewer_name: string
   status: PeerReviewStatus
+  trechos_marcados: TrechoMarcado[] | null
   observacoes: string | null
+  resposta_geral: string | null
+  resposta_trechos: RespostaTrecho[] | null
   created_at: string
   completed_at: string | null
 }

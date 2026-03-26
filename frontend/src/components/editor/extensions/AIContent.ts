@@ -57,7 +57,7 @@ const AIContent = Node.create<AIContentOptions>({
   renderHTML({ HTMLAttributes }) {
     const accepted = HTMLAttributes['data-accepted']
     let borderStyle = 'border-color: #5B7553; background: #5B755318;'
-    if (accepted === 'true') borderStyle = 'border-color: #C4953A; background: #C4953A18;'
+    if (accepted === 'true') borderStyle = 'border-color: #C9A94E; background: #C9A94E18;'
     if (accepted === 'false') borderStyle = 'border-color: #8B2332; background: #8B233218; opacity: 0.5;'
 
     return [

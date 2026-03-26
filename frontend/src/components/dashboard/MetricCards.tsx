@@ -12,7 +12,7 @@ export default function MetricCards({ stats }: { stats: DashboardStats }) {
   const navigate = useNavigate()
 
   const cards: CardDef[] = [
-    { label: 'Pareceres aguardando revisão', value: stats.aguardando_revisao, path: '/pareceres', tone: '#C4953A' },
+    { label: 'Pareceres aguardando revisão', value: stats.aguardando_revisao, path: '/pareceres', tone: '#C9A94E' },
     { label: 'Movimentações não lidas', value: stats.movimentacoes_nao_lidas, path: '/movimentacoes', tone: '#6B6860' },
     { label: 'Tarefas urgentes',        value: stats.tarefas_urgentes,        path: '/tarefas',       tone: '#8B2332' },
   ]
@@ -29,8 +29,8 @@ export default function MetricCards({ stats }: { stats: DashboardStats }) {
           className="animate-count rounded-xl overflow-hidden flex flex-col cursor-pointer hover:brightness-[0.97] transition-all duration-150"
           style={{
             animationDelay: `${i * 50}ms`,
-            background: '#FAF8F5',
-            border: '1.5px solid #DDD9D2',
+            background: '#F5F0E8',
+            border: '1.5px solid #E0D9CE',
           }}
         >
           <div className="h-1" style={{ background: card.tone }} />

@@ -5,8 +5,8 @@ import type { ParecerRequest, ParecerStatus, ParecerTema } from '../../types/par
 import { deleteParecer } from '../../services/parecerApi'
 
 const STATUS: Record<ParecerStatus, { label: string; color: string }> = {
-  pendente:     { label: 'Pendente',           color: '#C4953A' },
-  classificado: { label: 'Pendente',           color: '#C4953A' },
+  pendente:     { label: 'Pendente',           color: '#C9A94E' },
+  classificado: { label: 'Pendente',           color: '#C9A94E' },
   gerado:       { label: 'Aguardando revisão', color: '#A69B8D' },
   em_correcao:  { label: 'Em correção',        color: '#D97706' },
   em_revisao:   { label: 'Aguardando revisão', color: '#A69B8D' },
@@ -17,7 +17,7 @@ const STATUS: Record<ParecerStatus, { label: string; color: string }> = {
 }
 
 const TEMA: Record<NonNullable<ParecerTema>, { label: string; color: string }> = {
-  licitacao:      { label: 'Licitação',            color: '#C4953A' },
+  licitacao:      { label: 'Licitação',            color: '#C9A94E' },
   administrativo: { label: 'Administrativo geral', color: '#6B6860' },
 }
 
@@ -50,7 +50,7 @@ export default function ParecerCard({ parecer }: { parecer: ParecerRequest }) {
   return (
     <div onClick={() => navigate(`/pareceres/${parecer.id}`)}
       className="animate-fade-up rounded-xl px-5 py-4 cursor-pointer transition-all duration-150 hover:brightness-[0.97]"
-      style={{ background: '#FAF8F5', border: '1.5px solid #DDD9D2' }}>
+      style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center flex-wrap gap-1.5 mb-2">
@@ -66,7 +66,7 @@ export default function ParecerCard({ parecer }: { parecer: ParecerRequest }) {
                 style={{ background: `${t.color}18`, color: t.color }}>{t.label}</span>
             )}
           </div>
-          <p className="text-base font-medium truncate" style={{ color: '#2D2D3A' }}>
+          <p className="text-base font-medium truncate" style={{ color: '#0A1120' }}>
             {parecer.subject || '(sem assunto)'}
           </p>
           <p className="text-sm mt-1" style={{ color: '#A69B8D' }}>

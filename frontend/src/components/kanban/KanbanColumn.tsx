@@ -18,15 +18,15 @@ export default function KanbanColumn({ column, tasks }: KanbanColumnProps) {
     <div className="flex flex-col min-w-0 w-full">
       {/* Column header */}
       <div className="flex items-center justify-between mb-3 px-1">
-        <h3 className="text-sm font-medium truncate" style={{ color: '#2D2D3A' }}>{column.name}</h3>
+        <h3 className="text-sm font-medium truncate" style={{ color: '#0A1120' }}>{column.name}</h3>
         <div className="flex items-center gap-1.5 shrink-0">
           <span className="text-xs font-medium px-2 py-0.5 rounded-lg"
             style={
               wipExceeded
                 ? { background: '#8B233218', color: '#8B2332' }
                 : wipNear
-                ? { background: '#C4953A18', color: '#C4953A' }
-                : { background: '#FAF8F5', color: '#A69B8D', border: '1px solid #DDD9D2' }
+                ? { background: '#C9A94E18', color: '#C9A94E' }
+                : { background: '#F5F0E8', color: '#A69B8D', border: '1px solid #E0D9CE' }
             }>
             {tasks.length}
             {column.wip_limit != null ? `/${column.wip_limit}` : ''}
@@ -42,8 +42,8 @@ export default function KanbanColumn({ column, tasks }: KanbanColumnProps) {
         ref={setNodeRef}
         className="flex-1 flex flex-col gap-2 p-2 rounded-xl min-h-32 transition-all duration-150"
         style={{
-          background: isOver ? '#C4953A0A' : 'transparent',
-          border: isOver ? '1.5px solid #C4953A44' : '1.5px solid #DDD9D2',
+          background: isOver ? '#C9A94E0A' : 'transparent',
+          border: isOver ? '1.5px solid #C9A94E44' : '1.5px solid #E0D9CE',
           ...(wipExceeded ? { outline: '1px solid #8B233244' } : {}),
         }}
       >
