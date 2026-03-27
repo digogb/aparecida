@@ -166,12 +166,12 @@ async def patch_task(
     return task
 
 
-@router.delete("/tasks/{task_id}", status_code=204)
+@router.delete("/tasks/{task_id}", status_code=204, response_model=None)
 async def remove_task(
     task_id: uuid.UUID,
     credentials: HTTPAuthorizationCredentials = Depends(bearer),
     db: AsyncSession = Depends(get_db),
-) -> None:
+):
     _require_user(credentials)
     await delete_task(task_id, db)
 

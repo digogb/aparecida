@@ -54,7 +54,7 @@ export default function TaskFilters({ filters, onFiltersChange, users }: TaskFil
       <div className="flex items-center gap-4 flex-wrap">
         {/* Category */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs font-medium uppercase tracking-widest mr-0.5" style={{ color: '#A69B8D' }}>Categoria</span>
+          <span className="text-xs font-medium uppercase tracking-widest mr-0.5" style={{ color: '#142038' }}>Categoria</span>
           <button onClick={() => setFilter({ category: null })} className={pillBase}
             style={filters.category === null
               ? { background: '#142038', color: '#F5F0E8', border: '1.5px solid transparent' }
@@ -78,7 +78,7 @@ export default function TaskFilters({ filters, onFiltersChange, users }: TaskFil
 
         {/* Priority */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs font-medium uppercase tracking-widest mr-0.5" style={{ color: '#A69B8D' }}>Prioridade</span>
+          <span className="text-xs font-medium uppercase tracking-widest mr-0.5" style={{ color: '#142038' }}>Prioridade</span>
           {PRIORITIES.map(p => (
             <button key={p.value}
               onClick={() => setFilter({ priority: filters.priority === p.value ? null : p.value })}
@@ -96,7 +96,7 @@ export default function TaskFilters({ filters, onFiltersChange, users }: TaskFil
 
         {/* Assignee */}
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium uppercase tracking-widest mr-0.5" style={{ color: '#A69B8D' }}>Responsável</span>
+          <span className="text-xs font-medium uppercase tracking-widest mr-0.5" style={{ color: '#142038' }}>Responsável</span>
           <select
             value={filters.assignee ?? ''}
             onChange={(e) => setFilter({ assignee: e.target.value || null })}

@@ -1,4 +1,4 @@
-import { useSortable } from '@dnd-kit/sortable'
+import { useSortable, defaultAnimateLayoutChanges, type AnimateLayoutChanges } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Calendar, User, Clock, CheckSquare, Tag, MessageSquare } from 'lucide-react'
 import type { Task, UserMinimal } from '../../types/task'
@@ -50,13 +50,17 @@ function getDueDateInfo(dueDateStr: string): { label: string; isOverdue: boolean
   return { label: formatted, isOverdue: false, isUrgent: false }
 }
 
+const noLayoutAnimation: AnimateLayoutChanges = (args) =>
+  defaultAnimateLayoutChanges({ ...args, wasDragging: true })
+
 export default function TaskCard({ task, users, onClick }: TaskCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
+    animateLayoutChanges: noLayoutAnimation,
   })
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   }

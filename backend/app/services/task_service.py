@@ -8,7 +8,7 @@ import uuid
 from typing import Optional
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -212,6 +212,49 @@ async def move_task(
             raise HTTPException(
                 status_code=409,
                 detail=f"WIP limit reached for column '{column.name}' ({column.wip_limit} tasks)",
+            )
+
+    # --- reorder positions atomically ---
+    old_col_id = from_column_id
+    moving_across = from_column_id != to_column_id
+
+    if moving_across:
+        # Close gap in source column
+        await db.execute(
+            sa_update(Task)
+            .where(Task.column_id == old_col_id, Task.position > task.position)
+            .values(position=Task.position - 1)
+        )
+        # Open gap in target column
+        await db.execute(
+            sa_update(Task)
+            .where(Task.column_id == to_column_id, Task.position >= position)
+            .values(position=Task.position + 1)
+        )
+    else:
+        # Reorder within the same column
+        old_pos = task.position
+        if old_pos < position:
+            await db.execute(
+                sa_update(Task)
+                .where(
+                    Task.column_id == to_column_id,
+                    Task.id != task_id,
+                    Task.position > old_pos,
+                    Task.position <= position,
+                )
+                .values(position=Task.position - 1)
+            )
+        elif old_pos > position:
+            await db.execute(
+                sa_update(Task)
+                .where(
+                    Task.column_id == to_column_id,
+                    Task.id != task_id,
+                    Task.position >= position,
+                    Task.position < old_pos,
+                )
+                .values(position=Task.position + 1)
             )
 
     # Update task

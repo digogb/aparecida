@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from app.models.task import TaskCategory, TaskPriority
 
@@ -125,6 +125,11 @@ class ColumnOut(BaseModel):
     wip_limit: Optional[int] = None
     tasks: list[TaskOut] = []
 
+    @model_validator(mode="after")
+    def _sort_tasks(self) -> "ColumnOut":
+        self.tasks.sort(key=lambda t: t.position)
+        return self
+
 
 class BoardOut(BaseModel):
     model_config = {"from_attributes": True}
@@ -132,6 +137,11 @@ class BoardOut(BaseModel):
     id: uuid.UUID
     name: str
     columns: list[ColumnOut] = []
+
+    @model_validator(mode="after")
+    def _sort_columns(self) -> "BoardOut":
+        self.columns.sort(key=lambda c: c.position)
+        return self
 
 
 # ---------------------------------------------------------------------------

@@ -1,8 +1,10 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import {
-  DndContext, DragEndEvent, DragOverlay, DragStartEvent,
+  DndContext, DragEndEvent, DragOverEvent, DragOverlay, DragStartEvent,
   MouseSensor, TouchSensor, closestCorners, useSensor, useSensors,
 } from '@dnd-kit/core'
+import { arrayMove } from '@dnd-kit/sortable'
 
 import { useBoard, useMoveTask, useUsers } from '../../hooks/useTasks'
 import { useTaskWebSocket } from '../../hooks/useTaskWebSocket'
@@ -11,7 +13,7 @@ import TaskCard from './TaskCard'
 import TaskFilters, { type TaskFiltersState } from './TaskFilters'
 import CreateTaskModal from './CreateTaskModal'
 import TaskDetailModal from './TaskDetailModal'
-import type { Task } from '../../types/task'
+import type { Board, Column, Task } from '../../types/task'
 
 const METRIC_DEFS = [
   { key: 'total',   label: 'Total',           tone: '#0A1120' },
@@ -19,6 +21,20 @@ const METRIC_DEFS = [
   { key: 'overdue', label: 'Vencidas',         tone: '#C9A94E' },
   { key: 'done',    label: 'Concluídas',       tone: '#5B7553' },
 ]
+
+/** Deep-clone columns so we can mutate locally during drag */
+function cloneColumns(columns: Column[]): Column[] {
+  return columns.map(c => ({ ...c, tasks: c.tasks.map(t => ({ ...t })) }))
+}
+
+/** Find which column contains a given id (task id or column id) */
+function findColumnOfItem(columns: Column[], id: string): Column | undefined {
+  // Is it a column id?
+  const col = columns.find(c => c.id === id)
+  if (col) return col
+  // Is it a task id?
+  return columns.find(c => c.tasks.some(t => t.id === id))
+}
 
 export default function KanbanBoard() {
   useTaskWebSocket()
@@ -28,6 +44,7 @@ export default function KanbanBoard() {
   const moveTask = useMoveTask()
 
   const [activeTask, setActiveTask] = useState<Task | null>(null)
+  const [localColumns, setLocalColumns] = useState<Column[] | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [filters, setFilters] = useState<TaskFiltersState>({
@@ -37,10 +54,16 @@ export default function KanbanBoard() {
     search: '',
   })
 
+  // Track original position at drag start for the API call
+  const dragOrigin = useRef<{ columnId: string; position: number } | null>(null)
+
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
   )
+
+  // Use local columns during drag, otherwise use server data
+  const columns = localColumns ?? board?.columns ?? []
 
   const metrics = useMemo(() => {
     if (!board) return { total: 0, high: 0, overdue: 0, done: 0 }
@@ -54,34 +77,103 @@ export default function KanbanBoard() {
     }
   }, [board])
 
-  const taskMap = useMemo(() => {
-    const map = new Map<string, Task>()
-    board?.columns.flatMap(c => c.tasks).forEach(t => map.set(t.id, t))
-    return map
-  }, [board])
-
   const handleDragStart = ({ active }: DragStartEvent) => {
-    const task = taskMap.get(String(active.id))
-    if (task) setActiveTask(task)
+    if (!board) return
+    const cols = cloneColumns(board.columns)
+    const col = cols.find(c => c.tasks.some(t => t.id === active.id))
+    const task = col?.tasks.find(t => t.id === active.id)
+    if (task && col) {
+      setActiveTask(task)
+      dragOrigin.current = { columnId: col.id, position: task.position }
+      setLocalColumns(cols)
+    }
   }
 
-  const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    setActiveTask(null)
-    if (!over || !board) return
-    const taskId = String(active.id)
-    const task = taskMap.get(taskId)
-    if (!task) return
-    let targetColumnId = String(over.id)
-    let targetPosition = 0
-    if (taskMap.has(targetColumnId)) {
-      const t2 = taskMap.get(targetColumnId)!
-      targetColumnId = t2.column_id
-      targetPosition = t2.position
+  const handleDragOver = ({ active, over }: DragOverEvent) => {
+    if (!over || !localColumns) return
+    const activeId = String(active.id)
+    const overId = String(over.id)
+    if (activeId === overId) return
+
+    const fromCol = findColumnOfItem(localColumns, activeId)
+    const toCol = findColumnOfItem(localColumns, overId)
+    if (!fromCol || !toCol) return
+
+    if (fromCol.id === toCol.id) {
+      // Reorder within same column
+      const oldIdx = fromCol.tasks.findIndex(t => t.id === activeId)
+      const overTask = fromCol.tasks.findIndex(t => t.id === overId)
+      if (oldIdx === -1 || overTask === -1 || oldIdx === overTask) return
+      setLocalColumns(prev => {
+        if (!prev) return prev
+        return prev.map(c => {
+          if (c.id !== fromCol.id) return c
+          const reordered = arrayMove([...c.tasks], oldIdx, overTask)
+          reordered.forEach((t, i) => { t.position = i })
+          return { ...c, tasks: reordered }
+        })
+      })
     } else {
-      targetPosition = board.columns.find(c => c.id === targetColumnId)?.tasks.length ?? 0
+      // Move across columns
+      const taskIdx = fromCol.tasks.findIndex(t => t.id === activeId)
+      if (taskIdx === -1) return
+      const task = { ...fromCol.tasks[taskIdx] }
+      const overIdx = toCol.tasks.findIndex(t => t.id === overId)
+      const insertAt = overIdx === -1 ? toCol.tasks.length : overIdx
+
+      setLocalColumns(prev => {
+        if (!prev) return prev
+        return prev.map(c => {
+          if (c.id === fromCol.id) {
+            const tasks = c.tasks.filter(t => t.id !== activeId)
+            tasks.forEach((t, i) => { t.position = i })
+            return { ...c, tasks }
+          }
+          if (c.id === toCol.id) {
+            const tasks = [...c.tasks]
+            task.column_id = c.id
+            tasks.splice(insertAt, 0, task)
+            tasks.forEach((t, i) => { t.position = i })
+            return { ...c, tasks }
+          }
+          return c
+        })
+      })
     }
-    if (task.column_id === targetColumnId && task.position === targetPosition) return
-    moveTask.mutate({ taskId, payload: { column_id: targetColumnId, position: targetPosition } })
+  }
+
+  const handleDragEnd = ({ active }: DragEndEvent) => {
+    setActiveTask(null)
+
+    if (!localColumns || !dragOrigin.current) {
+      setLocalColumns(null)
+      return
+    }
+
+    // Find final position of the dragged task
+    const taskId = String(active.id)
+    const destCol = localColumns.find(c => c.tasks.some(t => t.id === taskId))
+    const task = destCol?.tasks.find(t => t.id === taskId)
+
+    if (destCol && task) {
+      const orig = dragOrigin.current
+      const changed = orig.columnId !== destCol.id || orig.position !== task.position
+      if (changed) {
+        moveTask.mutate({
+          taskId,
+          payload: { column_id: destCol.id, position: task.position },
+        })
+      }
+    }
+
+    dragOrigin.current = null
+    setLocalColumns(null)
+  }
+
+  const handleDragCancel = () => {
+    setActiveTask(null)
+    setLocalColumns(null)
+    dragOrigin.current = null
   }
 
   const handleTaskClick = useCallback((task: Task) => {
@@ -112,7 +204,7 @@ export default function KanbanBoard() {
   const metricValues = [metrics.total, metrics.high, metrics.overdue, metrics.done]
 
   // Apply filters
-  const filteredColumns = board.columns.map(col => ({
+  const filteredColumns = columns.map(col => ({
     ...col,
     tasks: col.tasks.filter(t => {
       if (filters.category && t.category !== filters.category) return false
@@ -130,7 +222,7 @@ export default function KanbanBoard() {
   }))
 
   const totalFiltered = filteredColumns.reduce((sum, col) => sum + col.tasks.length, 0)
-  const totalAll = board.columns.reduce((sum, col) => sum + col.tasks.length, 0)
+  const totalAll = columns.reduce((sum, col) => sum + col.tasks.length, 0)
   const isFiltered = filters.category || filters.priority || filters.assignee || filters.search
 
   return (
@@ -183,14 +275,18 @@ export default function KanbanBoard() {
       {/* Kanban board */}
       <div className="px-6 pb-8 flex-1 animate-fade-up" style={{ animationDelay: '260ms' }}>
         <DndContext sensors={sensors} collisionDetection={closestCorners}
-          onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          onDragStart={handleDragStart} onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
           <div className="grid gap-4 overflow-x-auto pb-2"
             style={{ gridTemplateColumns: `repeat(${board.columns.length}, minmax(220px, 1fr))` }}>
             {filteredColumns.map(col => (
               <KanbanColumn key={col.id} column={col} tasks={col.tasks} users={users} onTaskClick={handleTaskClick} />
             ))}
           </div>
-          <DragOverlay>{activeTask ? <TaskCard task={activeTask} users={users} /> : null}</DragOverlay>
+          {createPortal(
+            <DragOverlay>{activeTask ? <TaskCard task={activeTask} users={users} /> : null}</DragOverlay>,
+            document.body,
+          )}
         </DndContext>
       </div>
 
