@@ -12,8 +12,9 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.task import Board, Column, Task, TaskHistory
-from app.schemas.task import TaskCreate
+from app.models.task import Board, Column, Task, TaskComment, TaskHistory
+from app.models.user import User
+from app.schemas.task import TaskCreate, TaskUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,10 @@ async def create_task(
         priority=data.priority,
         assigned_to=data.assigned_to,
         due_date=data.due_date,
+        start_date=data.start_date,
+        estimated_hours=data.estimated_hours,
+        tags=data.tags or [],
+        checklist=[item.model_dump() for item in data.checklist] if data.checklist else [],
         position=next_position,
         source_ref=data.source_ref,
     )
@@ -104,6 +109,72 @@ async def create_task(
     await db.commit()
     await db.refresh(task)
     return task
+
+
+async def update_task(
+    task_id: uuid.UUID,
+    data: TaskUpdate,
+    db: AsyncSession,
+    changed_by: Optional[uuid.UUID] = None,
+) -> Task:
+    """Update task fields (not column/position — use move_task for that)."""
+    task_result = await db.execute(select(Task).where(Task.id == task_id))
+    task = task_result.scalar_one_or_none()
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    changes: list[str] = []
+    update_data = data.model_dump(exclude_unset=True)
+
+    for field, value in update_data.items():
+        old_value = getattr(task, field)
+        if field == "checklist" and value is not None:
+            value = [item.model_dump() if hasattr(item, "model_dump") else item for item in value]
+        if old_value != value:
+            changes.append(field)
+            setattr(task, field, value)
+
+    if changes:
+        history = TaskHistory(
+            task_id=task.id,
+            from_column_id=task.column_id,
+            to_column_id=task.column_id,
+            changed_by=changed_by,
+            notes=f"Campos atualizados: {', '.join(changes)}",
+        )
+        db.add(history)
+
+    await db.commit()
+    await db.refresh(task)
+    return task
+
+
+async def delete_task(
+    task_id: uuid.UUID,
+    db: AsyncSession,
+) -> None:
+    """Delete a task and its history."""
+    task_result = await db.execute(select(Task).where(Task.id == task_id))
+    task = task_result.scalar_one_or_none()
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    # Delete history entries
+    history_result = await db.execute(
+        select(TaskHistory).where(TaskHistory.task_id == task_id)
+    )
+    for h in history_result.scalars().all():
+        await db.delete(h)
+
+    # Delete comments
+    comment_result = await db.execute(
+        select(TaskComment).where(TaskComment.task_id == task_id)
+    )
+    for c in comment_result.scalars().all():
+        await db.delete(c)
+
+    await db.delete(task)
+    await db.commit()
 
 
 async def move_task(
@@ -173,5 +244,53 @@ async def get_task_history(task_id: uuid.UUID, db: AsyncSession) -> list[TaskHis
         select(TaskHistory)
         .where(TaskHistory.task_id == task_id)
         .order_by(TaskHistory.created_at.asc())
+    )
+    return list(result.scalars().all())
+
+
+# ---------------------------------------------------------------------------
+# Comments
+# ---------------------------------------------------------------------------
+
+async def create_comment(
+    task_id: uuid.UUID,
+    content: str,
+    user_id: uuid.UUID,
+    db: AsyncSession,
+) -> TaskComment:
+    """Add a comment to a task."""
+    task_result = await db.execute(select(Task).where(Task.id == task_id))
+    if task_result.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    comment = TaskComment(task_id=task_id, user_id=user_id, content=content)
+    db.add(comment)
+    await db.commit()
+    await db.refresh(comment)
+    return comment
+
+
+async def get_comments(task_id: uuid.UUID, db: AsyncSession) -> list[TaskComment]:
+    """Return comments for a task, oldest first."""
+    task_result = await db.execute(select(Task).where(Task.id == task_id))
+    if task_result.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    result = await db.execute(
+        select(TaskComment)
+        .where(TaskComment.task_id == task_id)
+        .order_by(TaskComment.created_at.asc())
+    )
+    return list(result.scalars().all())
+
+
+# ---------------------------------------------------------------------------
+# Users (for assignee listing)
+# ---------------------------------------------------------------------------
+
+async def list_active_users(db: AsyncSession) -> list[User]:
+    """Return all active users (for assignee dropdown)."""
+    result = await db.execute(
+        select(User).where(User.is_active.is_(True)).order_by(User.name)
     )
     return list(result.scalars().all())

@@ -18,13 +18,28 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
-from app.schemas.task import BoardOut, TaskCreate, TaskHistoryOut, TaskMoveRequest, TaskOut
+from app.schemas.task import (
+    BoardOut,
+    TaskCommentCreate,
+    TaskCommentOut,
+    TaskCreate,
+    TaskHistoryOut,
+    TaskMoveRequest,
+    TaskOut,
+    TaskUpdate,
+    UserMinimal,
+)
 from app.services.task_service import (
+    create_comment,
     create_task,
+    delete_task,
     get_board,
+    get_comments,
     get_first_board,
     get_task_history,
+    list_active_users,
     move_task,
+    update_task,
 )
 
 logger = logging.getLogger(__name__)
@@ -132,6 +147,40 @@ async def post_task(
     return task
 
 
+@router.patch("/tasks/{task_id}", response_model=TaskOut)
+async def patch_task(
+    task_id: uuid.UUID,
+    body: TaskUpdate,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer),
+    db: AsyncSession = Depends(get_db),
+) -> TaskOut:
+    payload = _require_user(credentials)
+    user_id = uuid.UUID(payload["sub"]) if "sub" in payload else None
+    task = await update_task(task_id, body, db, changed_by=user_id)
+
+    asyncio.create_task(task_ws_manager.broadcast({
+        "event": "task.updated",
+        "data": {"id": str(task.id), "column_id": str(task.column_id)},
+    }))
+
+    return task
+
+
+@router.delete("/tasks/{task_id}", status_code=204)
+async def remove_task(
+    task_id: uuid.UUID,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    _require_user(credentials)
+    await delete_task(task_id, db)
+
+    asyncio.create_task(task_ws_manager.broadcast({
+        "event": "task.deleted",
+        "data": {"id": str(task_id)},
+    }))
+
+
 @router.patch("/tasks/{task_id}/move", response_model=TaskOut)
 async def patch_task_move(
     task_id: uuid.UUID,
@@ -164,6 +213,45 @@ async def get_history(
 ) -> list[TaskHistoryOut]:
     _require_user(credentials)
     return await get_task_history(task_id, db)
+
+
+# ---------------------------------------------------------------------------
+# Task comments
+# ---------------------------------------------------------------------------
+
+@router.post("/tasks/{task_id}/comments", response_model=TaskCommentOut, status_code=201)
+async def post_comment(
+    task_id: uuid.UUID,
+    body: TaskCommentCreate,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer),
+    db: AsyncSession = Depends(get_db),
+) -> TaskCommentOut:
+    payload = _require_user(credentials)
+    user_id = uuid.UUID(payload["sub"])
+    return await create_comment(task_id, body.content, user_id, db)
+
+
+@router.get("/tasks/{task_id}/comments", response_model=list[TaskCommentOut])
+async def get_task_comments(
+    task_id: uuid.UUID,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer),
+    db: AsyncSession = Depends(get_db),
+) -> list[TaskCommentOut]:
+    _require_user(credentials)
+    return await get_comments(task_id, db)
+
+
+# ---------------------------------------------------------------------------
+# Users (for assignee dropdown)
+# ---------------------------------------------------------------------------
+
+@router.get("/users", response_model=list[UserMinimal])
+async def get_users(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer),
+    db: AsyncSession = Depends(get_db),
+) -> list[UserMinimal]:
+    _require_user(credentials)
+    return await list_active_users(db)
 
 
 # ---------------------------------------------------------------------------

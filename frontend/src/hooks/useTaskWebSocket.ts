@@ -23,7 +23,7 @@ export function useTaskWebSocket() {
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data)
-          if (['task.created', 'task.moved', 'task.updated'].includes(msg.event)) {
+          if (['task.created', 'task.moved', 'task.updated', 'task.deleted'].includes(msg.event)) {
             queryClient.invalidateQueries({ queryKey: BOARD_QUERY_KEY })
           }
         } catch {

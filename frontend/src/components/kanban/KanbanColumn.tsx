@@ -1,14 +1,16 @@
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import TaskCard from './TaskCard'
-import type { Column, Task } from '../../types/task'
+import type { Column, Task, UserMinimal } from '../../types/task'
 
 interface KanbanColumnProps {
   column: Column
   tasks: Task[]
+  users?: UserMinimal[]
+  onTaskClick?: (task: Task) => void
 }
 
-export default function KanbanColumn({ column, tasks }: KanbanColumnProps) {
+export default function KanbanColumn({ column, tasks, users, onTaskClick }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
 
   const wipExceeded = column.wip_limit != null && tasks.length >= column.wip_limit
@@ -49,7 +51,7 @@ export default function KanbanColumn({ column, tasks }: KanbanColumnProps) {
       >
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} />
+            <TaskCard key={task.id} task={task} users={users} onClick={() => onTaskClick?.(task)} />
           ))}
         </SortableContext>
         {tasks.length === 0 && (

@@ -1,16 +1,17 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent,
   MouseSensor, TouchSensor, closestCorners, useSensor, useSensors,
 } from '@dnd-kit/core'
 
-import { useBoard, useMoveTask } from '../../hooks/useTasks'
+import { useBoard, useMoveTask, useUsers } from '../../hooks/useTasks'
 import { useTaskWebSocket } from '../../hooks/useTaskWebSocket'
 import KanbanColumn from './KanbanColumn'
 import TaskCard from './TaskCard'
-import TaskFilters from './TaskFilters'
+import TaskFilters, { type TaskFiltersState } from './TaskFilters'
 import CreateTaskModal from './CreateTaskModal'
-import type { Task, TaskCategory } from '../../types/task'
+import TaskDetailModal from './TaskDetailModal'
+import type { Task } from '../../types/task'
 
 const METRIC_DEFS = [
   { key: 'total',   label: 'Total',           tone: '#0A1120' },
@@ -23,11 +24,18 @@ export default function KanbanBoard() {
   useTaskWebSocket()
 
   const { data: board, isLoading, isError } = useBoard()
+  const { data: users } = useUsers()
   const moveTask = useMoveTask()
 
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<TaskCategory | null>(null)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [filters, setFilters] = useState<TaskFiltersState>({
+    category: null,
+    priority: null,
+    assignee: null,
+    search: '',
+  })
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
@@ -76,6 +84,10 @@ export default function KanbanBoard() {
     moveTask.mutate({ taskId, payload: { column_id: targetColumnId, position: targetPosition } })
   }
 
+  const handleTaskClick = useCallback((task: Task) => {
+    setSelectedTask(task)
+  }, [])
+
   if (isLoading) {
     return (
       <div className="min-h-full flex items-center justify-center" style={{ background: '#F5F0E8' }}>
@@ -98,10 +110,28 @@ export default function KanbanBoard() {
   }
 
   const metricValues = [metrics.total, metrics.high, metrics.overdue, metrics.done]
+
+  // Apply filters
   const filteredColumns = board.columns.map(col => ({
     ...col,
-    tasks: selectedCategory ? col.tasks.filter(t => t.category === selectedCategory) : col.tasks,
+    tasks: col.tasks.filter(t => {
+      if (filters.category && t.category !== filters.category) return false
+      if (filters.priority && t.priority !== filters.priority) return false
+      if (filters.assignee && t.assigned_to !== filters.assignee) return false
+      if (filters.search) {
+        const q = filters.search.toLowerCase()
+        const matchTitle = t.title.toLowerCase().includes(q)
+        const matchDesc = t.description?.toLowerCase().includes(q)
+        const matchTags = t.tags?.some(tag => tag.toLowerCase().includes(q))
+        if (!matchTitle && !matchDesc && !matchTags) return false
+      }
+      return true
+    }),
   }))
+
+  const totalFiltered = filteredColumns.reduce((sum, col) => sum + col.tasks.length, 0)
+  const totalAll = board.columns.reduce((sum, col) => sum + col.tasks.length, 0)
+  const isFiltered = filters.category || filters.priority || filters.assignee || filters.search
 
   return (
     <div className="min-h-full flex flex-col" style={{ background: '#F5F0E8' }}>
@@ -141,7 +171,12 @@ export default function KanbanBoard() {
 
         {/* Filters */}
         <div className="animate-fade-up" style={{ animationDelay: '180ms' }}>
-          <TaskFilters selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
+          <TaskFilters filters={filters} onFiltersChange={setFilters} users={users} />
+          {isFiltered && (
+            <p className="text-xs mt-2" style={{ color: '#A69B8D' }}>
+              Mostrando {totalFiltered} de {totalAll} tarefas
+            </p>
+          )}
         </div>
       </div>
 
@@ -152,15 +187,23 @@ export default function KanbanBoard() {
           <div className="grid gap-4 overflow-x-auto pb-2"
             style={{ gridTemplateColumns: `repeat(${board.columns.length}, minmax(220px, 1fr))` }}>
             {filteredColumns.map(col => (
-              <KanbanColumn key={col.id} column={col} tasks={col.tasks} />
+              <KanbanColumn key={col.id} column={col} tasks={col.tasks} users={users} onTaskClick={handleTaskClick} />
             ))}
           </div>
-          <DragOverlay>{activeTask ? <TaskCard task={activeTask} /> : null}</DragOverlay>
+          <DragOverlay>{activeTask ? <TaskCard task={activeTask} users={users} /> : null}</DragOverlay>
         </DndContext>
       </div>
 
       {showCreateModal && (
         <CreateTaskModal columns={board.columns} onClose={() => setShowCreateModal(false)} />
+      )}
+
+      {selectedTask && (
+        <TaskDetailModal
+          task={selectedTask}
+          columns={board.columns}
+          onClose={() => setSelectedTask(null)}
+        />
       )}
     </div>
   )
