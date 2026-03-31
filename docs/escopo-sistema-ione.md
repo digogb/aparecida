@@ -1,5 +1,5 @@
 # Documento de Escopo — Sistema Ione
-**Versão:** 1.0
+**Versão:** 1.1
 **Data:** 31 de março de 2026
 **Contratante:** [Nome do cliente]
 **Contratada:** [Nome da empresa desenvolvedora]
@@ -22,7 +22,7 @@ O Sistema Ione é uma aplicação web destinada a escritórios de advocacia e de
 - **Gestão de tarefas** em quadro Kanban
 - **Controle de usuários** com perfis de acesso distintos
 
-O escopo contratado cobre especificamente os módulos de **Dashboard** e **Geração de Pareceres**, detalhados nas seções a seguir.
+O escopo contratado cobre especificamente os módulos de **Dashboard**, **Geração de Pareceres** e **Integração com Gmail**, detalhados nas seções a seguir.
 
 ---
 
@@ -129,25 +129,48 @@ Cada transição de status é registrada com data, hora e usuário responsável 
 
 ### 4.3 Ingestão de Pedidos
 
-**Forma de entrada suportada:**
-- Upload manual de arquivos `.eml` (e-mail exportado) via interface web
+O sistema suporta duas formas de entrada de pedidos de parecer:
 
-**Processamento automático ao ingerir:**
-- Extração do corpo do e-mail, assunto, remetente e data
-- Extração de texto de anexos nos formatos: PDF, DOCX, imagens (via OCR)
+#### 4.3.1 Upload Manual de E-mail
+
+- Upload de arquivos `.eml` (e-mail exportado) diretamente pela interface web
+- Útil para pedidos avulsos ou retroativos
+
+#### 4.3.2 Integração Automática com Gmail (Webhook)
+
+O sistema monitora automaticamente a caixa de entrada do Gmail do escritório e cria pareceres a partir de e-mails recebidos, sem intervenção manual.
+
+**Fluxo de funcionamento:**
+1. Cliente (município) envia e-mail com pedido de parecer para o endereço do escritório
+2. Gmail notifica o sistema via Google Cloud Pub/Sub (webhook)
+3. Sistema recebe a notificação, extrai os dados do e-mail e cria automaticamente um novo pedido de parecer com status `pendente`
+4. Pipeline de classificação (P1) e geração (P2) é disparado em segundo plano
+5. Deduplicação automática: e-mails já processados não geram pedidos duplicados
+
+**Dados capturados automaticamente:**
+- ID da thread e ID da mensagem do Gmail (para deduplicação)
+- E-mail do remetente
+- Corpo e assunto do e-mail
+- Anexos (PDF, DOCX, imagens)
+
+**Processamento de anexos:**
+- Extração de texto dos formatos: PDF, DOCX, imagens digitalizadas (OCR)
 - Fallback automático entre métodos de extração (pdfplumber → python-docx → tesseract → libreoffice)
-- Armazenamento do arquivo original para fins de auditoria
+- Armazenamento dos arquivos para fins de auditoria
 
 **Escopo inclui:**
-- Upload via interface web de arquivos `.eml`
+- Upload manual via interface web de arquivos `.eml`
+- Integração automática com Gmail via Google Cloud Pub/Sub (webhook)
+- Deduplicação de pedidos por thread do Gmail
 - Extração de texto dos formatos: PDF, DOCX, imagens digitalizadas (OCR)
 - Armazenamento dos arquivos anexados
+- Disparo automático do pipeline de IA ao receber novo e-mail
 
 **Escopo NÃO inclui:**
-- Integração direta com caixa de e-mail via IMAP/POP3 para monitoramento automático contínuo
-- Integração com Gmail (webhook) — esta funcionalidade existe no código mas **não está incluída no escopo contratado**
+- Integração com outros provedores de e-mail (Outlook, Yahoo, IMAP/POP3 genérico)
 - Suporte a outros formatos de arquivo além dos listados (ex: ODS, XLS, HTML)
 - Reconhecimento de handwriting (escrita à mão) em documentos digitalizados
+- Configuração da conta Gmail pelo próprio usuário na interface (requer configuração técnica no servidor)
 
 ### 4.4 Classificação Automática (P1)
 
@@ -323,7 +346,7 @@ As funcionalidades abaixo **não estão incluídas** nesta contratação e reque
 
 1. **Módulo de Movimentações Processuais (DJE)** — monitoramento e consulta ao Diário de Justiça Eletrônico
 2. **Módulo de Tarefas (Kanban)** — quadro de gestão de tarefas
-3. **Integração com Gmail** (monitoramento automático de caixa de entrada)
+3. **Integração com outros provedores de e-mail** (Outlook, Yahoo, IMAP/POP3 genérico)
 4. **Notificações por e-mail** — envio de alertas e notificações via e-mail
 5. **API pública** para integração com sistemas externos
 6. **Aplicativo mobile** (iOS/Android)
@@ -352,6 +375,8 @@ As funcionalidades abaixo **não estão incluídas** nesta contratação e reque
 | Serviço | Finalidade | Responsabilidade |
 |---------|-----------|-----------------|
 | **Anthropic Claude API** | Geração de pareceres por IA | Contratante fornece chave de API |
+| **Google Cloud Pub/Sub** | Notificações de novos e-mails do Gmail | Contratante fornece projeto GCP e credenciais de serviço |
+| **Gmail (conta do escritório)** | Recebimento de pedidos de parecer | Contratante fornece conta Gmail e autoriza integração |
 | **Navegador moderno** | Acesso à aplicação | Chrome/Firefox/Edge (versões dos últimos 2 anos) |
 
 ### 7.3 Observação sobre Custos de IA
@@ -367,6 +392,7 @@ O custo de uso da API da Anthropic (Claude) é cobrado diretamente à conta da A
 3. **Formatos de arquivo:** Documentos escaneados com baixa resolução podem resultar em extração de texto incompleta via OCR.
 4. **Disponibilidade:** A disponibilidade do sistema depende da disponibilidade da API da Anthropic e da infraestrutura contratada.
 5. **Legislação:** O sistema não realiza atualização automática de referências legais. Cabe ao advogado verificar a atualidade das normas citadas.
+6. **Integração Gmail:** O funcionamento da integração depende da configuração de um projeto no Google Cloud Platform (GCP) com a API Gmail e um tópico Pub/Sub habilitados. A configuração inicial do GCP é de responsabilidade da contratada, mas as credenciais e a conta Gmail são de responsabilidade do contratante.
 
 ---
 
@@ -385,6 +411,8 @@ O sistema será considerado entregue e aceito quando:
 - [ ] Exportação em DOCX e PDF com formatação profissional
 - [ ] Histórico de versões com possibilidade de restauração
 - [ ] Trilha de auditoria de status e ações
+- [ ] Integração com Gmail: e-mail recebido no Gmail do escritório gera automaticamente um parecer pendente no sistema
+- [ ] Deduplicação: reenvio do mesmo e-mail não cria pedido duplicado
 
 ---
 
