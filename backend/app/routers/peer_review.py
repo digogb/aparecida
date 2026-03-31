@@ -84,7 +84,10 @@ def _peer_review_to_list_item(pr: PeerReview) -> PeerReviewListItem:
         reviewer_id=pr.reviewer_id,
         reviewer_name=pr.reviewer.name if pr.reviewer else "",
         status=pr.status,
+        trechos_marcados=pr.trechos_marcados,
         observacoes=pr.observacoes,
+        resposta_geral=pr.resposta_geral,
+        resposta_trechos=pr.resposta_trechos,
         created_at=pr.created_at,
         completed_at=pr.completed_at,
     )

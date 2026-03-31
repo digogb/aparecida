@@ -20,6 +20,37 @@ from app.models.movement import Movement, MovementType, Process
 
 logger = logging.getLogger(__name__)
 
+_FORMATO_SYSTEM_PROMPT = """Você é um formatador de textos do Diário de Justiça Eletrônico.
+Regras estritas:
+- NÃO altere nenhuma palavra, número ou pontuação
+- NÃO use markdown (sem **, *, #, >, - para listas, etc.)
+- Apenas adicione quebras de linha e indentação com espaços
+- Separe blocos lógicos (cabeçalho, partes, ementa, decisão, dispositivo)
+- Use linha em branco entre seções
+- Mantenha citações de artigos e leis em parágrafos próprios
+- Retorne apenas texto puro com quebras de linha"""
+
+
+async def _formatar_publicacao(texto: str) -> str:
+    """Formata o texto bruto de uma publicação do DJE usando Claude."""
+    if not texto or not texto.strip():
+        return texto
+    try:
+        from anthropic import AsyncAnthropic
+        from app.config import settings
+
+        async with AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY) as client:
+            resp = await client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=4096,
+                system=_FORMATO_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": texto}],
+            )
+        return resp.content[0].text
+    except Exception as e:
+        logger.warning("Falha ao formatar publicação via Claude: %s — usando texto original", e)
+        return texto
+
 # Raw DJE type string → MovementType adapter
 _TYPE_MAP: dict[str, MovementType] = {
     "intimacao":    MovementType.intimacao,
@@ -114,6 +145,8 @@ async def ingest_movement(
     movement_type = _normalize_type(raw_type)
     process = await _get_or_create_process(db, process_number, court)
 
+    formatted_content = await _formatar_publicacao(content) if content else content
+
     # Deduplication: ON CONFLICT DO NOTHING ensures idempotency
     stmt = (
         pg_insert(Movement)
@@ -121,7 +154,7 @@ async def ingest_movement(
             process_id=process.id,
             dje_id=dje_id,
             type=movement_type,
-            content=content,
+            content=formatted_content,
             published_at=published_at,
             is_read=False,
             metadata_=metadata,

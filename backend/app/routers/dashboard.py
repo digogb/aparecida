@@ -10,8 +10,9 @@ from app.config import settings
 from app.database import get_db
 from app.models.movement import Movement, MovementType, Process
 from app.models.municipio import Municipio
-from app.models.parecer import ParecerRequest, ParecerStatus
+from app.models.parecer import ParecerRequest, ParecerStatus, PeerReview, PeerReviewStatus
 from app.models.task import Column, Task, TaskPriority
+from app.models.user import User
 from app.schemas.dashboard import (
     DashboardAlert,
     DashboardAlertsResponse,
@@ -124,7 +125,8 @@ async def get_dashboard_alerts(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
     db: AsyncSession = Depends(get_db),
 ) -> DashboardAlertsResponse:
-    _require_user(credentials)
+    payload = _require_user(credentials)
+    current_user_id = payload.get("sub")
 
     now = datetime.now(timezone.utc)
     cutoff_48h = now - timedelta(hours=48)
@@ -200,6 +202,36 @@ async def get_dashboard_alerts(
             ref_id=str(t.id),
             ref_path="/tarefas",
         ))
+
+    # Revisões de parecer solicitadas para o usuário logado
+    if current_user_id:
+        peer_q = await db.execute(
+            select(PeerReview, ParecerRequest, User)
+            .join(ParecerRequest, PeerReview.request_id == ParecerRequest.id)
+            .join(User, PeerReview.requested_by == User.id)
+            .where(
+                and_(
+                    PeerReview.reviewer_id == current_user_id,
+                    PeerReview.status == PeerReviewStatus.pendente,
+                )
+            )
+            .order_by(PeerReview.created_at.desc())
+            .limit(5)
+        )
+        for row in peer_q.all():
+            pr = row.PeerReview
+            parecer = row.ParecerRequest
+            requester = row.User
+            numero = parecer.numero_parecer if hasattr(parecer, "numero_parecer") and parecer.numero_parecer else (parecer.subject or str(parecer.id)[:8])
+            alerts.append(DashboardAlert(
+                id=f"revisao_{pr.id}",
+                type="revisao_solicitada",
+                urgency="high",
+                title=f"Revisão solicitada por {requester.name.split(' ')[0]}",
+                description=numero,
+                ref_id=str(parecer.id),
+                ref_path=f"/pareceres/{parecer.id}",
+            ))
 
     return DashboardAlertsResponse(alerts=alerts)
 

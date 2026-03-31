@@ -59,7 +59,10 @@ class PeerReviewListItem(BaseModel):
     reviewer_id: uuid.UUID
     reviewer_name: str
     status: PeerReviewStatus
+    trechos_marcados: Optional[list[Any]] = None
     observacoes: Optional[str] = None
+    resposta_geral: Optional[str] = None
+    resposta_trechos: Optional[list[Any]] = None
     created_at: datetime
     completed_at: Optional[datetime] = None
 
