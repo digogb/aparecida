@@ -38,3 +38,6 @@ credentials/
 
 # DB
 pgdata/
+
+# Uploads (arquivos de clientes — não versionar)
+uploads/

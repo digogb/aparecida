@@ -1,5 +1,5 @@
 # Documento de Escopo — Sistema Ione
-**Versão:** 1.1
+**Versão:** 1.2 — Entrega 1
 **Data:** 31 de março de 2026
 **Contratante:** [Nome do cliente]
 **Contratada:** [Nome da empresa desenvolvedora]
@@ -8,108 +8,68 @@
 
 ## 1. Objetivo
 
-Este documento define o escopo funcional do **Sistema Ione**, plataforma de gestão jurídica com geração de pareceres assistida por inteligência artificial. O objetivo é estabelecer com precisão quais funcionalidades estão incluídas na contratação, servindo como referência vinculante para ambas as partes e prevenindo alterações de escopo não acordadas.
+Este documento define o escopo funcional da **Entrega 1 do Sistema Ione**, plataforma de gestão jurídica com geração de pareceres assistida por inteligência artificial. O objetivo é estabelecer com precisão quais funcionalidades estão incluídas nesta entrega, servindo como referência vinculante para ambas as partes e prevenindo interpretações sobre funcionalidades não acordadas.
+
+Este documento cobre exclusivamente o **Módulo de Geração de Pareceres**, que constitui o objeto contratado. O **Dashboard Operacional** está incluído nesta entrega como **cortesia da contratada**, conforme detalhado na seção 3, e **não poderá ser utilizado como base para cobranças, exigências de customização ou ampliação de escopo** pelo contratante.
 
 ---
 
-## 2. Visão Geral do Sistema
+## 2. Visão Geral da Entrega 1
 
-O Sistema Ione é uma aplicação web destinada a escritórios de advocacia e departamentos jurídicos municipais. Ele centraliza:
+O Sistema Ione é uma aplicação web destinada a escritórios de advocacia e departamentos jurídicos municipais. A **Entrega 1** disponibiliza:
 
-- **Geração automatizada de pareceres jurídicos** via IA (Anthropic Claude)
-- **Dashboard gerencial** com indicadores e alertas em tempo real
-- **Gestão de movimentações processuais** (DJE)
-- **Gestão de tarefas** em quadro Kanban
-- **Controle de usuários** com perfis de acesso distintos
+- **Geração automatizada de pareceres jurídicos** via IA (Anthropic Claude) — **objeto contratado**
+- **Dashboard operacional de pareceres** — **incluído como cortesia**
 
-O escopo contratado cobre especificamente os módulos de **Dashboard**, **Geração de Pareceres** e **Integração com Gmail**, detalhados nas seções a seguir.
+As demais funcionalidades da plataforma (gestão de movimentações processuais, quadro de tarefas Kanban e demais módulos) serão objeto de entregas futuras, mediante negociação separada.
 
 ---
 
-## 3. Módulo 1 — Dashboard
+## 3. Dashboard Operacional — Cortesia
 
-### 3.1 Descrição Geral
+### 3.1 Descrição e Natureza
 
-O Dashboard é a tela inicial do sistema após o login. Apresenta uma visão consolidada do estado operacional do escritório, com indicadores de desempenho, alertas prioritários e atividades recentes.
+O Dashboard é a tela inicial do sistema após o login. Esta funcionalidade é disponibilizada pela contratada como **cortesia nesta Entrega 1**, sem custo adicional e sem constituir obrigação contratual.
 
-### 3.2 Indicadores (KPIs)
+Por tratar-se de uma cortesia:
 
-O painel exibe os seguintes cartões de métricas em tempo real:
+- **Não há SLA ou critério de aceite formal** para o dashboard
+- **Customizações, adição de indicadores ou alterações visuais** não estão incluídas e requerem negociação separada
+- A presença do dashboard nesta entrega **não gera direito de exigir ampliação ou modificação** de suas funcionalidades
 
-| Indicador | Descrição |
-|-----------|-----------|
-| **Aguardando Revisão** | Quantidade de pareceres com status `gerado` ou `em_revisao` |
-| **Em Revisão** | Quantidade de pareceres ativamente em processo de revisão |
-| **Movimentações Não Lidas** | Total de movimentações processuais ainda não visualizadas |
-| **Tarefas Urgentes** | Tarefas com prioridade alta em colunas não concluídas |
-| **Concluídas na Semana** | Pareceres com status `enviado` nos últimos 7 dias |
-| **Enviados (Total)** | Contador histórico de todos os pareceres enviados |
+### 3.2 Funcionalidades Disponibilizadas
 
-**Escopo inclui:**
-- Exibição dos 6 indicadores listados acima
-- Atualização dos dados a cada carregamento de página
-- Layout responsivo em grade (3 colunas em desktop, 1 coluna em mobile)
+O dashboard apresenta uma visão consolidada dos pareceres em andamento no escritório:
 
-**Escopo NÃO inclui:**
-- Atualização automática em tempo real sem recarregar a página (exceto via ação do usuário)
-- Gráficos históricos ou séries temporais
-- Exportação dos indicadores em planilha ou relatório
-- Configuração dos indicadores pelo usuário (ex: trocar KPIs exibidos)
-- Filtro por período nos KPIs
+**Indicadores gerais:**
+- Total de pareceres em aberto
+- Quantidade de pareceres concluídos na semana atual
 
-### 3.3 Painel de Alertas
+**Pipeline por etapa:**
+- Contagem de pareceres em cada status do fluxo: Pendente, Classificado, Gerado, Em Correção, Em Revisão, Devolvido, Aprovado e Enviado
+- Barra visual proporcional à distribuição por etapa
 
-O sistema identifica e exibe automaticamente situações que requerem atenção imediata:
+**Distribuição por município:**
+- Ranking dos municípios com maior número de pareceres abertos
+- Barra proporcional por município
 
-| Tipo de Alerta | Critério de Disparo |
-|---------------|---------------------|
-| **Pareceres Atrasados** | Pareceres sem atualização há mais de 48 horas |
-| **Intimações Não Lidas** | Movimentações do tipo intimação ainda não marcadas como lidas |
-| **Tarefas com Prazo Próximo** | Tarefas com data de vencimento nos próximos 3 dias |
+**Distribuição por advogado:**
+- Quantidade de pareceres abertos atribuídos a cada advogado cadastrado
 
-**Escopo inclui:**
-- Exibição dos 3 tipos de alerta listados acima
-- Máximo de 5 alertas exibidos por categoria
-- Ícone e cor distintos por tipo de alerta
-- Clique no alerta redireciona para o item correspondente
+**Pareceres mais antigos em aberto:**
+- Lista dos 5 pareceres em aberto há mais tempo
+- Exibição do número de dias em aberto, com destaque visual para os mais críticos
+- Clique navega diretamente para o editor do parecer
 
-**Escopo NÃO inclui:**
-- Notificações push ou sonoras no navegador
-- Envio de alertas por e-mail a partir do dashboard (funcionalidade separada)
-- Configuração dos critérios de alerta pelo usuário
-- Alertas de vencimento de prazos processuais integrados a sistemas externos
+### 3.3 Interface Visual
 
-### 3.4 Atividades Recentes
-
-O dashboard exibe dois painéis de atividade recente:
-
-**Últimos Pareceres:**
-- Lista dos 5 pareceres mais recentes
-- Informações exibidas: assunto, status atual, município
-- Clique navega para o editor do parecer
-
-**Últimas Movimentações:**
-- Lista das 5 movimentações processuais mais recentes
-- Informações exibidas: tipo de documento, número do processo, data de publicação
-- Clique navega para o detalhe da movimentação
-
-**Escopo inclui:**
-- Exibição das últimas 5 entradas em cada lista
-- Navegação por clique para o item
-
-**Escopo NÃO inclui:**
-- Paginação ou "ver mais" na seção de atividades recentes
-- Filtros nas seções de atividades recentes
-
-### 3.5 Interface Visual
-
-- Paleta de cores em tons bege/marrom com estética de escritório jurídico tradicional
+- Paleta de cores em tons bege/marfim com estética de escritório jurídico
 - Tipografia com serifa nos títulos
-- Cores de status padronizadas: dourado (pendente), cinza (aguardando), laranja (em correção), vermelho (devolvido), verde (aprovado)
+- Cores de status padronizadas: dourado (pendente/classificado), cinza (gerado/em revisão), laranja (em correção), vermelho (devolvido), verde (aprovado), azul-escuro (enviado)
 
 ---
 
-## 4. Módulo 2 — Geração de Pareceres
+## 4. Módulo de Geração de Pareceres — Objeto Contratado
 
 ### 4.1 Descrição Geral
 
@@ -306,7 +266,7 @@ Tela com a listagem de todos os pareceres do sistema:
 
 ## 5. Funcionalidades de Suporte Incluídas
 
-As funcionalidades abaixo são necessárias para o funcionamento dos módulos de Dashboard e Pareceres e estão incluídas no escopo:
+As funcionalidades abaixo são necessárias para o funcionamento do módulo de Pareceres e estão incluídas no escopo:
 
 ### 5.1 Autenticação e Controle de Acesso
 
@@ -340,12 +300,12 @@ As funcionalidades abaixo são necessárias para o funcionamento dos módulos de
 
 ---
 
-## 6. Funcionalidades Fora do Escopo
+## 6. Funcionalidades Fora do Escopo desta Entrega
 
-As funcionalidades abaixo **não estão incluídas** nesta contratação e requerem negociação separada caso sejam demandadas:
+As funcionalidades abaixo **não estão incluídas** nesta Entrega 1 e poderão ser objeto de negociação para entregas futuras:
 
 1. **Módulo de Movimentações Processuais (DJE)** — monitoramento e consulta ao Diário de Justiça Eletrônico
-2. **Módulo de Tarefas (Kanban)** — quadro de gestão de tarefas
+2. **Módulo de Tarefas (Kanban)** — quadro de gestão de tarefas e prazos
 3. **Integração com outros provedores de e-mail** (Outlook, Yahoo, IMAP/POP3 genérico)
 4. **Notificações por e-mail** — envio de alertas e notificações via e-mail
 5. **API pública** para integração com sistemas externos
@@ -355,6 +315,7 @@ As funcionalidades abaixo **não estão incluídas** nesta contratação e reque
 9. **Novas áreas jurídicas** além de licitação e administrativo
 10. **Assinatura digital** com certificado ICP-Brasil
 11. **Integração com sistemas de protocolo** (ex: e-Saj, PJe, Projudi)
+12. **Customizações do dashboard** — indicadores adicionais, gráficos históricos ou alterações visuais além do disponibilizado como cortesia
 
 ---
 
@@ -393,6 +354,7 @@ O custo de uso da API da Anthropic (Claude) é cobrado diretamente à conta da A
 4. **Disponibilidade:** A disponibilidade do sistema depende da disponibilidade da API da Anthropic e da infraestrutura contratada.
 5. **Legislação:** O sistema não realiza atualização automática de referências legais. Cabe ao advogado verificar a atualidade das normas citadas.
 6. **Integração Gmail:** O funcionamento da integração depende da configuração de um projeto no Google Cloud Platform (GCP) com a API Gmail e um tópico Pub/Sub habilitados. A configuração inicial do GCP é de responsabilidade da contratada, mas as credenciais e a conta Gmail são de responsabilidade do contratante.
+7. **Dashboard:** Por ser uma cortesia, o dashboard não possui SLA de disponibilidade próprio e está sujeito a alterações sem aviso prévio em entregas futuras.
 
 ---
 
@@ -401,7 +363,6 @@ O custo de uso da API da Anthropic (Claude) é cobrado diretamente à conta da A
 O sistema será considerado entregue e aceito quando:
 
 - [ ] Login e logout funcionando para os 3 perfis (advogado, secretaria, administrador)
-- [ ] Dashboard exibindo os 6 KPIs, alertas e atividades recentes conforme seção 3
 - [ ] Upload de `.eml` com extração automática de texto (PDF, DOCX, imagem)
 - [ ] Classificação automática por IA retornando área jurídica e município
 - [ ] Geração de parecer com as 4 seções (ementa, relatório, fundamentos, conclusão)
@@ -414,11 +375,13 @@ O sistema será considerado entregue e aceito quando:
 - [ ] Integração com Gmail: e-mail recebido no Gmail do escritório gera automaticamente um parecer pendente no sistema
 - [ ] Deduplicação: reenvio do mesmo e-mail não cria pedido duplicado
 
+> **Nota:** O dashboard operacional, por ser uma cortesia, não faz parte dos critérios de aceite acima.
+
 ---
 
 ## 10. Processo de Solicitação de Mudanças
 
-Qualquer funcionalidade não descrita neste documento é considerada fora do escopo. Solicitações de novas funcionalidades ou alterações no comportamento descrito devem seguir o processo:
+Qualquer funcionalidade não descrita neste documento é considerada fora do escopo desta Entrega 1. Solicitações de novas funcionalidades ou alterações no comportamento descrito devem seguir o processo:
 
 1. Solicitação formal por escrito (e-mail ou sistema de tickets)
 2. Análise de impacto pela equipe de desenvolvimento
@@ -431,7 +394,7 @@ Qualquer funcionalidade não descrita neste documento é considerada fora do esc
 
 ## 11. Assinaturas
 
-Este documento define o escopo acordado entre as partes.
+Este documento define o escopo acordado entre as partes para a Entrega 1 do Sistema Ione.
 
 | | Contratante | Contratada |
 |--|------------|-----------|
@@ -442,4 +405,4 @@ Este documento define o escopo acordado entre as partes.
 
 ---
 
-*Documento gerado em 31 de março de 2026.*
+*Documento gerado em 31 de março de 2026 — Entrega 1.*

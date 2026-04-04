@@ -2,10 +2,13 @@ import uuid
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import jwt
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database import get_db
 from app.models.parecer import ParecerRequest, ParecerVersion
 from app.schemas.parecer_version import (
@@ -27,6 +30,19 @@ PREFIX = "/api"
 TAGS = ["parecer-ia"]
 
 router = APIRouter()
+bearer = HTTPBearer(auto_error=False)
+_JWT_ALG = "HS256"
+
+
+def _get_user_id(credentials: HTTPAuthorizationCredentials | None) -> uuid.UUID | None:
+    if credentials is None:
+        return None
+    try:
+        payload = jwt.decode(credentials.credentials, settings.JWT_SECRET, algorithms=[_JWT_ALG])
+        raw = payload.get("sub")
+        return uuid.UUID(raw) if raw else None
+    except Exception:
+        return None
 
 
 @router.post(
@@ -227,6 +243,7 @@ async def update_version(
     id: uuid.UUID,
     version_id: uuid.UUID,
     body: VersionUpdateIn,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
     db: AsyncSession = Depends(get_db),
 ) -> ParecerVersionDetail:
     result = await db.execute(
@@ -249,15 +266,21 @@ async def update_version(
         select(ParecerRequest).where(ParecerRequest.id == id)
     )
     pr = pr_result.scalar_one_or_none()
-    if pr and pr.status not in (ParecerStatus.aprovado, ParecerStatus.enviado, ParecerStatus.em_correcao):
-        old_status = pr.status
-        pr.status = ParecerStatus.em_correcao
-        db.add(ParecerStatusHistory(
-            request_id=pr.id,
-            from_status=old_status,
-            to_status=ParecerStatus.em_correcao,
-            notes="Edição manual pelo advogado",
-        ))
+    if pr:
+        # Atribuir advogado automaticamente na primeira edição manual
+        user_id = _get_user_id(credentials)
+        if user_id and not pr.assigned_to:
+            pr.assigned_to = user_id
+
+        if pr.status not in (ParecerStatus.aprovado, ParecerStatus.enviado, ParecerStatus.em_correcao):
+            old_status = pr.status
+            pr.status = ParecerStatus.em_correcao
+            db.add(ParecerStatusHistory(
+                request_id=pr.id,
+                from_status=old_status,
+                to_status=ParecerStatus.em_correcao,
+                notes="Edição manual pelo advogado",
+            ))
 
     await db.commit()
     await db.refresh(version)

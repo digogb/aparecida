@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.municipio import Municipio
 from app.models.parecer import ParecerModelo, ParecerRequest, ParecerStatus, ParecerTema
 from app.services.parecer_ai_service import classify_email
 
@@ -76,6 +77,19 @@ async def classify(parecer_request_id: str, db: AsyncSession) -> tuple[ParecerRe
     pr.tema = _AREA_TO_TEMA.get(area, ParecerTema.administrativo)
     pr.modelo = _AREA_TO_MODELO.get(area, ParecerModelo.generico)
     pr.classificacao = data
+
+    # Tenta resolver municipio_id a partir do nome retornado pela IA, se ainda não definido
+    if not pr.municipio_id:
+        municipio_nome = (data.get("municipio") or "").strip()
+        if municipio_nome:
+            mun_result = await db.execute(
+                select(Municipio).where(
+                    Municipio.name.ilike(f"%{municipio_nome}%")
+                ).limit(1)
+            )
+            municipio = mun_result.scalar_one_or_none()
+            if municipio:
+                pr.municipio_id = municipio.id
 
     old_status = pr.status
     pr.status = ParecerStatus.classificado
