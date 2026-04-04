@@ -18,8 +18,8 @@ from app.models.user import UserRole
 from app.services.export_service import (
     _add_tiptap_content,
     _escape_html,
-    _inline_to_html,
-    _tiptap_to_html,
+    _tiptap_inline_to_html as _inline_to_html,
+    _tiptap_body_to_html as _tiptap_to_html,
 )
 
 

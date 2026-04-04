@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app.prompts.classificacao import SYSTEM_PROMPT
-from app.services.parecer_engine import _parse_sections, _sections_to_html, _sections_to_tiptap
+from app.services.parecer_engine import _sections_to_tiptap
 
 
 class TestClassificacaoPrompt:
@@ -29,77 +29,23 @@ class TestClassificacaoPrompt:
             assert field in SYSTEM_PROMPT
 
 
-class TestParseSections:
-    def test_parse_all_four_sections(self):
-        text = (
-            "[EMENTA]\nResumo do parecer.\n\n"
-            "[RELATORIO]\nFatos narrados.\n\n"
-            "[FUNDAMENTACAO]\nAnalise juridica.\n\n"
-            "[CONCLUSAO]\nResposta objetiva."
-        )
-        sections = _parse_sections(text)
-        assert len(sections) == 4
-        assert "Resumo do parecer." in sections["EMENTA"]
-        assert "Fatos narrados." in sections["RELATORIO"]
-        assert "Analise juridica." in sections["FUNDAMENTACAO"]
-        assert "Resposta objetiva." in sections["CONCLUSAO"]
-
-    def test_parse_with_extra_content(self):
-        text = (
-            "Texto antes ignorado\n"
-            "[EMENTA]\nEmenta aqui.\n"
-            "[RELATORIO]\nRelatorio aqui.\n"
-            "[FUNDAMENTACAO]\nFundamentacao aqui.\n"
-            "[CONCLUSAO]\nConclusao aqui."
-        )
-        sections = _parse_sections(text)
-        assert "EMENTA" in sections
-        assert "RELATORIO" in sections
-        assert "FUNDAMENTACAO" in sections
-        assert "CONCLUSAO" in sections
-
-    def test_parse_empty_text(self):
-        sections = _parse_sections("")
-        assert sections == {}
-
-    def test_parse_partial_sections(self):
-        text = "[EMENTA]\nApenas ementa.\n[CONCLUSAO]\nApenas conclusao."
-        sections = _parse_sections(text)
-        assert len(sections) == 2
-        assert "EMENTA" in sections
-        assert "CONCLUSAO" in sections
-
-
-class TestSectionsToHtml:
-    def test_generates_html_with_headings(self):
-        sections = {
-            "EMENTA": "Resumo.",
-            "RELATORIO": "Fatos.",
-            "FUNDAMENTACAO": "Analise.",
-            "CONCLUSAO": "Resposta.",
-        }
-        html = _sections_to_html(sections)
-        assert "<h2>EMENTA</h2>" in html
-        assert "<h2>RELATORIO</h2>" in html
-        assert "<h2>FUNDAMENTACAO</h2>" in html
-        assert "<h2>CONCLUSAO</h2>" in html
-        assert "<p>Resumo.</p>" in html
-
-    def test_handles_missing_sections(self):
-        sections = {"EMENTA": "Apenas ementa."}
-        html = _sections_to_html(sections)
-        assert "<h2>EMENTA</h2>" in html
-        assert "<p>Apenas ementa.</p>" in html
-        assert "<h2>RELATORIO</h2>" in html
+# TestParseSections e TestSectionsToHtml removidos: _parse_sections e _sections_to_html
+# foram removidos do parecer_engine quando o pipeline migrou de formato [SEÇÃO] para XML.
 
 
 class TestSectionsToTiptap:
+    """
+    _sections_to_tiptap agora usa chaves minúsculas e títulos formatados:
+      ementa, relatorio, fundamentos, conclusao
+    Títulos gerados: "EMENTA", "I — RELATÓRIO", "II — FUNDAMENTOS", "III — CONCLUSÃO"
+    """
+
     def test_generates_valid_tiptap_doc(self):
         sections = {
-            "EMENTA": "Resumo.",
-            "RELATORIO": "Fatos.",
-            "FUNDAMENTACAO": "Analise.",
-            "CONCLUSAO": "Resposta.",
+            "ementa": "Resumo.",
+            "relatorio": "Fatos.",
+            "fundamentos": "Analise.",
+            "conclusao": "Resposta.",
         }
         doc = _sections_to_tiptap(sections)
         assert doc["type"] == "doc"
@@ -109,8 +55,29 @@ class TestSectionsToTiptap:
         assert len(headings) == 4
         assert headings[0]["content"][0]["text"] == "EMENTA"
 
+    def test_section_titles_use_current_format(self):
+        """Verifica que os títulos das seções seguem o formato atual do documento."""
+        sections = {
+            "ementa": "E.",
+            "relatorio": "R.",
+            "fundamentos": "F.",
+            "conclusao": "C.",
+        }
+        doc = _sections_to_tiptap(sections)
+        headings = [n for n in doc["content"] if n["type"] == "heading"]
+        titles = [h["content"][0]["text"] for h in headings]
+        assert titles[0] == "EMENTA"
+        assert "RELATÓRIO" in titles[1]
+        assert "FUNDAMENTOS" in titles[2]
+        assert "CONCLUSÃO" in titles[3]
+
     def test_multiple_paragraphs_per_section(self):
-        sections = {"EMENTA": "Paragrafo 1.\n\nParagrafo 2.", "RELATORIO": "", "FUNDAMENTACAO": "", "CONCLUSAO": ""}
+        sections = {
+            "ementa": "Paragrafo 1.\n\nParagrafo 2.",
+            "relatorio": "",
+            "fundamentos": "",
+            "conclusao": "",
+        }
         doc = _sections_to_tiptap(sections)
         ementa_paragraphs = []
         found_ementa = False
