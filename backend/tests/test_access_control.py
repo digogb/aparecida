@@ -140,30 +140,34 @@ class TestExportEndpointsRequireAuth:
 # ---------------------------------------------------------------------------
 
 class TestPeerReviewEndpointsRequireAuth:
+    """
+    peer_review.py usa HTTPBearer(auto_error=False) com helper próprio que
+    levanta 401 — não 403 — quando não há token.
+    """
 
     def _pid(self):
         return uuid.uuid4()
 
-    def test_create_peer_review_without_token_returns_403(self):
+    def test_create_peer_review_without_token_returns_401(self):
         with TestClient(app) as client:
             resp = client.post(
                 f"/api/parecer-requests/{self._pid()}/peer-review",
                 json={"reviewer_id": str(uuid.uuid4()), "version_id": str(uuid.uuid4())},
             )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
-    def test_pending_reviews_without_token_returns_403(self):
+    def test_pending_reviews_without_token_returns_401(self):
         with TestClient(app) as client:
             resp = client.get("/api/peer-reviews/pending")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
-    def test_respond_review_without_token_returns_403(self):
+    def test_respond_review_without_token_returns_401(self):
         with TestClient(app) as client:
             resp = client.post(
                 f"/api/peer-reviews/{self._pid()}/respond",
                 json={"resposta_geral": "OK"},
             )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
 
 # ---------------------------------------------------------------------------
@@ -171,11 +175,15 @@ class TestPeerReviewEndpointsRequireAuth:
 # ---------------------------------------------------------------------------
 
 class TestDashboardRequiresAuth:
+    """
+    dashboard.py usa HTTPBearer(auto_error=False) com helper próprio que
+    levanta 401 — não 403 — quando não há token.
+    """
 
-    def test_dashboard_stats_without_token_returns_403(self):
+    def test_dashboard_stats_without_token_returns_401(self):
         with TestClient(app) as client:
             resp = client.get("/api/dashboard/pareceres-overview")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
 
 # ---------------------------------------------------------------------------
