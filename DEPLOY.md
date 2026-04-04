@@ -14,7 +14,7 @@ Checklist completo do zero até o sistema rodando na VM OCI com CI/CD automátic
   git add .
   git commit -m "feat: entrega 1 — módulo de pareceres"
   git remote add origin https://github.com/SEU_USER/SEU_REPO.git
-  git push -u origin main
+  git push -u origin master
   ```
 
 ---
