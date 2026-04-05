@@ -113,12 +113,18 @@ class TestLogin:
             resp = client.post("/api/auth/login", json={"email": "test@test.com"})
         assert resp.status_code == 422
 
-    def test_empty_password_returns_422(self):
-        with TestClient(app) as client:
-            resp = client.post("/api/auth/login", json={"email": "test@test.com", "password": ""})
-        # Pydantic valida campo obrigatório — campo vazio ainda é string válida,
-        # mas passlib verifica contra hash e retorna 401
-        assert resp.status_code in (401, 422)
+    def test_empty_password_returns_401(self):
+        """Senha vazia é string válida para Pydantic, mas não bate com nenhum hash — retorna 401."""
+        db = mock_db()
+        _db_returns_nothing(db)
+        app.dependency_overrides[get_db] = override_db(db)
+
+        try:
+            with TestClient(app) as client:
+                resp = client.post("/api/auth/login", json={"email": "test@test.com", "password": ""})
+            assert resp.status_code == 401
+        finally:
+            app.dependency_overrides.clear()
 
 
 # ---------------------------------------------------------------------------

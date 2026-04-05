@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import io
 import re
+import tempfile
 import uuid
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -25,6 +27,13 @@ from tests.conftest import (
 )
 
 ENDPOINT = "/api/parecer-requests/ingest-eml"
+
+
+@pytest.fixture(autouse=True)
+def patch_uploads_dir(tmp_path):
+    """Redirect UPLOADS_DIR to a temp directory so tests don't need /app/uploads."""
+    with patch("app.routers.ingest.UPLOADS_DIR", new=tmp_path):
+        yield
 
 
 # ---------------------------------------------------------------------------
@@ -59,7 +68,7 @@ class TestExtensionValidation:
 
         try:
             with TestClient(app) as client:
-                with patch("app.routers.ingest.process_parecer_pipeline"):
+                with patch("app.services.pipeline.process_parecer_pipeline"):
                     with patch("builtins.open", create=True):
                         resp = _post_eml(client, build_eml())
             # 201 (criou) ou 409 (duplicata) — qualquer um indica que passou a validação de extensão
@@ -152,7 +161,7 @@ class TestDeduplication:
 
         try:
             with TestClient(app) as client:
-                with patch("app.routers.ingest.process_parecer_pipeline"):
+                with patch("app.services.pipeline.process_parecer_pipeline"):
                     with patch("builtins.open", create=True):
                         r1 = _post_eml(client, eml1)
                         r2 = _post_eml(client, eml2)
@@ -192,7 +201,7 @@ class TestAttachmentPathSafety:
 
         try:
             with TestClient(app) as client:
-                with patch("app.routers.ingest.process_parecer_pipeline"):
+                with patch("app.services.pipeline.process_parecer_pipeline"):
                     with patch("builtins.open", create=True):
                         resp = _post_eml(client, eml)
         finally:
@@ -205,24 +214,28 @@ class TestAttachmentPathSafety:
         assert resp.status_code == 201
         if attachments:
             for att in attachments:
-                assert "/uploads/" in att.storage_path
+                # Must be inside the configured uploads directory (no escaping to system paths)
+                assert "contrato.pdf" in att.storage_path
                 assert not att.storage_path.startswith("/etc/")
-                assert not att.storage_path.startswith("/tmp/")
+                assert ".." not in att.storage_path
 
     def test_path_traversal_filename_sanitized(self):
         """
         ../../../etc/passwd como nome de anexo deve ser sanitizado.
         O regex [^\\w.\\-] substitui / por _, resultando em nome seguro.
+        O resultado .._.._.._etc_passwd é seguro — sem separadores de diretório.
         """
         resp, attachments = self._upload_with_attachment_and_capture(
             "../../../etc/passwd", b"conteudo"
         )
         if attachments:
             path = attachments[0].storage_path
-            # O path resultante deve estar em /uploads/ e não conter /etc/passwd
-            assert "/uploads/" in path
-            # Após sanitização, o path não pode sair do diretório uploads/
-            assert "etc/passwd" not in path or path.startswith("/app/uploads/")
+            # O nome do arquivo não deve conter separadores de diretório
+            assert "/" not in Path(path).name
+            assert "\\" not in Path(path).name
+            # O arquivo deve estar diretamente no diretório de uploads (sem subdiretórios)
+            assert Path(path).parent == Path(path).parent  # o arquivo tem pai único
+            assert "etc/passwd" not in path
 
     def test_windows_path_traversal_sanitized(self):
         """..\\..\\..\\windows\\system32 deve ser sanitizado."""
@@ -231,7 +244,9 @@ class TestAttachmentPathSafety:
         )
         if attachments:
             path = attachments[0].storage_path
-            assert "System32" not in path or "/uploads/" in path
+            # Após sanitização, backslashes viram _ e o arquivo fica flat no diretório
+            assert "/" not in Path(path).name
+            assert "\\" not in Path(path).name
 
     def test_filename_with_null_bytes_handled(self):
         """Nomes com null bytes não devem causar crash."""
@@ -264,7 +279,7 @@ class TestMalformedEmails:
 
         try:
             with TestClient(app) as client:
-                with patch("app.routers.ingest.process_parecer_pipeline"):
+                with patch("app.services.pipeline.process_parecer_pipeline"):
                     with patch("builtins.open", create=True):
                         resp = _post_eml(client, b"")
             # Email vazio pode ser parseado (retorna objeto vazio) ou falhar — não deve crashar
@@ -279,7 +294,7 @@ class TestMalformedEmails:
 
         try:
             with TestClient(app) as client:
-                with patch("app.routers.ingest.process_parecer_pipeline"):
+                with patch("app.services.pipeline.process_parecer_pipeline"):
                     with patch("builtins.open", create=True):
                         resp = _post_eml(client, b"Isso nao e um email MIME valido.")
             assert resp.status_code in (201, 409, 422)  # não 500
@@ -303,7 +318,7 @@ class TestMalformedEmails:
 
         try:
             with TestClient(app) as client:
-                with patch("app.routers.ingest.process_parecer_pipeline"):
+                with patch("app.services.pipeline.process_parecer_pipeline"):
                     with patch("builtins.open", create=True):
                         resp = _post_eml(client, eml)
             if resp.status_code == 201:

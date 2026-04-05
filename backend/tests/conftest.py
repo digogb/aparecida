@@ -101,6 +101,7 @@ def mock_parecer(**overrides) -> MagicMock:
         extracted_text="Texto extraído do email.",
         raw_payload={},
         classificacao=None,
+        municipio_nome=None,
         revisoes=0,
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
@@ -129,6 +130,7 @@ def mock_version(request_id=None, version_number=1, **overrides) -> MagicMock:
         ressalvas=[],
         notas_revisor=[],
         reprocess_instructions=None,
+        created_by=None,
         created_at=datetime.now(timezone.utc),
     )
     defaults.update(overrides)

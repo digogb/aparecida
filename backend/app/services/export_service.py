@@ -468,7 +468,7 @@ async def to_docx(
 # ---------------------------------------------------------------------------
 
 def _escape_html(text: str) -> str:
-    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 
 def _tiptap_inline_to_html(content: list[dict[str, Any]], force_italic: bool = False) -> str:
@@ -544,6 +544,9 @@ def _tiptap_body_to_html(content: list[dict[str, Any]]) -> str:
                         inline = _tiptap_inline_to_html(child.get("content", []))
                         items.append(f"<li>{inline}</li>")
             html_parts.append(f'<{tag} style="margin-left:2em; margin-bottom:10px;">{"".join(items)}</{tag}>')
+
+        elif nt == "horizontalRule":
+            html_parts.append("<hr>")
 
         else:
             children = node.get("content", [])

@@ -146,7 +146,8 @@ class TestTipTapToHtml:
             }
         ]
         html = _tiptap_to_html(content)
-        assert "<p>Hello world</p>" in html
+        assert "<p" in html
+        assert "Hello world</p>" in html
 
     def test_heading_conversion(self):
         content = [
@@ -157,7 +158,8 @@ class TestTipTapToHtml:
             }
         ]
         html = _tiptap_to_html(content)
-        assert "<h2>Title</h2>" in html
+        assert "<h2" in html
+        assert "Title</h2>" in html
 
     def test_bold_mark(self):
         content = [
@@ -209,7 +211,7 @@ class TestTipTapToHtml:
             }
         ]
         html = _tiptap_to_html(content)
-        assert "<ul>" in html
+        assert "<ul" in html
         assert "<li>" in html
 
     def test_ordered_list(self):
@@ -230,7 +232,7 @@ class TestTipTapToHtml:
             }
         ]
         html = _tiptap_to_html(content)
-        assert "<ol>" in html
+        assert "<ol" in html
 
     def test_blockquote(self):
         content = [
@@ -245,7 +247,7 @@ class TestTipTapToHtml:
             }
         ]
         html = _tiptap_to_html(content)
-        assert "<blockquote>" in html
+        assert "<blockquote" in html
 
     def test_horizontal_rule(self):
         content = [{"type": "horizontalRule"}]
@@ -360,10 +362,9 @@ class TestToPdf:
 
         req = _mock_parecer()
         version = req.versions[0]
-        advogados = [_mock_advogado()]
 
-        html = _build_pdf_html(req, version, advogados)
-        assert "Ione Advogados" in html
+        html = _build_pdf_html(req, version)
+        assert "Francisco Ione" in html
         assert "2026/001" in html
         assert "Parecer Juridico" in html
         assert "Matheus Nogueira" in html
@@ -391,7 +392,7 @@ class TestEmailSender:
         ):
             from app.services.email_sender import send_parecer
 
-            await send_parecer(req, b"fake-docx", db, changed_by_id=str(uuid.uuid4()))
+            await send_parecer(req, b"fake-docx", b"fake-pdf", db, changed_by_id=str(uuid.uuid4()))
 
         # Gmail send was called
         mock_service.users.return_value.messages.return_value.send.assert_called_once()
@@ -408,7 +409,7 @@ class TestEmailSender:
         from app.services.email_sender import send_parecer
 
         with pytest.raises(ValueError, match="sender_email"):
-            await send_parecer(req, b"fake-docx", db)
+            await send_parecer(req, b"fake-docx", b"fake-pdf", db)
 
     def test_email_body_template(self):
         from app.services.email_sender import _build_email_body

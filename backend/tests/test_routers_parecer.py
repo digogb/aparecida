@@ -37,14 +37,19 @@ def _mock_parecer(**overrides) -> MagicMock:
         sender_email="prefeitura@example.com",
         status=ParecerStatus.pendente,
         tema=None,
+        modelo=None,
         numero_parecer=None,
         extraction_status=None,
         extracted_text=None,
         raw_payload={},
+        classificacao=None,
+        municipio_nome=None,
+        revisoes=0,
         created_at=_now(),
         updated_at=_now(),
         attachments=[],
         versions=[],
+        status_history=[],
     )
     defaults.update(overrides)
     mock = MagicMock()
@@ -382,8 +387,9 @@ class TestGmailWebhook:
         app.dependency_overrides[get_db] = _override_db(db)
 
         try:
-            with TestClient(app) as client:
-                resp = client.post("/api/gmail/webhook", json=self._pubsub_payload())
+            with patch("app.routers.gmail_webhook._process_gmail_message"):
+                with TestClient(app) as client:
+                    resp = client.post("/api/gmail/webhook", json=self._pubsub_payload())
             assert resp.status_code == 200
             data = resp.json()
             assert data["status"] == "ok"
@@ -432,12 +438,13 @@ class TestGmailWebhook:
         app.dependency_overrides[get_db] = _override_db(db)
 
         try:
-            with patch.dict(os.environ, {"PUBSUB_VERIFICATION_TOKEN": "secret"}):
-                with TestClient(app) as client:
-                    resp = client.post(
-                        "/api/gmail/webhook?token=secret",
-                        json=self._pubsub_payload(),
-                    )
+            with patch("app.routers.gmail_webhook._process_gmail_message"):
+                with patch.dict(os.environ, {"PUBSUB_VERIFICATION_TOKEN": "secret"}):
+                    with TestClient(app) as client:
+                        resp = client.post(
+                            "/api/gmail/webhook?token=secret",
+                            json=self._pubsub_payload(),
+                        )
             assert resp.status_code == 200
         finally:
             app.dependency_overrides.clear()
@@ -452,8 +459,9 @@ class TestGmailWebhook:
         app.dependency_overrides[get_db] = _override_db(db)
 
         try:
-            with TestClient(app) as client:
-                resp = client.post("/api/gmail/webhook", json={})
+            with patch("app.routers.gmail_webhook._process_gmail_message"):
+                with TestClient(app) as client:
+                    resp = client.post("/api/gmail/webhook", json={})
             assert resp.status_code == 200
         finally:
             app.dependency_overrides.clear()
