@@ -21,14 +21,6 @@ def upgrade() -> None:
     # Add new value to version_source enum
     op.execute("ALTER TYPE version_source ADD VALUE IF NOT EXISTS 'peer_review'")
 
-    # Create peer_review_status enum (IF NOT EXISTS for idempotency)
-    op.execute(
-        "DO $$ BEGIN "
-        "CREATE TYPE peer_review_status AS ENUM ('pendente', 'concluida', 'cancelada'); "
-        "EXCEPTION WHEN duplicate_object THEN null; "
-        "END $$"
-    )
-
     # Create peer_reviews table
     op.create_table(
         "peer_reviews",

@@ -10,10 +10,10 @@ export function Sidebar() {
       <div className="flex items-center gap-3 mb-8 px-3 pt-1">
         <div>
           <div className="font-display text-base font-medium" style={{ color: '#C9A94E', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-            Ione Advogados
+            Pearson Hardman
           </div>
           <div className="text-xs" style={{ color: '#C9A94E99', letterSpacing: '0.04em' }}>
-            &amp; Associados
+            Advocacia &amp; Assessoria
           </div>
         </div>
         <div className="h-8 w-px" style={{ background: '#C9A94E33' }} />

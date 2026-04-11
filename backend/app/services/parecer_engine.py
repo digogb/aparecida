@@ -142,10 +142,9 @@ def _make_blockquote(lines: list[str]) -> dict:
 
 
 _ADVOGADOS = [
-    ("Francisco Ione Pereira Lima", "OAB/CE 4.585"),
-    ("Matheus Nogueira Pereira Lima", "OAB/CE 31.251"),
-    ("Flavio Henrique Luna Silva", "OAB/CE 31.252"),
-    ("Valéria Matias de Alencar", "OAB/CE 36.666"),
+    ("Harvey Specter", "OAB/SP 12.345"),
+    ("Mike Ross", "OAB/SP 23.456"),
+    ("Louis Litt", "OAB/SP 34.567"),
 ]
 
 _MESES = [

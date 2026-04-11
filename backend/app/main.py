@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="Ione Juridico", version="1.0.0")
+app = FastAPI(title="Pearson Hardman", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,

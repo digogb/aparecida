@@ -30,19 +30,14 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Escritório info (fixo — dados do template de referência)
 # ---------------------------------------------------------------------------
-ESCRITORIO_LINHA1 = "Advocacia & Assessoria"
-ESCRITORIO_LINHA2 = "Dr. Francisco Ione Pereira Lima"
-ESCRITORIO_ENDERECO = (
-    "Rua Gen. Caiado de Castro 462, Luciano Cavalcante, Fortaleza-CE  |  "
-    "Fone: (85) 3021-7701 / (85) 99981-4392 / (85) 99223-6716  |  "
-    "E-mail: dr.ione@uol.com.br"
-)
+ESCRITORIO_LINHA1 = "Pearson Hardman"
+ESCRITORIO_LINHA2 = "Advocacia & Assessoria"
+ESCRITORIO_ENDERECO = "E-mail: contato@pearsonhardman.com"
 
 ADVOGADOS = [
-    ("Francisco Ione Pereira Lima", "OAB/CE 4.585"),
-    ("Matheus Nogueira Pereira Lima", "OAB/CE 31.251"),
-    ("Flavio Henrique Luna Silva", "OAB/CE 31.252"),
-    ("Valéria Matias de Alencar", "OAB/CE 36.666"),
+    ("Harvey Specter", "OAB/SP 12.345"),
+    ("Mike Ross", "OAB/SP 23.456"),
+    ("Louis Litt", "OAB/SP 34.567"),
 ]
 
 MESES = [
@@ -159,7 +154,7 @@ def _remove_table_borders(table):
 # ---------------------------------------------------------------------------
 
 def _build_header(doc: Document) -> None:
-    """Cabeçalho: Advocacia & Assessoria / Dr. Francisco Ione Pereira Lima."""
+    """Cabeçalho: Pearson Hardman / Advocacia & Assessoria."""
     # Linha 1
     p1 = doc.add_paragraph()
     p1.alignment = WD_ALIGN_PARAGRAPH.CENTER

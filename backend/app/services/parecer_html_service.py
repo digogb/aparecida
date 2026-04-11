@@ -20,10 +20,9 @@ import re
 
 
 _NOMES_ADVOGADOS = [
-    "Francisco Ione Pereira Lima",
-    "Matheus Nogueira Pereira Lima",
-    "Flavio Henrique Luna Silva",
-    "Valéria Matias de Alencar",
+    "Harvey Specter",
+    "Mike Ross",
+    "Louis Litt",
 ]
 
 
@@ -284,8 +283,8 @@ def render_parecer_html(parecer: dict) -> str:
     
     <!-- CABEÇALHO -->
     <div class="cabecalho">
-        <div class="linha1">Advocacia &amp; Assessoria</div>
-        <div class="linha2">Dr. Francisco Ione Pereira Lima</div>
+        <div class="linha1">Pearson Hardman</div>
+        <div class="linha2">Advocacia &amp; Assessoria</div>
     </div>
 
     <!-- TÍTULO E IDENTIFICAÇÃO -->
@@ -330,35 +329,27 @@ def render_parecer_html(parecer: dict) -> str:
     <div class="assinaturas">
         <div class="assinatura">
             <div class="linha-assinatura">
-                <div class="nome">Francisco Ione Pereira Lima</div>
-                <div class="oab">OAB/CE 4.585</div>
+                <div class="nome">Harvey Specter</div>
+                <div class="oab">OAB/SP 12.345</div>
             </div>
         </div>
         <div class="assinatura">
             <div class="linha-assinatura">
-                <div class="nome">Matheus Nogueira Pereira Lima</div>
-                <div class="oab">OAB/CE 31.251</div>
+                <div class="nome">Mike Ross</div>
+                <div class="oab">OAB/SP 23.456</div>
             </div>
         </div>
         <div class="assinatura">
             <div class="linha-assinatura">
-                <div class="nome">Flavio Henrique Luna Silva</div>
-                <div class="oab">OAB/CE 31.252</div>
-            </div>
-        </div>
-        <div class="assinatura">
-            <div class="linha-assinatura">
-                <div class="nome">Valéria Matias de Alencar</div>
-                <div class="oab">OAB/CE 36.666</div>
+                <div class="nome">Louis Litt</div>
+                <div class="oab">OAB/SP 34.567</div>
             </div>
         </div>
     </div>
 
     <!-- RODAPÉ -->
     <div class="rodape">
-        Rua Gen. Caiado de Castro 462, Luciano Cavalcante, Fortaleza-CE &nbsp;|&nbsp;
-        Fone: (85) 3021-7701 / (85) 99981-4392 / (85) 99223-6716 &nbsp;|&nbsp;
-        E-mail: dr.ione@uol.com.br
+        E-mail: contato@pearsonhardman.com
     </div>
 
 </div>

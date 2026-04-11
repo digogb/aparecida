@@ -138,7 +138,7 @@ async def send_email_alert(movement: Movement) -> None:
         f"Publicado em: {movement.published_at}\n\n"
         f"Acesse o sistema para verificar os detalhes e o prazo de resposta.\n\n"
         f"Atenciosamente,\n"
-        f"Ione Advogados & Associados"
+        f"Pearson Hardman"
     )
 
     msg = MIMEText(body, "plain", "utf-8")

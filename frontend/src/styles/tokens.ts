@@ -1,5 +1,5 @@
 /**
- * Design System — Ione Advogados
+ * Design System — Pearson Hardman
  *
  * Paleta semântica com 4 cores funcionais + 1 cor de identidade.
  * Projetado para usuários com baixo conforto tecnológico:

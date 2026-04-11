@@ -110,7 +110,7 @@ def _mock_parecer(**overrides) -> MagicMock:
     return mock
 
 
-def _mock_advogado(name: str = "Matheus Nogueira", role=UserRole.advogado) -> MagicMock:
+def _mock_advogado(name: str = "Mike Ross", role=UserRole.advogado) -> MagicMock:
     m = MagicMock()
     m.name = name
     m.role = role
@@ -297,8 +297,8 @@ class TestToDocx:
         db = _mock_db()
         advogados_result = MagicMock()
         advogados_result.scalars.return_value.all.return_value = [
-            _mock_advogado("Francisco Ione", UserRole.admin),
-            _mock_advogado("Matheus Nogueira", UserRole.advogado),
+            _mock_advogado("Harvey Specter", UserRole.admin),
+            _mock_advogado("Mike Ross", UserRole.advogado),
         ]
         db.execute.return_value = advogados_result
 
@@ -342,7 +342,7 @@ class TestToPdf:
         db = _mock_db()
         advogados_result = MagicMock()
         advogados_result.scalars.return_value.all.return_value = [
-            _mock_advogado("Francisco Ione", UserRole.admin),
+            _mock_advogado("Harvey Specter", UserRole.admin),
         ]
         db.execute.return_value = advogados_result
 
@@ -363,10 +363,10 @@ class TestToPdf:
         advogados = [_mock_advogado()]
 
         html = _build_pdf_html(req, version, advogados)
-        assert "Ione Advogados" in html
+        assert "Pearson Hardman" in html
         assert "2026/001" in html
         assert "Parecer Juridico" in html
-        assert "Matheus Nogueira" in html
+        assert "Mike Ross" in html
 
 
 # ---------------------------------------------------------------------------

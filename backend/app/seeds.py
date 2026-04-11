@@ -15,6 +15,7 @@ DEFAULT_PASSWORD = pwd_ctx.hash("123456")
 async def run_seeds(db: AsyncSession) -> None:
     await seed_users(db)
     await seed_municipios(db)
+    await seed_municipio_gmail_test(db)
     await seed_board(db)
     await seed_holidays(db)
     await db.commit()
@@ -26,11 +27,10 @@ async def seed_users(db: AsyncSession) -> None:
         return
 
     users = [
-        User(name="Francisco Ione", email="francisco@ione.adv.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.admin),
-        User(name="Matheus Nogueira", email="matheus@ione.adv.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.advogado),
-        User(name="Flavio Henrique", email="flavio@ione.adv.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.advogado),
-        User(name="Valeria Matias", email="valeria@ione.adv.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.advogado),
-        User(name="Secretaria", email="secretaria@ione.adv.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.secretaria),
+        User(name="Harvey Specter", email="harvey@pearsonhardman.com", hashed_password=DEFAULT_PASSWORD, role=UserRole.admin),
+        User(name="Mike Ross", email="mike@pearsonhardman.com", hashed_password=DEFAULT_PASSWORD, role=UserRole.advogado),
+        User(name="Louis Litt", email="louis@pearsonhardman.com", hashed_password=DEFAULT_PASSWORD, role=UserRole.advogado),
+        User(name="Donna Paulsen", email="donna@pearsonhardman.com", hashed_password=DEFAULT_PASSWORD, role=UserRole.secretaria),
     ]
     db.add_all(users)
     await db.flush()
@@ -48,6 +48,15 @@ async def seed_municipios(db: AsyncSession) -> None:
     ]
     db.add_all(municipios)
     await db.flush()
+
+
+async def seed_municipio_gmail_test(db: AsyncSession) -> None:
+    """TEMPORÁRIO — adiciona gmail.com ao primeiro município para testes de ingest via .eml."""
+    result = await db.execute(select(Municipio).where(Municipio.name == "São Carlos"))
+    municipio = result.scalar_one_or_none()
+    if municipio and "gmail.com" not in (municipio.dominios_email or []):
+        municipio.dominios_email = list(municipio.dominios_email) + ["gmail.com"]
+        await db.flush()
 
 
 async def seed_board(db: AsyncSession) -> None:

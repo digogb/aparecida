@@ -87,13 +87,10 @@ def _build_email_body(req: ParecerRequest) -> str:
         f"solicitamos que responda a este e-mail.\n\n"
         f"Permanecemos à disposição.\n\n"
         f"Atenciosamente,\n\n"
-        f"Ione Advogados & Associados\n"
+        f"Pearson Hardman\n"
         f"Assessoria Jurídica em Direito Público Municipal\n"
         f"─────────────────────────────────\n"
-        f"Rua Gen. Caiado de Castro 462, Luciano Cavalcante\n"
-        f"Fortaleza/CE — CEP 60.810-280\n"
-        f"Tel: (85) 3021-7701 | (85) 99981-4392 | (85) 99223-6716\n"
-        f"E-mail: dr.ione@uol.com.br"
+        f"E-mail: contato@pearsonhardman.com"
     )
 
 

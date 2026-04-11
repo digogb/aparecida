@@ -26,8 +26,8 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(180deg, #0A1020 0%, #142038 60%, #1a2847 100%)' }}>
       <div className="rounded-xl shadow-sm p-8 w-full max-w-sm" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
-        <h1 className="font-display mb-1" style={{ fontSize: 28, fontWeight: 500, color: '#C9A94E', lineHeight: 1.2 }}>Ione Advogados</h1>
-        <p className="text-xs mb-1" style={{ color: '#C9A94E99', letterSpacing: '0.04em' }}>&amp; Associados</p>
+        <h1 className="font-display mb-1" style={{ fontSize: 28, fontWeight: 500, color: '#C9A94E', lineHeight: 1.2 }}>Pearson Hardman</h1>
+        <p className="text-xs mb-1" style={{ color: '#C9A94E99', letterSpacing: '0.04em' }}>Advocacia &amp; Assessoria</p>
         <p className="text-base mb-6" style={{ color: '#A69B8D' }}>Faça login para continuar</p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
