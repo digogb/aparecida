@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useMovements, useMovementMetrics, useDjeSync } from '../../hooks/useMovements'
+import { useMovements, useMovementMetrics, useDjeSync, PAGE_SIZE } from '../../hooks/useMovements'
 import { useMovementWebSocket } from '../../hooks/useMovementWebSocket'
 import MovementCard from './MovementCard'
 import MovementFilters from './MovementFilters'
@@ -130,11 +130,17 @@ const METRICS = [
 
 export default function MovementList() {
   const [filters, setFilters] = useState<MovementFiltersState>(DEFAULT_FILTERS)
+  const [page, setPage] = useState(0)
   const [selected, setSelected] = useState<Movement | null>(null)
   const [syncOpen, setSyncOpen] = useState(false)
   useMovementWebSocket()
 
-  const { data, isLoading, isError } = useMovements(filters)
+  const { data, isLoading, isError } = useMovements(filters, page)
+
+  const handleFiltersChange = (f: MovementFiltersState) => {
+    setFilters(f)
+    setPage(0)
+  }
   const { data: metrics } = useMovementMetrics()
 
   const movements = data?.items ?? []
@@ -180,7 +186,7 @@ export default function MovementList() {
 
         {/* Filters */}
         <div className="animate-fade-up" style={{ animationDelay: '180ms' }}>
-          <MovementFilters filters={filters} onChange={setFilters} />
+          <MovementFilters filters={filters} onChange={handleFiltersChange} />
         </div>
 
         {/* List */}
@@ -205,10 +211,43 @@ export default function MovementList() {
           ))}
         </div>
 
-        {data && data.total > movements.length && (
-          <p className="text-sm text-center" style={{ color: '#A69B8D' }}>
-            Mostrando {movements.length} de {data.total} movimentações
-          </p>
+        {data && data.total > 0 && (
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-sm" style={{ color: '#A69B8D' }}>
+              {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, data.total)} de {data.total}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage(p => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150"
+                style={{
+                  background: page === 0 ? '#EDE8DF' : '#F5F0E8',
+                  border: '1.5px solid #E0D9CE',
+                  color: page === 0 ? '#C8C3BC' : '#142038',
+                  cursor: page === 0 ? 'not-allowed' : 'pointer',
+                }}
+              >
+                ← Anterior
+              </button>
+              <span className="text-sm font-medium" style={{ color: '#6B6860', minWidth: 60, textAlign: 'center' }}>
+                {page + 1} / {Math.ceil(data.total / PAGE_SIZE)}
+              </span>
+              <button
+                onClick={() => setPage(p => p + 1)}
+                disabled={(page + 1) * PAGE_SIZE >= data.total}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150"
+                style={{
+                  background: (page + 1) * PAGE_SIZE >= data.total ? '#EDE8DF' : '#F5F0E8',
+                  border: '1.5px solid #E0D9CE',
+                  color: (page + 1) * PAGE_SIZE >= data.total ? '#C8C3BC' : '#142038',
+                  cursor: (page + 1) * PAGE_SIZE >= data.total ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Próxima →
+              </button>
+            </div>
+          </div>
         )}
 
         {syncOpen && <SyncModal onClose={() => setSyncOpen(false)} />}

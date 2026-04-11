@@ -8,13 +8,18 @@ import {
 } from '../services/djeApi'
 import type { MovementFiltersState } from '../types/movement'
 
-export function useMovements(filters: MovementFiltersState) {
+const PAGE_SIZE = 50
+
+export function useMovements(filters: MovementFiltersState, page = 0) {
   return useQuery({
-    queryKey: ['movements', filters],
-    queryFn: () => fetchMovements(filters),
+    queryKey: ['movements', filters, page],
+    queryFn: () => fetchMovements(filters, PAGE_SIZE, page * PAGE_SIZE),
     staleTime: 30_000,
+    placeholderData: (prev) => prev,
   })
 }
+
+export { PAGE_SIZE }
 
 export function useMovement(id: string | undefined) {
   return useQuery({
