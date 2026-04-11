@@ -136,7 +136,11 @@ class DJESearchClient:
         if params.nome_advogado:
             q["nomeAdvogado"] = params.nome_advogado
         if params.numero_oab:
-            q["numeroOAB"] = params.numero_oab
+            # Aceita "22007/CE" ou "22007" — separa número e UF se presente
+            oab_parts = params.numero_oab.strip().split("/")
+            q["numeroOAB"] = oab_parts[0].strip()
+            if len(oab_parts) > 1:
+                q["ufOAB"] = oab_parts[1].strip().upper()
         if params.sigla_tribunal:
             q["siglaTribunal"] = params.sigla_tribunal
         if params.tipo_comunicacao:
