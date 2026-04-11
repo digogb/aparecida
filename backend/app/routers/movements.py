@@ -108,6 +108,13 @@ async def _run_dje_search(body: DJESearchRequest) -> None:
 
         logger.info("DJE background search finished: found=%d ingested=%d", len(comunicacoes), count)
 
+        from app.services.notification import ws_manager
+        await ws_manager.broadcast({
+            "type": "sync_complete",
+            "found": len(comunicacoes),
+            "ingested": count,
+        })
+
     except Exception as e:
         logger.error("DJE background search failed: %s", e)
 

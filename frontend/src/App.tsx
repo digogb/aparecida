@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Shell } from './components/layout/Shell'
 import { routes } from './routes'
 import LoginPage from './components/auth/LoginPage'
+import ToastContainer from './components/ui/Toast'
 
 const qc = new QueryClient()
 
@@ -23,6 +24,7 @@ export default function App() {
             </Route>
           </Routes>
         </Suspense>
+        <ToastContainer />
       </BrowserRouter>
     </QueryClientProvider>
   )

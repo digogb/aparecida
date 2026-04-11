@@ -1,9 +1,12 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { showToast } from '../components/ui/Toast'
 
 interface WSMessage {
-  type?: 'new_movement' | 'movement_updated' | 'ping'
+  type?: 'new_movement' | 'movement_updated' | 'ping' | 'sync_complete'
   event?: 'movement.created' | 'peer_review.requested' | 'peer_review.completed'
+  found?: number
+  ingested?: number
   data?: unknown
 }
 
@@ -33,6 +36,17 @@ export function useMovementWebSocket() {
             queryClient.invalidateQueries({ queryKey: ['movements'] })
             queryClient.invalidateQueries({ queryKey: ['movement-metrics'] })
             queryClient.invalidateQueries({ queryKey: ['notifications'] })
+          }
+
+          if (msg.type === 'sync_complete') {
+            queryClient.invalidateQueries({ queryKey: ['movements'] })
+            queryClient.invalidateQueries({ queryKey: ['movement-metrics'] })
+            const ingested = msg.ingested ?? 0
+            if (ingested > 0) {
+              showToast(`Sincronização concluída — ${ingested} nova${ingested > 1 ? 's' : ''} movimentação${ingested > 1 ? 'ões' : ''} importada${ingested > 1 ? 's' : ''}.`, 'success')
+            } else {
+              showToast('Sincronização concluída — nenhuma movimentação nova encontrada.', 'info')
+            }
           }
 
           if (msg.event === 'peer_review.requested' || msg.event === 'peer_review.completed') {
