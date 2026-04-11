@@ -219,11 +219,41 @@ class DJESearchClient:
                         continue
 
                 comunicacao = self._parse_item(item, params)
+
+                # Filtro de data client-side — garante o intervalo mesmo se a API ignorar
+                if params.data_inicio or params.data_fim:
+                    raw_data = (
+                        comunicacao.data_disponibilizacao
+                        or item.get("datadisponibilizacao")
+                        or item.get("dataDisponibilizacao")
+                        or ""
+                    )
+                    pub_date = self._parse_date_to_date(raw_data)
+                    if pub_date:
+                        if params.data_inicio and pub_date < params.data_inicio:
+                            continue
+                        if params.data_fim and pub_date > params.data_fim:
+                            continue
+
                 resultados.append(comunicacao)
             except Exception as exc:
                 logger.error("Erro ao parsear item DJEN: %s", exc)
 
         return resultados
+
+    @staticmethod
+    def _parse_date_to_date(raw: str) -> "date | None":
+        """Converte string de data do DJE para date (DD/MM/YYYY ou YYYY-MM-DD)."""
+        if not raw:
+            return None
+        raw = raw.strip().split("T")[0]
+        parts = raw.split("/")
+        try:
+            if len(parts) == 3:
+                return date(int(parts[2]), int(parts[1]), int(parts[0]))
+            return date.fromisoformat(raw)
+        except (ValueError, IndexError):
+            return None
 
     def _parse_item(self, item: dict, params: DJESearchParams) -> DJEComunicacao:
         """Converte um item bruto da API em DJEComunicacao."""
