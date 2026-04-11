@@ -364,33 +364,20 @@ class DJESearchClient:
     @staticmethod
     def _deduplicar(comunicacoes: list[DJEComunicacao]) -> list[DJEComunicacao]:
         """
-        Remove duplicatas por (numero_processo, data_disponibilizacao).
+        Remove duplicatas pelo id da comunicação.
 
-        Quando o mesmo processo aparece em múltiplas seções do DJe no mesmo
-        dia, mantém apenas um registro. Publicações do mesmo processo em datas
-        diferentes são eventos distintos e são preservadas.
+        Cada comunicação tem um id único na API — é o mesmo campo usado como
+        dje_id no banco. A deduplicação definitiva acontece no banco via
+        ON CONFLICT DO NOTHING; aqui apenas evitamos processar o mesmo id
+        duas vezes na mesma paginação.
         """
-        def _data_ord(c: DJEComunicacao) -> str:
-            raw = c.data_disponibilizacao
-            partes = raw.split("/")
-            if len(partes) == 3:
-                return f"{partes[2]}-{partes[1]}-{partes[0]}"
-            return raw
-
-        por_chave: dict[str, DJEComunicacao] = {}
-        sem_processo: list[DJEComunicacao] = []
-
+        vistos: set[str] = set()
+        resultado: list[DJEComunicacao] = []
         for c in comunicacoes:
-            proc = re.sub(r"\D", "", c.numero_processo)
-            if not proc:
-                sem_processo.append(c)
-                continue
-            key = f"{proc}|{c.data_disponibilizacao}"
-            existing = por_chave.get(key)
-            if existing is None or _data_ord(c) >= _data_ord(existing):
-                por_chave[key] = c
-
-        return list(por_chave.values()) + sem_processo
+            if c.id and c.id not in vistos:
+                vistos.add(c.id)
+                resultado.append(c)
+        return resultado
 
     # ------------------------------------------------------------------
     # HTTP
