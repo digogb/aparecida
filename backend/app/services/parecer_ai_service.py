@@ -15,6 +15,8 @@ import asyncio
 import json
 import logging
 import re
+from datetime import datetime, timezone
+from pathlib import Path
 
 from anthropic import AsyncAnthropic, RateLimitError
 
@@ -39,6 +41,25 @@ MAX_USER_CONTENT_CHARS = 60_000
 MAX_RETRIES = 3
 BACKOFF_SECS = [60, 120, 180]
 
+AI_CALLS_LOG = Path("/app/logs/ai_calls.jsonl")
+
+
+def _log_api_call(stage: str, model: str, input_tokens: int, output_tokens: int, raw_response: str) -> None:
+    """Append one record per API call to ai_calls.jsonl."""
+    AI_CALLS_LOG.parent.mkdir(parents=True, exist_ok=True)
+    record = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "stage": stage,
+        "model": model,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": input_tokens + output_tokens,
+        "raw_response": raw_response,
+    }
+    with AI_CALLS_LOG.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
 # Semáforo: serializa chamadas ao Sonnet.
 # Com 30k TPM, um único parecer pode consumir o limite inteiro.
 # Sem isso, 2+ requests simultâneos vão ambos receber 429.
@@ -58,6 +79,7 @@ async def _call_api(
     system: str,
     user_message: str,
     max_tokens: int,
+    stage: str = "?",
 ) -> str:
     """
     Chama a API do Claude com retry automático em caso de rate limit.
@@ -74,7 +96,17 @@ async def _call_api(
                     system=system,
                     messages=[{"role": "user", "content": user_message}],
                 )
-            return response.content[0].text
+            usage = response.usage
+            raw_text = response.content[0].text
+            logger.warning(
+                "TOKENS [%s/%s] input=%d output=%d total=%d",
+                stage, model,
+                usage.input_tokens,
+                usage.output_tokens,
+                usage.input_tokens + usage.output_tokens,
+            )
+            _log_api_call(stage, model, usage.input_tokens, usage.output_tokens, raw_text)
+            return raw_text
         except RateLimitError as e:
             last_error = e
             wait = BACKOFF_SECS[attempt]
@@ -107,10 +139,10 @@ async def classify_email(
         system=load_prompt("p1_classification"),
         user_message=user_message,
         max_tokens=2000,
+        stage="P1",
     )
 
     raw = raw.strip()
-    logger.info("P1 raw response: %s", raw[:200])
 
     # Strip markdown fences se presentes
     raw = re.sub(r"^```(?:json)?\s*", "", raw)
@@ -165,9 +197,8 @@ async def generate_parecer(
             system=build_p2_prompt(include_fewshot=True),
             user_message=user_message,
             max_tokens=8000,
+            stage="P2",
         )
-
-    logger.info("P2 raw length: %d chars", len(raw))
 
     result = parse_parecer_xml(raw)
     result["prompt_version"] = get_prompt_version()
@@ -210,6 +241,7 @@ async def revise_parecer(
             system=load_prompt("p3_parecer_revision"),
             user_message=user_message,
             max_tokens=6000,
+            stage="P3",
         )
 
     return parse_parecer_xml(raw)

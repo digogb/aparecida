@@ -4,7 +4,7 @@ import logging
 import re
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import Integer, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -312,12 +312,11 @@ async def _next_numero_sequencial(db: AsyncSession) -> str:
     year = datetime.now(timezone.utc).year
     prefix = f"PAR-{year}-"
     result = await db.execute(
-        select(func.count())
-        .select_from(ParecerRequest)
+        select(func.max(cast(func.substr(ParecerRequest.numero_parecer, len(prefix) + 1), Integer)))
         .where(ParecerRequest.numero_parecer.like(f"{prefix}%"))
     )
-    count = result.scalar_one()
-    return f"{prefix}{count + 1:04d}"
+    max_num = result.scalar_one() or 0
+    return f"{prefix}{max_num + 1:04d}"
 
 
 async def generate(parecer_request_id: str, db: AsyncSession) -> ParecerVersion:

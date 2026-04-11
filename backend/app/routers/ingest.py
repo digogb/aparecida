@@ -205,9 +205,11 @@ async def ingest_eml(
 
     extracted_text = assemble(body, attachment_texts)
 
-    # Fallback: se o body ficou vazio mas temos assunto, usa o assunto como contexto mínimo
-    if not extracted_text and subject:
-        extracted_text = f"Assunto: {subject}\nRemetente: {sender_email}"
+    # Sempre prefixa assunto + remetente para que P1 tenha contexto mínimo mesmo
+    # quando o corpo foi esvaziado pela limpeza (ex: encaminhamentos onde o único
+    # conteúdo visível é a assinatura + cabeçalhos "De:/Assunto:" removidos pelo cleaner)
+    header_context = f"Assunto: {subject}\nRemetente: {sender_email}"
+    extracted_text = f"{header_context}\n\n{extracted_text}" if extracted_text else header_context
 
     # Create ParecerRequest
     parecer = ParecerRequest(

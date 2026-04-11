@@ -66,7 +66,7 @@ async def classify(parecer_request_id: str, db: AsyncSession) -> tuple[ParecerRe
     email_body = pr.extracted_text
 
     data = await classify_email(email_body, attachment_texts)
-    logger.info("P1 classificacao: %s", data)
+    logger.warning("P1 classificacao: %s", data)
 
     if data.get("is_consulta_juridica") is False:
         raise NotLegalConsultationError(
