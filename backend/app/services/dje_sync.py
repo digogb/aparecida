@@ -96,18 +96,27 @@ def _normalize_type(raw_type: str) -> MovementType:
 
 
 def _parse_dje_date(raw: str | None) -> datetime | None:
-    """Parse DJE date string (DD/MM/YYYY or YYYY-MM-DD) to datetime."""
+    """Parse DJE date string (DD/MM/YYYY or YYYY-MM-DD) to datetime.
+
+    A data do DJE representa o dia de disponibilização no horário de Brasília
+    (UTC-3). Armazenamos como meia-noite em Brasília para que o frontend
+    exiba o dia correto independente do fuso do cliente.
+    """
+    from zoneinfo import ZoneInfo
+    BRT = ZoneInfo("America/Fortaleza")  # UTC-3, sem horário de verão
+
     if not raw:
         return None
     raw = raw.strip()
     parts = raw.split("/")
     if len(parts) == 3:
         try:
-            return datetime(int(parts[2]), int(parts[1]), int(parts[0]))
+            return datetime(int(parts[2]), int(parts[1]), int(parts[0]), tzinfo=BRT)
         except (ValueError, IndexError):
             return None
     try:
-        return datetime.fromisoformat(raw.split("T")[0])
+        d = datetime.fromisoformat(raw.split("T")[0])
+        return d.replace(tzinfo=BRT)
     except ValueError:
         return None
 
