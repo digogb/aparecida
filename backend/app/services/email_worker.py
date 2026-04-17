@@ -10,7 +10,6 @@ import re
 from typing import Any, Optional
 
 from bs4 import BeautifulSoup
-from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,6 +37,21 @@ _GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 # ---------------------------------------------------------------------------
 
 def _build_gmail_service():
+    """Build Gmail API service — OAuth2 (refresh token) ou Service Account."""
+    if settings.GMAIL_REFRESH_TOKEN:
+        from google.oauth2.credentials import Credentials
+
+        creds = Credentials(
+            token=None,
+            refresh_token=settings.GMAIL_REFRESH_TOKEN,
+            client_id=settings.GMAIL_CLIENT_ID,
+            client_secret=settings.GMAIL_CLIENT_SECRET,
+            token_uri="https://oauth2.googleapis.com/token",
+        )
+        return build("gmail", "v1", credentials=creds, cache_discovery=False)
+
+    from google.oauth2 import service_account
+
     creds = service_account.Credentials.from_service_account_file(
         settings.GMAIL_CREDENTIALS_PATH,
         scopes=_GMAIL_SCOPES,

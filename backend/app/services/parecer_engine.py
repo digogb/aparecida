@@ -389,9 +389,6 @@ async def generate(parecer_request_id: str, db: AsyncSession) -> ParecerVersion:
     await db.commit()
     await db.refresh(version)
 
-    from app.services.event_dispatcher import dispatch_parecer_event
-    await dispatch_parecer_event(str(pr.id), db)
-
     return version
 
 
