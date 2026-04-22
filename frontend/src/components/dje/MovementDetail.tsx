@@ -288,7 +288,7 @@ export default function MovementDetail({
             </div>
 
             {/* Partes */}
-            {meta.polos && typeof meta.polos === 'object' && (() => {
+            {(meta.polos && typeof meta.polos === 'object' && (() => {
               const polos = meta.polos as Record<string, string[]>
               const ativo = polos.ativo?.filter(Boolean) ?? []
               const passivo = polos.passivo?.filter(Boolean) ?? []
@@ -316,7 +316,7 @@ export default function MovementDetail({
                   </div>
                 </div>
               )
-            })()}
+            })()) as React.ReactNode}
 
             <div>
               <p className="text-sm font-medium uppercase tracking-widest mb-2" style={{ color: '#A69B8D' }}>Conteúdo</p>

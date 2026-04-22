@@ -79,7 +79,7 @@ function PipelineBar({ stages }: { stages: PipelineStage[] }) {
         </div>
       )}
       {/* Etapas */}
-      <div className="grid grid-cols-4 sm:grid-cols-8 divide-x" style={{ divideColor: '#E0D9CE' }}>
+      <div className="grid grid-cols-4 sm:grid-cols-8 divide-x" style={{ borderColor: '#E0D9CE' }}>
         {ordered.map((s) => (
           <div key={s.status} className="px-3 py-3 text-center" style={{ borderRight: '1px solid #E0D9CE' }}>
             <span

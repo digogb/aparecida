@@ -105,6 +105,128 @@ function clearAllCorrectionMarks(editor: ReturnType<typeof useTipTapEditor>) {
   editor.view.dispatch(tr)
 }
 
+/**
+ * Normalize text for fuzzy matching: collapse whitespace, unify smart quotes
+ * and dashes, and lowercase. Typography extension converts these on the fly,
+ * so the saved "original" string may differ from the rendered doc text.
+ */
+function normalizeForMatch(s: string): string {
+  return s
+    .replace(/[\u201C\u201D\u201E\u201F\u2033]/g, '"')
+    .replace(/[\u2018\u2019\u201A\u201B\u2032]/g, "'")
+    .replace(/[\u2013\u2014\u2212]/g, '-')
+    .replace(/\u00A0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+}
+
+/**
+ * Find `originalText` in the editor (across text nodes, tolerating whitespace,
+ * smart-quote/dash, and case differences) and replace with `newText`.
+ * Returns true if the replacement happened.
+ */
+function replaceTextInEditor(
+  editor: ReturnType<typeof useTipTapEditor>,
+  originalText: string,
+  newText: string,
+): boolean {
+  if (!editor || !originalText) return false
+
+  const target = normalizeForMatch(originalText)
+  if (!target) return false
+
+  const { doc } = editor.state
+
+  // Build normalized doc text with a map from each normalized-char index
+  // back to the real ProseMirror position of that character's source.
+  let normText = ''
+  const normToPos: number[] = []
+  let lastPos: number | null = null
+  let prevWasSpace = true // leading trim
+
+  const pushChar = (c: string, pos: number) => {
+    const isSpace = /\s/.test(c) || c === '\u00A0'
+    if (isSpace) {
+      if (!prevWasSpace) {
+        normText += ' '
+        normToPos.push(pos)
+        prevWasSpace = true
+      }
+      return
+    }
+    let ch = c
+      .replace(/[\u201C\u201D\u201E\u201F\u2033]/g, '"')
+      .replace(/[\u2018\u2019\u201A\u201B\u2032]/g, "'")
+      .replace(/[\u2013\u2014\u2212]/g, '-')
+      .toLowerCase()
+    normText += ch
+    normToPos.push(pos)
+    prevWasSpace = false
+  }
+
+  doc.descendants((node, pos) => {
+    if (node.isText && node.text) {
+      for (let i = 0; i < node.text.length; i++) {
+        pushChar(node.text[i], pos + i)
+      }
+      lastPos = pos + node.text.length
+    } else if (node.isBlock && lastPos !== null) {
+      // Block boundary: treat as whitespace so adjacent paragraphs concatenate
+      // with a single space in the normalized view.
+      if (!prevWasSpace) {
+        normText += ' '
+        normToPos.push(lastPos)
+        prevWasSpace = true
+      }
+    }
+  })
+
+  // Trim trailing space
+  while (normText.endsWith(' ')) {
+    normText = normText.slice(0, -1)
+    normToPos.pop()
+  }
+
+  const matchIdx = normText.indexOf(target)
+  if (matchIdx === -1) return false
+
+  const from = normToPos[matchIdx]
+  const lastCharNormIdx = matchIdx + target.length - 1
+  // Walk back from the last normalized char to find the last real text
+  // character's position; end = that pos + 1.
+  let to = normToPos[lastCharNormIdx] + 1
+  // Safety: ensure from < to
+  if (from >= to) return false
+
+  editor
+    .chain()
+    .focus()
+    .insertContentAt({ from, to }, newText)
+    .run()
+
+  return true
+}
+
+function getDismissedReviewIds(parecerId: string): string[] {
+  try {
+    const raw = localStorage.getItem(`peer_review_dismissed:${parecerId}`)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function addDismissedReviewId(parecerId: string, reviewId: string): void {
+  const existing = getDismissedReviewIds(parecerId)
+  if (!existing.includes(reviewId)) {
+    localStorage.setItem(
+      `peer_review_dismissed:${parecerId}`,
+      JSON.stringify([...existing, reviewId]),
+    )
+  }
+}
+
 export function useEditorInstance(parecer: ParecerRequestDetail | null) {
   const [activeVersion, setActiveVersion] = useState<ParecerVersion | null>(null)
   const [isDirty, setIsDirty] = useState(false)
@@ -123,6 +245,9 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
   const [showReviewResponseModal, setShowReviewResponseModal] = useState(false)
   const [isReviewResponding, setIsReviewResponding] = useState(false)
   const [pendingReviewForMe, setPendingReviewForMe] = useState<PeerReviewListItem | null>(null)
+  const [completedReviewsForMe, setCompletedReviewsForMe] = useState<PeerReviewListItem[]>([])
+  const [activeCompletedReview, setActiveCompletedReview] = useState<PeerReviewListItem | null>(null)
+  const [showCompletedReviewModal, setShowCompletedReviewModal] = useState(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const saveRef = useRef<() => void>(() => {})
   const queryClient = useQueryClient()
@@ -212,7 +337,8 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     }
   }, [isDirty, editor, parecer, activeVersion, queryClient])
 
-  // Fetch peer reviews to detect pending review for current user
+  // Fetch peer reviews to detect pending review (as reviewer)
+  // and completed reviews that the user requested (as requester, awaiting action)
   useEffect(() => {
     if (!parecer) return
     const userId = getCurrentUserId()
@@ -222,7 +348,19 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
         (r) => r.reviewer_id === userId && r.status === 'pendente'
       )
       setPendingReviewForMe(pending ?? null)
-    }).catch(() => setPendingReviewForMe(null))
+
+      const dismissedIds = getDismissedReviewIds(parecer.id)
+      const completed = reviews.filter(
+        (r) =>
+          r.requested_by === userId &&
+          r.status === 'concluida' &&
+          !dismissedIds.includes(r.id),
+      )
+      setCompletedReviewsForMe(completed)
+    }).catch(() => {
+      setPendingReviewForMe(null)
+      setCompletedReviewsForMe([])
+    })
   }, [parecer])
 
   // Aplicar marcações amarelas no editor quando o revisor abre o parecer
@@ -362,6 +500,44 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     [parecer, pendingReviewForMe, queryClient]
   )
 
+  const handleOpenCompletedReview = useCallback((review: PeerReviewListItem) => {
+    setActiveCompletedReview(review)
+    setShowCompletedReviewModal(true)
+  }, [])
+
+  const handleCloseCompletedReview = useCallback(() => {
+    setShowCompletedReviewModal(false)
+    setActiveCompletedReview(null)
+  }, [])
+
+  /** Apply a single suggestion: replace `original` with `sugestao` in the editor.
+   *  On success, silently mark the active review as dismissed so the footer
+   *  button disappears as soon as the user actually applied something. */
+  const handleApplySuggestion = useCallback(
+    (original: string, sugestao: string): boolean => {
+      const ok = replaceTextInEditor(editor, original, sugestao)
+      if (ok && parecer && activeCompletedReview) {
+        const reviewId = activeCompletedReview.id
+        addDismissedReviewId(parecer.id, reviewId)
+        setCompletedReviewsForMe((prev) => prev.filter((r) => r.id !== reviewId))
+      }
+      return ok
+    },
+    [editor, parecer, activeCompletedReview],
+  )
+
+  /** Dismiss a completed review: persist in localStorage and hide from UI. */
+  const handleDismissCompletedReview = useCallback(
+    (reviewId: string) => {
+      if (!parecer) return
+      addDismissedReviewId(parecer.id, reviewId)
+      setCompletedReviewsForMe((prev) => prev.filter((r) => r.id !== reviewId))
+      setShowCompletedReviewModal(false)
+      setActiveCompletedReview(null)
+    },
+    [parecer],
+  )
+
   const handleApprove = useCallback(
     async (sendEmail: boolean): Promise<boolean> => {
       if (!parecer) return false
@@ -444,5 +620,12 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     setShowReviewResponseModal,
     handleRespondPeerReview,
     isReviewResponding,
+    completedReviewsForMe,
+    activeCompletedReview,
+    showCompletedReviewModal,
+    handleOpenCompletedReview,
+    handleCloseCompletedReview,
+    handleApplySuggestion,
+    handleDismissCompletedReview,
   }
 }

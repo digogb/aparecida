@@ -9,6 +9,7 @@ import EditorToolbar from './EditorToolbar'
 import EditorSidebar from './EditorSidebar'
 import SplitView from './SplitView'
 import PeerReviewModal from './PeerReviewModal'
+import CompletedReviewModal from './CompletedReviewModal'
 
 const SECTION_LABELS: Record<string, string> = {
   ementa: 'Ementa',
@@ -477,6 +478,13 @@ export default function LegalEditor() {
     setShowReviewResponseModal,
     handleRespondPeerReview,
     isReviewResponding,
+    completedReviewsForMe,
+    activeCompletedReview,
+    showCompletedReviewModal,
+    handleOpenCompletedReview,
+    handleCloseCompletedReview,
+    handleApplySuggestion,
+    handleDismissCompletedReview,
   } = useEditorInstance(parecer ?? null)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -667,6 +675,26 @@ export default function LegalEditor() {
                 </span>
               )}
             </button>
+            {completedReviewsForMe.length > 0 && (
+              <button
+                onClick={() => handleOpenCompletedReview(completedReviewsForMe[0])}
+                disabled={isReprocessing || isGenerating}
+                className="px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: '#5B7553', color: '#F5F0E8', boxShadow: '0 2px 8px rgba(91,117,83,0.25)' }}
+                title="Revisão do colega pronta para aplicar"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                Ver revisão de {completedReviewsForMe[0].reviewer_name}
+                {completedReviewsForMe.length > 1 && (
+                  <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full" style={{ background: '#F5F0E8', color: '#5B7553' }}>
+                    {completedReviewsForMe.length}
+                  </span>
+                )}
+              </button>
+            )}
             {pendingReviewForMe ? (
               <button
                 onClick={() => setShowReviewResponseModal(true)}
@@ -759,6 +787,16 @@ export default function LegalEditor() {
           onSubmit={handleRespondPeerReview}
           onClose={() => setShowReviewResponseModal(false)}
           isLoading={isReviewResponding}
+        />
+      )}
+
+      {/* Completed Review Modal — aplicar sugestões do revisor */}
+      {showCompletedReviewModal && activeCompletedReview && (
+        <CompletedReviewModal
+          review={activeCompletedReview}
+          onApplySuggestion={handleApplySuggestion}
+          onDismiss={handleDismissCompletedReview}
+          onClose={handleCloseCompletedReview}
         />
       )}
     </div>
