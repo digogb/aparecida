@@ -7,8 +7,8 @@
 
 set -e
 
-REPO_URL="https://github.com/SEU_USER/SEU_REPO.git"  # <-- PREENCHA
-APP_DIR="/opt/ione"
+REPO_URL="https://github.com/digogb/aparecida.git"
+APP_DIR="/home/ubuntu/ione"
 
 echo "======================================"
 echo " Setup da VM OCI — Sistema Ione"
@@ -29,8 +29,7 @@ sudo apt-get install -y git
 
 # --- Clona o repositório ---
 echo "==> Clonando repositório em ${APP_DIR}..."
-sudo git clone "$REPO_URL" "$APP_DIR"
-sudo chown -R "$USER":"$USER" "$APP_DIR"
+git clone "$REPO_URL" "$APP_DIR"
 
 # --- Cria diretórios de dados ---
 mkdir -p "$APP_DIR/uploads"
