@@ -341,6 +341,7 @@ async def _recover_unread_backlog(service, db: AsyncSession) -> int:
                 logger.exception(
                     "Gmail poller (backlog): erro ao ingerir mensagem %s", message_id
                 )
+                await db.rollback()
 
         page_token = resp.get("nextPageToken")
         if not page_token:
@@ -439,6 +440,7 @@ async def poll_inbox() -> int:
                 logger.exception(
                     "Gmail poller: erro ao ingerir mensagem %s", message_id
                 )
+                await db.rollback()
 
         cfg.value = str(new_history_id)
         cfg.updated_at = datetime.now(timezone.utc)
