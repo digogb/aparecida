@@ -62,7 +62,7 @@ def upgrade() -> None:
         ),
         sa.Column(
             "status",
-            sa.Enum("pendente", "concluida", "cancelada", name="peer_review_status"),
+            sa.Enum("pendente", "concluida", "cancelada", name="peer_review_status", create_type=False),
             nullable=False,
             server_default="pendente",
         ),
