@@ -34,6 +34,7 @@ credentials/
 !package.json
 !package-lock.json
 !tsconfig.json
+!tsconfig.node.json
 !tailwind.config.ts
 !postcss.config.js
 
