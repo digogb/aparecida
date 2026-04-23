@@ -5,8 +5,6 @@ import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
 import Typography from '@tiptap/extension-typography'
 import { useQueryClient } from '@tanstack/react-query'
-import CitacaoLegal from '../components/editor/extensions/CitacaoLegal'
-import Ementa from '../components/editor/extensions/Ementa'
 import AIContent from '../components/editor/extensions/AIContent'
 import CorrectionMark from '../components/editor/extensions/CorrectionMark'
 import SearchHighlight from '../components/editor/extensions/SearchHighlight'
@@ -268,8 +266,6 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
       Underline,
       Placeholder.configure({ placeholder: 'Comece a digitar a minuta...' }),
       Typography,
-      CitacaoLegal,
-      Ementa,
       AIContent,
       CorrectionMark,
       SearchHighlight,

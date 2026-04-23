@@ -93,36 +93,14 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
 
       <div className="w-px h-5 mx-1" style={{ background: '#E0D9CE' }} />
 
-      {/* Legal blocks */}
+      {/* Citação (blockquote — mesmo formato que a IA usa para citar lei/jurisprudência) */}
       <button
-        className={btnClass(editor.isActive('citacaoLegal'))}
-        style={btnStyle(editor.isActive('citacaoLegal'))}
-        onClick={() => editor.chain().focus().setCitacaoLegal({ referencia: 'Lei/Artigo' }).run()}
-        title="Citação Legal"
+        className={btnClass(editor.isActive('blockquote'))}
+        style={btnStyle(editor.isActive('blockquote'))}
+        onClick={() => editor.chain().focus().toggleBlockquote().run()}
+        title="Citação (Lei, jurisprudência, doutrina)"
       >
         Citação
-      </button>
-      <button
-        className={btnClass(editor.isActive('ementa'))}
-        style={btnStyle(editor.isActive('ementa'))}
-        onClick={() => editor.chain().focus().setEmenta().run()}
-        title="Ementa"
-      >
-        Ementa
-      </button>
-      <button
-        className="px-2 py-1 rounded text-sm transition-all duration-150 cursor-pointer"
-        style={{ color: '#6B6860' }}
-        onClick={() =>
-          editor
-            .chain()
-            .focus()
-            .setCitacaoLegal({ referencia: 'Art. ' })
-            .run()
-        }
-        title="Artigo"
-      >
-        Art.
       </button>
 
       <div className="w-px h-5 mx-1" style={{ background: '#E0D9CE' }} />
