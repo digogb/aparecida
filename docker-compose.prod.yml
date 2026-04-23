@@ -35,6 +35,7 @@ services:
       GMAIL_CLIENT_ID: ${GMAIL_CLIENT_ID:-}
       GMAIL_CLIENT_SECRET: ${GMAIL_CLIENT_SECRET:-}
       GMAIL_REFRESH_TOKEN: ${GMAIL_REFRESH_TOKEN:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
       ENV: production
     command: >
       sh -c "alembic upgrade head &&
