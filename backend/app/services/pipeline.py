@@ -15,6 +15,7 @@ from app.database import async_session
 from app.models.parecer import ParecerRequest, ParecerStatus, ParecerStatusHistory
 from app.services import classifier, parecer_engine
 from app.services.classifier import NotLegalConsultationError
+from app.services.notification import notify_parecer_event
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ async def _mark_erro(parecer_request_id: str, etapa: str, exc: Exception) -> Non
                 )
             )
             await db.commit()
+        await notify_parecer_event("parecer.error", parecer_request_id, "erro", {"etapa": etapa})
     except Exception:
         logger.exception("Pipeline: erro ao salvar status de falha para %s", parecer_request_id)
 
@@ -65,6 +67,7 @@ async def _mark_devolvido(parecer_request_id: str, motivo: str) -> None:
                 )
             )
             await db.commit()
+        await notify_parecer_event("parecer.devolvido", parecer_request_id, "devolvido")
     except Exception:
         logger.exception("Pipeline: erro ao marcar devolvido para %s", parecer_request_id)
 
@@ -96,6 +99,7 @@ async def process_parecer_pipeline(parecer_request_id: str) -> None:
         async with async_session() as db:
             await classifier.classify(parecer_request_id, db)
         logger.info("Pipeline P1: classificacao concluida para %s", parecer_request_id)
+        await notify_parecer_event("parecer.classified", parecer_request_id, "classificado")
     except NotLegalConsultationError as exc:
         logger.warning("Pipeline P1: email nao juridico, marcando como devolvido — %s", exc)
         await _mark_devolvido(parecer_request_id, str(exc))
@@ -111,6 +115,7 @@ async def process_parecer_pipeline(parecer_request_id: str) -> None:
         async with async_session() as db:
             await parecer_engine.generate(parecer_request_id, db)
         logger.info("Pipeline P2: minuta gerada para %s", parecer_request_id)
+        await notify_parecer_event("parecer.generated", parecer_request_id, "gerado")
     except Exception as exc:
         logger.exception("Pipeline P2: falha ao gerar minuta para %s", parecer_request_id)
         await _mark_erro(parecer_request_id, "P2-geracao", exc)

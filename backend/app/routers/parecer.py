@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,11 +19,23 @@ from app.models.parecer import (
     ParecerVersion,
     VersionSource,
 )
+from app.services.notification import parecer_ws_manager
 
 PREFIX = "/api"
 TAGS = ["parecer"]
 
 router = APIRouter()
+ws_router = APIRouter()
+
+
+@ws_router.websocket("/ws/pareceres")
+async def ws_pareceres(websocket: WebSocket) -> None:
+    await parecer_ws_manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        parecer_ws_manager.disconnect(websocket)
 
 
 # --- Schemas ---

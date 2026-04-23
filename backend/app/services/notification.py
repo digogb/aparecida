@@ -54,8 +54,23 @@ class ConnectionManager:
             self.disconnect(ws)
 
 
-# Global singleton used by routers
+# Global singletons used by routers
 ws_manager = ConnectionManager()
+parecer_ws_manager = ConnectionManager()
+
+
+async def notify_parecer_event(
+    event: str,
+    parecer_id: Any,
+    status: str | None = None,
+    extra: dict | None = None,
+) -> None:
+    """Broadcast parecer lifecycle events (created/classified/generated/error) to WS clients."""
+    payload = {
+        "event": event,
+        "data": {"id": str(parecer_id), "status": status, **(extra or {})},
+    }
+    asyncio.create_task(parecer_ws_manager.broadcast(payload))
 
 
 async def _get_lawyers(db: AsyncSession) -> list[User]:

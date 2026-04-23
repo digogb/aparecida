@@ -299,8 +299,10 @@ async def _ingest_message(
     await db.commit()
     await db.refresh(parecer)
 
+    from app.services.notification import notify_parecer_event
     from app.services.pipeline import process_parecer_pipeline
 
+    await notify_parecer_event("parecer.created", parecer.id, "pendente")
     await process_parecer_pipeline(str(parecer.id))
 
     logger.info(

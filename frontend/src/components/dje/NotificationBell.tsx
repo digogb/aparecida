@@ -3,6 +3,7 @@ import { Bell } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '../../hooks/useNotifications'
 import { useMovementWebSocket } from '../../hooks/useMovementWebSocket'
+import { useParecerWebSocket } from '../../hooks/useParecerWebSocket'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   fetchAppNotifications,
@@ -51,6 +52,7 @@ export default function NotificationBell() {
   const { notifications: movementNotifs, count: movementCount } = useNotifications()
 
   useMovementWebSocket()
+  useParecerWebSocket()
 
   // Notificações genéricas (peer review, etc.)
   const { data: appNotifs = [] } = useQuery({
