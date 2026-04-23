@@ -24,3 +24,9 @@ COPY dje-search-client ./dje-search-client
 RUN pip install --no-cache-dir ./dje-search-client
 
 COPY . .
+
+# Run as non-root user (UID 1001 casa com ubuntu no host, permitindo writes no bind mount ./uploads)
+RUN groupadd --gid 1001 appuser && \
+    useradd --uid 1001 --gid 1001 --no-create-home appuser && \
+    chown -R appuser:appuser /app
+USER appuser

@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     GMAIL_REFRESH_TOKEN: str = ""
     GMAIL_TEST_RECIPIENT: str = ""  # se definido, todos os emails vão para este endereço (teste)
     ENV: str = "development"
+    # Origens permitidas para CORS — separadas por vírgula. Vazio = fallback dev (localhost:5173)
+    CORS_ORIGINS: str = ""
 
     # DJE search — configure via .env
     # Ex: DJE_NOME_ADVOGADO="JOSE ANTONIO SOUZA"
