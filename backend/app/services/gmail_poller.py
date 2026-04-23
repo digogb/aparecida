@@ -21,6 +21,7 @@ from typing import Any
 from bs4 import BeautifulSoup
 from googleapiclient.discovery import build
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -281,7 +282,16 @@ async def _ingest_message(
         raw_payload={"source": "gmail_polling", "original_from": from_header},
     )
     db.add(parecer)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError:
+        await db.rollback()
+        logger.info(
+            "Gmail poller: mensagem %s (thread %s) já importada por outra instância — ignorando",
+            message_id,
+            thread_id,
+        )
+        return False
 
     for rec in attachment_records:
         db.add(Attachment(request_id=parecer.id, **rec))

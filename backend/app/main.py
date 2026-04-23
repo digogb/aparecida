@@ -61,9 +61,12 @@ async def start_gmail_poller() -> None:
         minutes=5,
         id="gmail_poller",
         max_instances=1,
+        coalesce=True,
+        replace_existing=True,
         next_run_time=datetime.now(timezone.utc),
     )
-    _scheduler.start()
+    if not _scheduler.running:
+        _scheduler.start()
 
 
 @app.on_event("shutdown")
