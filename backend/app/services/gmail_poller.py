@@ -41,6 +41,7 @@ from app.services.extractor import extract_file
 logger = logging.getLogger(__name__)
 
 _HISTORY_KEY = "gmail_last_history_id"
+_GMAIL_STATUS_KEY = "gmail_auth_status"
 _GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 _UPLOADS_DIR = Path("/app/uploads")
 
@@ -81,6 +82,35 @@ def _build_service():
 
 def _is_configured() -> bool:
     return bool(settings.GMAIL_REFRESH_TOKEN or Path(settings.GMAIL_CREDENTIALS_PATH).exists())
+
+
+async def _notify_token_revoked(db: AsyncSession) -> None:
+    from app.models.notification import Notification, NotificationChannel, NotificationStatus
+    from app.models.user import User, UserRole
+
+    cfg = await _get_or_create_config(db, _GMAIL_STATUS_KEY)
+    cfg.value = "token_revoked"
+    cfg.updated_at = datetime.now(timezone.utc)
+
+    result = await db.execute(
+        select(User).where(User.is_active.is_(True), User.role == UserRole.admin)
+    )
+    for admin in result.scalars():
+        db.add(Notification(
+            user_id=admin.id,
+            channel=NotificationChannel.in_app,
+            status=NotificationStatus.pending,
+            title="Conexão Gmail expirada",
+            body="O token de autenticação expirou. Reconecte o Gmail nas configurações.",
+            link="/configuracoes",
+            metadata_={"type": "gmail_token_revoked"},
+        ))
+
+    await db.commit()
+    logger.error(
+        "Gmail: refresh token revogado — polling pausado. "
+        "Reconecte o Gmail nas configurações do sistema."
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -385,6 +415,13 @@ async def poll_inbox() -> int:
         return 0
 
     async with async_session() as db:
+        status_row = await db.execute(
+            select(SystemConfig).where(SystemConfig.key == _GMAIL_STATUS_KEY)
+        )
+        if (sr := status_row.scalar_one_or_none()) and sr.value == "token_revoked":
+            logger.debug("Gmail poller: token revogado, polling pausado")
+            return 0
+
         cfg = await _get_or_create_config(db, _HISTORY_KEY)
 
         if not cfg.value:
@@ -411,6 +448,10 @@ async def poll_inbox() -> int:
                 .execute()
             )
         except Exception as exc:
+            from google.auth.exceptions import RefreshError
+            if isinstance(exc, RefreshError):
+                await _notify_token_revoked(db)
+                return 0
             error_str = str(exc)
             # historyId expira após ~7 dias sem atividade
             if "startHistoryId" in error_str or "404" in error_str or "400" in error_str:

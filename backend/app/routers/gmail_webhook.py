@@ -2,13 +2,16 @@ import base64
 import json
 import os
 import uuid
+from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database import get_db
 from app.models.parecer import ParecerRequest, ParecerStatus
+from app.models.system_config import SystemConfig
 
 PREFIX = "/api"
 TAGS = ["gmail"]
@@ -20,6 +23,19 @@ async def _process_gmail_message(request_id: str, gmail_info: dict) -> None:
     """Background task: extract attachments, classify (P1) and generate (P2)."""
     from app.services.pipeline import process_parecer_pipeline
     await process_parecer_pipeline(request_id)
+
+
+@router.get("/gmail/status")
+async def gmail_status(db: AsyncSession = Depends(get_db)) -> dict:
+    if not (settings.GMAIL_REFRESH_TOKEN or Path(settings.GMAIL_CREDENTIALS_PATH).exists()):
+        return {"status": "not_configured"}
+    result = await db.execute(
+        select(SystemConfig).where(SystemConfig.key == "gmail_auth_status")
+    )
+    cfg = result.scalar_one_or_none()
+    if cfg and cfg.value == "token_revoked":
+        return {"status": "token_revoked"}
+    return {"status": "connected"}
 
 
 @router.post("/gmail/webhook", status_code=200)

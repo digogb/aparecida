@@ -1,4 +1,7 @@
+import { useQuery } from '@tanstack/react-query'
+import { AlertTriangle } from 'lucide-react'
 import NotificationBell from '../dje/NotificationBell'
+import api from '../../services/api'
 
 interface Props {
   onMenuToggle: () => void
@@ -10,7 +13,18 @@ export function Topbar({ onMenuToggle }: Props) {
     window.location.href = '/login'
   }
 
+  const { data: gmailStatus } = useQuery({
+    queryKey: ['gmail-auth-status'],
+    queryFn: async () => {
+      const { data } = await api.get<{ status: string }>('/api/gmail/status')
+      return data.status
+    },
+    staleTime: 60_000,
+    refetchInterval: 5 * 60_000,
+  })
+
   return (
+    <>
     <header
       className="h-12 flex items-center px-4 flex-shrink-0 gap-2"
       style={{ background: '#EDE8DF', borderBottom: '1px solid #E0D9CE' }}
@@ -50,5 +64,18 @@ export function Topbar({ onMenuToggle }: Props) {
         Sair
       </button>
     </header>
+    {gmailStatus === 'token_revoked' && (
+      <div
+        className="flex items-center gap-2 px-6 py-2 text-sm flex-shrink-0"
+        style={{ background: '#FEF3C7', borderBottom: '1px solid #D97706', color: '#92400E' }}
+      >
+        <AlertTriangle size={14} />
+        <span>
+          Conexão com Gmail expirada — o recebimento automático de e-mails está pausado.
+          Reconecte nas configurações.
+        </span>
+      </div>
+    )}
+    </>
   )
 }
