@@ -31,8 +31,9 @@ export default function LoginPage() {
         <p className="text-base mb-6" style={{ color: '#A69B8D' }}>Faça login para continuar</p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: '#6B6860' }}>Email</label>
+            <label htmlFor="email" className="block text-sm font-medium mb-1" style={{ color: '#6B6860' }}>Email</label>
             <input
+              id="email"
               type="email"
               required
               value={email}
@@ -43,8 +44,9 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: '#6B6860' }}>Senha</label>
+            <label htmlFor="senha" className="block text-sm font-medium mb-1" style={{ color: '#6B6860' }}>Senha</label>
             <input
+              id="senha"
               type="password"
               required
               value={password}
@@ -54,7 +56,7 @@ export default function LoginPage() {
               placeholder="••••••"
             />
           </div>
-          {error && <p className="text-sm" style={{ color: '#8B2332' }}>{error}</p>}
+          {error && <p role="alert" className="text-sm" style={{ color: '#8B2332' }}>{error}</p>}
           <button
             type="submit"
             disabled={loading}
