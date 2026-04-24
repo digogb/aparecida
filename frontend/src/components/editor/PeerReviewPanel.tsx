@@ -39,7 +39,7 @@ function ReviewDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(27,40,56,0.5)' }}>
-      <div className="rounded-xl w-full max-w-5xl mx-4 max-h-[85vh] flex flex-col" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
+      <div className="rounded-xl w-full max-w-5xl mx-4 max-h-[85vh] flex flex-col" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
         {/* Header */}
         <div className="p-4" style={{ borderBottom: '1px solid #EDE8DF' }}>
           <h3 className="text-base font-medium" style={{ color: '#0A1120' }}>
@@ -111,7 +111,7 @@ function ReviewDetailModal({
           <button
             onClick={onClose}
             className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer"
-            style={{ color: '#6B6860', background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}
+            style={{ color: '#6B6860', background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}
           >
             Fechar
           </button>
@@ -162,7 +162,7 @@ export default function PeerReviewPanel({ parecerId, currentUserId }: Props) {
             <li
               key={review.id}
               className="rounded-lg px-2.5 py-2"
-              style={{ background: '#F5F0E8', border: '1px solid #E0D9CE' }}
+              style={{ background: '#FAF8F5', border: '1px solid #E0D9CE' }}
             >
               <div className="flex items-center gap-1.5 mb-1">
                 <span

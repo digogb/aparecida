@@ -50,7 +50,7 @@ export default function ParecerCard({ parecer }: { parecer: ParecerRequest }) {
   return (
     <div onClick={() => navigate(`/pareceres/${parecer.id}`)}
       className="animate-fade-up rounded-xl px-5 py-4 cursor-pointer transition-all duration-150 hover:brightness-[0.97]"
-      style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
+      style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center flex-wrap gap-1.5 mb-2">

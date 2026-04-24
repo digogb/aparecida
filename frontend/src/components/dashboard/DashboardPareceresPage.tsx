@@ -61,7 +61,7 @@ function PipelineBar({ stages }: { stages: PipelineStage[] }) {
   const total = ordered.reduce((acc, s) => acc + s.count, 0)
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
+    <div className="rounded-xl overflow-hidden" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}>
       {/* Barra visual */}
       {total > 0 && (
         <div className="flex h-2 overflow-hidden">
@@ -109,14 +109,14 @@ function OldestList({ items }: { items: OldestParecer[] }) {
 
   if (!items.length) {
     return (
-      <div className="rounded-xl px-5 py-5" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
+      <div className="rounded-xl px-5 py-5" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}>
         <p className="text-base" style={{ color: '#5B7553' }}>Nenhum parecer em aberto.</p>
       </div>
     )
   }
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
+    <div className="rounded-xl overflow-hidden" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}>
       {items.map((p, i) => (
         <div
           key={p.id}
@@ -176,7 +176,7 @@ export default function DashboardPareceresPage() {
   const today = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
-    <div className="min-h-full px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8" style={{ background: '#F5F0E8' }}>
+    <div className="min-h-full px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8" style={{ background: '#FAF8F5' }}>
 
       {/* Header */}
       <header className="animate-fade-up">
@@ -195,7 +195,7 @@ export default function DashboardPareceresPage() {
       <section className="grid grid-cols-2 gap-3 animate-fade-up" style={{ animationDelay: '60ms' }}>
         {isLoading ? (
           Array.from({ length: 2 }).map((_, i) => (
-            <div key={i} className="rounded-xl px-5 py-4" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
+            <div key={i} className="rounded-xl px-5 py-4" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}>
               <div className="w-12 h-8 rounded animate-pulse" style={{ background: '#EDE8DF' }} />
               <div className="w-24 h-4 rounded mt-2 animate-pulse" style={{ background: '#EDE8DF' }} />
             </div>
@@ -208,7 +208,7 @@ export default function DashboardPareceresPage() {
               tabIndex={0}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/pareceres') }}
               className="rounded-xl overflow-hidden cursor-pointer hover:brightness-[0.97] transition-all duration-150"
-              style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}
+              style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}
             >
               <div className="h-1" style={{ background: '#C9A94E' }} />
               <div className="px-5 py-4">
@@ -221,7 +221,7 @@ export default function DashboardPareceresPage() {
 
             <div
               className="rounded-xl overflow-hidden"
-              style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}
+              style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}
             >
               <div className="h-1" style={{ background: '#5B7553' }} />
               <div className="px-5 py-4">
@@ -255,7 +255,7 @@ export default function DashboardPareceresPage() {
           <p className="text-sm font-medium uppercase tracking-widest mb-2.5" style={{ color: '#A69B8D' }}>
             Pareceres abertos por município
           </p>
-          <div className="rounded-xl overflow-hidden" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
+          <div className="rounded-xl overflow-hidden" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}>
             {isLoading ? (
               Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="px-5 py-3 flex justify-between" style={{ borderBottom: '1px solid #EDE8DF' }}>
@@ -293,7 +293,7 @@ export default function DashboardPareceresPage() {
           <p className="text-sm font-medium uppercase tracking-widest mb-2.5" style={{ color: '#A69B8D' }}>
             Pareceres abertos por advogado
           </p>
-          <div className="rounded-xl overflow-hidden" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
+          <div className="rounded-xl overflow-hidden" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}>
             {isLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="px-5 py-3 flex justify-between" style={{ borderBottom: '1px solid #EDE8DF' }}>
@@ -338,7 +338,7 @@ export default function DashboardPareceresPage() {
           </button>
         </div>
         {isLoading ? (
-          <div className="rounded-xl overflow-hidden" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
+          <div className="rounded-xl overflow-hidden" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}>
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="px-5 py-3.5 flex gap-3" style={{ borderBottom: '1px solid #EDE8DF' }}>
                 <div className="w-8 h-6 rounded animate-pulse" style={{ background: '#EDE8DF' }} />

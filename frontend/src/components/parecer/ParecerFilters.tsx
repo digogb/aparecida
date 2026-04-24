@@ -33,7 +33,7 @@ export default function ParecerFilters({ filters, onChange }: {
           value={filters.remetente}
           onChange={e => onChange({ ...filters, remetente: e.target.value })}
           className="w-full rounded-xl px-3 py-1.5 text-base focus:outline-none"
-          style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', color: '#0A1120' }} />
+          style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE', color: '#0A1120' }} />
       </div>
 
       {/* Filtros adicionais — colapsáveis em mobile, sempre abertos em md+ */}
@@ -68,7 +68,7 @@ export default function ParecerFilters({ filters, onChange }: {
                     className="px-3 py-1 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer"
                     style={active
                       ? { background: `${o.color}18`, color: o.color, border: `1.5px solid ${o.color}44` }
-                      : { background: '#F5F0E8', color: '#6B6860', border: '1.5px solid #E0D9CE' }}>
+                      : { background: '#FAF8F5', color: '#6B6860', border: '1.5px solid #E0D9CE' }}>
                     {o.label}
                   </button>
                 )
@@ -87,7 +87,7 @@ export default function ParecerFilters({ filters, onChange }: {
                     className="px-3 py-1 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer"
                     style={active
                       ? { background: `${o.color}18`, color: o.color, border: `1.5px solid ${o.color}44` }
-                      : { background: '#F5F0E8', color: '#6B6860', border: '1.5px solid #E0D9CE' }}>
+                      : { background: '#FAF8F5', color: '#6B6860', border: '1.5px solid #E0D9CE' }}>
                     {o.label}
                   </button>
                 )

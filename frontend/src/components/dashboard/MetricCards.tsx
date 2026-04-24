@@ -29,7 +29,7 @@ export default function MetricCards({ stats }: { stats: DashboardStats }) {
           className="animate-count rounded-xl overflow-hidden flex flex-col cursor-pointer hover:brightness-[0.97] transition-all duration-150"
           style={{
             animationDelay: `${i * 50}ms`,
-            background: '#F5F0E8',
+            background: '#FAF8F5',
             border: '1.5px solid #E0D9CE',
           }}
         >

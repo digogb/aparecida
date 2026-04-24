@@ -79,7 +79,7 @@ export default function TaskCard({ task, users, onClick }: TaskCardProps) {
   return (
     <div
       ref={setNodeRef}
-      style={{ ...style, background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}
+      style={{ ...style, background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}
       {...attributes}
       {...listeners}
       onClick={onClick}

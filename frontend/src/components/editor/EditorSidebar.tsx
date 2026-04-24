@@ -274,7 +274,7 @@ export default function EditorSidebar({
                 onClick={handleRestore}
                 disabled={isRestoring}
                 className="flex-1 px-2 py-1 text-sm font-medium rounded-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: '#C9A94E', color: '#F5F0E8' }}
+                style={{ background: '#C9A94E', color: '#FAF8F5' }}
               >
                 {isRestoring ? 'Restaurando...' : 'Confirmar'}
               </button>

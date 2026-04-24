@@ -237,7 +237,7 @@ export default function MovementDetail({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(27,40,56,0.5)' }}>
-      <div className="rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
+      <div className="rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
         {/* Header */}
         <div className="flex items-start justify-between p-5" style={{ borderBottom: '1px solid #EDE8DF' }}>
           <div>

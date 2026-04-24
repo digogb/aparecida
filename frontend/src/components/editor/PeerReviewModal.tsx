@@ -37,7 +37,7 @@ export default function PeerReviewModal({
       <div
         className="rounded-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col"
         style={{
-          background: '#F5F0E8',
+          background: '#FAF8F5',
           border: '1.5px solid #E0D9CE',
           boxShadow: '0 20px 60px rgba(27,40,56,0.15)',
         }}
@@ -104,7 +104,7 @@ export default function PeerReviewModal({
                 style={{
                   border: '1.5px solid #E0D9CE',
                   color: selectedReviewerId ? '#0A1120' : '#A69B8D',
-                  background: '#F5F0E8',
+                  background: '#FAF8F5',
                 } as React.CSSProperties}
                 value={selectedReviewerId}
                 onChange={(e) => setSelectedReviewerId(e.target.value)}
@@ -133,7 +133,7 @@ export default function PeerReviewModal({
               style={{
                 border: '1.5px solid #E0D9CE',
                 color: '#0A1120',
-                background: '#F5F0E8',
+                background: '#FAF8F5',
               } as React.CSSProperties}
               rows={4}
               placeholder="Ex: Verificar a fundamentação legal do parágrafo 3. A citação da Lei 14.133 pode estar desatualizada..."
@@ -156,7 +156,7 @@ export default function PeerReviewModal({
             className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               color: '#6B6860',
-              background: '#F5F0E8',
+              background: '#FAF8F5',
               border: '1.5px solid #E0D9CE',
             }}
           >
@@ -166,7 +166,7 @@ export default function PeerReviewModal({
             onClick={() => onSubmit(selectedReviewerId, observacoes)}
             disabled={!canSubmit}
             className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            style={{ background: '#142038', color: '#F5F0E8' }}
+            style={{ background: '#142038', color: '#FAF8F5' }}
           >
             {isLoading && (
               <svg

@@ -16,7 +16,7 @@ interface TaskDetailModalProps {
 }
 
 const inputStyle: React.CSSProperties = {
-  background: '#F5F0E8',
+  background: '#FAF8F5',
   border: '1.5px solid #E0D9CE',
   color: '#0A1120',
 }
@@ -145,7 +145,7 @@ export default function TaskDetailModal({ task, columns, onClose }: TaskDetailMo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(27,40,56,0.5)' }}>
-      <div className="rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
+      <div className="rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
 
         {/* Header */}
         <div className="flex items-start justify-between px-5 py-4 shrink-0" style={{ borderBottom: '1px solid #EDE8DF' }}>
@@ -188,7 +188,7 @@ export default function TaskDetailModal({ task, columns, onClose }: TaskDetailMo
             ) : (
               <button onClick={() => setEditing(true)}
                 className="px-3 py-1 rounded-lg text-xs font-medium transition-all duration-150 hover:brightness-[0.95] cursor-pointer"
-                style={{ background: '#142038', color: '#F5F0E8' }}>
+                style={{ background: '#142038', color: '#FAF8F5' }}>
                 Editar
               </button>
             )}
@@ -421,7 +421,7 @@ export default function TaskDetailModal({ task, columns, onClose }: TaskDetailMo
                     placeholder="Novo item..." />
                   <button onClick={addCheckItem}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 hover:brightness-[0.95] cursor-pointer"
-                    style={{ background: '#142038', color: '#F5F0E8' }}>
+                    style={{ background: '#142038', color: '#FAF8F5' }}>
                     Adicionar
                   </button>
                 </div>
@@ -446,7 +446,7 @@ export default function TaskDetailModal({ task, columns, onClose }: TaskDetailMo
                   placeholder="Escreva um comentário..." />
                 <button onClick={handleAddComment} disabled={createComment.isPending || !commentText.trim()}
                   className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50"
-                  style={{ background: '#142038', color: '#F5F0E8' }}>
+                  style={{ background: '#142038', color: '#FAF8F5' }}>
                   Enviar
                 </button>
               </div>
@@ -456,7 +456,7 @@ export default function TaskDetailModal({ task, columns, onClose }: TaskDetailMo
               )}
 
               {comments?.map(c => (
-                <div key={c.id} className="rounded-xl p-3" style={{ background: '#F5F0E8', border: '1px solid #EDE8DF' }}>
+                <div key={c.id} className="rounded-xl p-3" style={{ background: '#FAF8F5', border: '1px solid #EDE8DF' }}>
                   <div className="flex items-center gap-2 mb-1.5">
                     <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: '#14203818' }}>
                       <User className="w-3 h-3" style={{ color: '#142038' }} />

@@ -28,7 +28,7 @@ export default function KanbanColumn({ column, tasks, users, onTaskClick }: Kanb
                 ? { background: '#8B233218', color: '#8B2332' }
                 : wipNear
                 ? { background: '#C9A94E18', color: '#C9A94E' }
-                : { background: '#F5F0E8', color: '#A69B8D', border: '1px solid #E0D9CE' }
+                : { background: '#FAF8F5', color: '#A69B8D', border: '1px solid #E0D9CE' }
             }>
             {tasks.length}
             {column.wip_limit != null ? `/${column.wip_limit}` : ''}

@@ -49,7 +49,7 @@ export default function ProcessTimeline({ movements, currentId, onSelect }: Proc
               <div className="absolute left-1.5 top-2 w-3 h-3 rounded-full"
                 style={{
                   background: color,
-                  border: '2px solid #F5F0E8',
+                  border: '2px solid #FAF8F5',
                   boxShadow: currentId === m.id ? `0 0 0 2px ${color}44` : undefined,
                 }}
               />

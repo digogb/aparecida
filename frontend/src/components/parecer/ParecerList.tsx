@@ -60,7 +60,7 @@ export default function ParecerList() {
   const sorted = [...items].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 
   return (
-    <div className="min-h-full px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8" style={{ background: '#F5F0E8' }}>
+    <div className="min-h-full px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8" style={{ background: '#FAF8F5' }}>
 
       {/* Header */}
       <div className="animate-fade-up flex items-end justify-between">
@@ -73,7 +73,7 @@ export default function ParecerList() {
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 hover:brightness-[0.95] cursor-pointer"
-            style={{ background: '#142038', color: '#F5F0E8', opacity: importing ? 0.6 : 1 }}
+            style={{ background: '#142038', color: '#FAF8F5', opacity: importing ? 0.6 : 1 }}
           >
             {importing ? (
               <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
@@ -90,7 +90,7 @@ export default function ParecerList() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {METRICS.map((m, i) => (
           <div key={m.key} className="animate-count rounded-xl overflow-hidden"
-            style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', animationDelay: `${i * 50}ms` }}>
+            style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE', animationDelay: `${i * 50}ms` }}>
             <div className="h-1" style={{ background: m.tone }} />
             <div className="px-5 py-4">
               <span className="font-display leading-none block"

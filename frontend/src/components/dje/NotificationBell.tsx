@@ -120,7 +120,7 @@ export default function NotificationBell() {
         <Bell size={18} />
         {totalCount > 0 && (
           <span className="absolute top-1 right-1 w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center leading-none"
-            style={{ background: '#8B2332', color: '#F5F0E8' }}>
+            style={{ background: '#8B2332', color: '#FAF8F5' }}>
             {totalCount > 99 ? '99+' : totalCount}
           </span>
         )}
@@ -128,7 +128,7 @@ export default function NotificationBell() {
 
       {open && (
         <div className="absolute right-0 top-full mt-2 w-80 rounded-xl z-50 overflow-hidden"
-          style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', boxShadow: '0 12px 40px rgba(27,40,56,0.12)' }}>
+          style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE', boxShadow: '0 12px 40px rgba(27,40,56,0.12)' }}>
           <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid #EDE8DF' }}>
             <span className="text-sm font-medium" style={{ color: '#0A1120' }}>
               Não lidas {totalCount > 0 && `(${totalCount})`}

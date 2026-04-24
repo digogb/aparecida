@@ -67,7 +67,7 @@ export default function MovementCard({ movement, onClick }: MovementCardProps) {
     <button
       className="w-full text-left rounded-xl overflow-hidden transition-all duration-150 hover:brightness-[0.97]"
       style={{
-        background: '#F5F0E8',
+        background: '#FAF8F5',
         border: `1.5px solid ${movement.is_read ? '#E0D9CE' : color + '44'}`,
         borderLeft: `4px solid ${movement.is_read ? '#E0D9CE' : color}`,
       }}

@@ -190,7 +190,7 @@ export default function KanbanBoard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-full flex items-center justify-center" style={{ background: '#F5F0E8' }}>
+      <div className="min-h-full flex items-center justify-center" style={{ background: '#FAF8F5' }}>
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#E0D9CE44', borderTopColor: '#A69B8D' }} />
           <p className="text-sm" style={{ color: '#A69B8D' }}>Carregando quadro…</p>
@@ -201,7 +201,7 @@ export default function KanbanBoard() {
 
   if (isError || !board) {
     return (
-      <div className="min-h-full flex items-center justify-center" style={{ background: '#F5F0E8' }}>
+      <div className="min-h-full flex items-center justify-center" style={{ background: '#FAF8F5' }}>
         <div className="rounded-xl px-6 py-5 text-base" style={{ background: '#8B233218', color: '#8B2332', border: '1.5px solid #8B233222' }}>
           Erro ao carregar o quadro Kanban.
         </div>
@@ -234,7 +234,7 @@ export default function KanbanBoard() {
   const isFiltered = filters.category || filters.priority || filters.assignee || filters.search
 
   return (
-    <div className="min-h-full flex flex-col" style={{ background: '#F5F0E8' }}>
+    <div className="min-h-full flex flex-col" style={{ background: '#FAF8F5' }}>
       <div className="px-4 md:px-6 py-6 md:py-8 space-y-6">
 
         {/* Header */}
@@ -244,7 +244,7 @@ export default function KanbanBoard() {
           </h1>
           <button onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 hover:brightness-[0.95] cursor-pointer"
-            style={{ background: '#142038', color: '#F5F0E8' }}>
+            style={{ background: '#142038', color: '#FAF8F5' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
@@ -256,7 +256,7 @@ export default function KanbanBoard() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {METRIC_DEFS.map((m, i) => (
             <div key={m.key} className="animate-count rounded-xl overflow-hidden"
-              style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', animationDelay: `${i * 50}ms` }}>
+              style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE', animationDelay: `${i * 50}ms` }}>
               <div className="h-1" style={{ background: m.tone }} />
               <div className="px-5 py-4">
                 <span className="font-display leading-none block"
@@ -292,7 +292,7 @@ export default function KanbanBoard() {
               className="flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer"
               style={
                 activeColIdx === i
-                  ? { background: '#142038', color: '#F5F0E8' }
+                  ? { background: '#142038', color: '#FAF8F5' }
                   : { background: '#EDE8DF', color: '#6B6860', border: '1.5px solid #E0D9CE' }
               }
             >

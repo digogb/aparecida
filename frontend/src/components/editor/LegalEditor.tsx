@@ -86,7 +86,7 @@ function CorrectionModal({
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(27,40,56,0.5)' }}>
-        <div className="rounded-xl w-full max-w-5xl mx-4 max-h-[85vh] flex flex-col" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
+        <div className="rounded-xl w-full max-w-5xl mx-4 max-h-[85vh] flex flex-col" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
           {/* Header */}
           <div className="p-4" style={{ borderBottom: '1px solid #EDE8DF' }}>
             <h3 className="text-base font-medium" style={{ color: '#0A1120' }}>
@@ -117,7 +117,7 @@ function CorrectionModal({
                       className="px-3 py-0.5 text-xs font-medium rounded-lg transition-all duration-150"
                       style={
                         isTrechoApproved(i)
-                          ? { background: '#5B7553', color: '#F5F0E8' }
+                          ? { background: '#5B7553', color: '#FAF8F5' }
                           : { background: '#E0D9CE', color: '#6B6860' }
                       }
                     >
@@ -137,13 +137,13 @@ function CorrectionModal({
                       </div>
                     </div>
                     {/* Arrow */}
-                    <div className="flex items-center justify-center py-1" style={{ background: '#F5F0E8' }}>
+                    <div className="flex items-center justify-center py-1" style={{ background: '#FAF8F5' }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A69B8D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 5v14M19 12l-7 7-7-7"/>
                       </svg>
                     </div>
                     {/* Proposta */}
-                    <div className="px-4 py-3" style={{ background: isTrechoApproved(i) ? '#5B755308' : '#F5F0E8' }}>
+                    <div className="px-4 py-3" style={{ background: isTrechoApproved(i) ? '#5B755308' : '#FAF8F5' }}>
                       <div className="text-xs font-medium uppercase tracking-widest mb-1.5" style={{ color: isTrechoApproved(i) ? '#5B7553' : '#A69B8D' }}>
                         Proposta da IA
                       </div>
@@ -196,7 +196,7 @@ function CorrectionModal({
                 onClick={onClose}
                 disabled={isApplying}
                 className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ color: '#6B6860', background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}
+                style={{ color: '#6B6860', background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}
               >
                 Descartar
               </button>
@@ -204,7 +204,7 @@ function CorrectionModal({
                 onClick={handleApply}
                 disabled={approvedCount === 0 || isApplying}
                 className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                style={{ background: '#5B7553', color: '#F5F0E8' }}
+                style={{ background: '#5B7553', color: '#FAF8F5' }}
               >
                 {isApplying && (
                   <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -223,7 +223,7 @@ function CorrectionModal({
   // ── Fase 1: Input de instruções ──
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(27,40,56,0.5)' }}>
-      <div className="rounded-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
+      <div className="rounded-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
         <div className="p-4" style={{ borderBottom: '1px solid #EDE8DF' }}>
           <h3 className="text-base font-medium" style={{ color: '#0A1120' }}>
             Solicitar correção para IA
@@ -267,7 +267,7 @@ function CorrectionModal({
             </label>
             <textarea
               className="mt-2 w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 resize-none disabled:opacity-50"
-              style={{ border: '1.5px solid #E0D9CE', color: '#0A1120', background: '#F5F0E8', '--tw-ring-color': '#C9A94E' } as React.CSSProperties}
+              style={{ border: '1.5px solid #E0D9CE', color: '#0A1120', background: '#FAF8F5', '--tw-ring-color': '#C9A94E' } as React.CSSProperties}
               rows={4}
               placeholder="Ex: Reescrever a fundamentação com base na Lei 14.133/2021..."
               value={instructions}
@@ -283,7 +283,7 @@ function CorrectionModal({
             onClick={onClose}
             disabled={isLoading}
             className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ color: '#6B6860', background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}
+            style={{ color: '#6B6860', background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}
           >
             Cancelar
           </button>
@@ -291,7 +291,7 @@ function CorrectionModal({
             onClick={() => onSubmit(instructions)}
             disabled={!instructions.trim() || isLoading}
             className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            style={{ background: '#C9A94E', color: '#F5F0E8' }}
+            style={{ background: '#C9A94E', color: '#FAF8F5' }}
           >
             {isLoading && (
               <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -336,7 +336,7 @@ function ReviewResponseModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(27,40,56,0.5)' }}>
-      <div className="rounded-xl w-full max-w-5xl mx-4 max-h-[85vh] flex flex-col" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
+      <div className="rounded-xl w-full max-w-5xl mx-4 max-h-[85vh] flex flex-col" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
         {/* Header */}
         <div className="p-4" style={{ borderBottom: '1px solid #EDE8DF' }}>
           <h3 className="text-base font-medium" style={{ color: '#0A1120' }}>
@@ -382,7 +382,7 @@ function ReviewResponseModal({
                 </p>
                 <textarea
                   className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 resize-none disabled:opacity-50"
-                  style={{ border: '1.5px solid #E0D9CE', background: '#F5F0E8', color: '#0A1120' } as React.CSSProperties}
+                  style={{ border: '1.5px solid #E0D9CE', background: '#FAF8F5', color: '#0A1120' } as React.CSSProperties}
                   rows={3}
                   placeholder="Sua sugestão para este trecho..."
                   value={rt.sugestao}
@@ -400,7 +400,7 @@ function ReviewResponseModal({
             </label>
             <textarea
               className="mt-2 w-full rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 resize-none disabled:opacity-50"
-              style={{ border: '1.5px solid #E0D9CE', color: '#0A1120', background: '#F5F0E8' } as React.CSSProperties}
+              style={{ border: '1.5px solid #E0D9CE', color: '#0A1120', background: '#FAF8F5' } as React.CSSProperties}
               rows={4}
               placeholder="Seu comentário geral sobre o parecer..."
               value={respostaGeral}
@@ -417,7 +417,7 @@ function ReviewResponseModal({
             onClick={onClose}
             disabled={isLoading}
             className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ color: '#6B6860', background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}
+            style={{ color: '#6B6860', background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}
           >
             Cancelar
           </button>
@@ -425,7 +425,7 @@ function ReviewResponseModal({
             onClick={() => onSubmit({ resposta_geral: respostaGeral, resposta_trechos: respostasTrechos })}
             disabled={!canSubmit}
             className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            style={{ background: '#142038', color: '#F5F0E8' }}
+            style={{ background: '#142038', color: '#FAF8F5' }}
           >
             {isLoading && (
               <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -534,7 +534,7 @@ export default function LegalEditor() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full" style={{ background: '#F5F0E8' }}>
+      <div className="flex items-center justify-center h-full" style={{ background: '#FAF8F5' }}>
         <div className="text-base" style={{ color: '#A69B8D' }}>Carregando parecer...</div>
       </div>
     )
@@ -542,7 +542,7 @@ export default function LegalEditor() {
 
   if (error || !parecer) {
     return (
-      <div className="flex items-center justify-center h-full" style={{ background: '#F5F0E8' }}>
+      <div className="flex items-center justify-center h-full" style={{ background: '#FAF8F5' }}>
         <div className="text-center">
           <p className="text-base mb-2" style={{ color: '#8B2332' }}>Erro ao carregar parecer</p>
           <button
@@ -560,7 +560,7 @@ export default function LegalEditor() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2" style={{ background: '#F5F0E8', borderBottom: '1px solid #EDE8DF' }}>
+      <div className="flex items-center justify-between px-4 py-2" style={{ background: '#FAF8F5', borderBottom: '1px solid #EDE8DF' }}>
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/pareceres')}
@@ -617,7 +617,7 @@ export default function LegalEditor() {
 
       {/* Pipeline processing state — shown while classify + generate runs in background */}
       {!activeVersion && (parecer.status === 'classificado' || parecer.status === 'pendente') && (
-        <div className="flex flex-1 items-center justify-center" style={{ background: '#F5F0E8' }}>
+        <div className="flex flex-1 items-center justify-center" style={{ background: '#FAF8F5' }}>
           <div className="text-center max-w-sm">
             <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: '#C9A94E18' }}>
               <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C9A94E" strokeWidth="2.5">
@@ -636,7 +636,7 @@ export default function LegalEditor() {
       {/* Main content area */}
       <div className={`flex flex-1 overflow-hidden ${!activeVersion && (parecer.status === 'classificado' || parecer.status === 'pendente') ? 'hidden' : ''}`}>
         {/* Editor area */}
-        <div className="flex-1 overflow-y-auto" style={{ background: '#F5F0E8' }}>
+        <div className="flex-1 overflow-y-auto" style={{ background: '#FAF8F5' }}>
           {showSplitView ? (
             <SplitView
               originalText={parecer.extracted_text}
@@ -674,7 +674,7 @@ export default function LegalEditor() {
               </svg>
               Solicitar correção para IA
               {correctionCount > 0 && (
-                <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full" style={{ background: '#C9A94E', color: '#F5F0E8' }}>
+                <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full" style={{ background: '#C9A94E', color: '#FAF8F5' }}>
                   {correctionCount}
                 </span>
               )}
@@ -684,7 +684,7 @@ export default function LegalEditor() {
                 onClick={() => handleOpenCompletedReview(completedReviewsForMe[0])}
                 disabled={isReprocessing || isGenerating}
                 className="px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: '#5B7553', color: '#F5F0E8', boxShadow: '0 2px 8px rgba(91,117,83,0.25)' }}
+                style={{ background: '#5B7553', color: '#FAF8F5', boxShadow: '0 2px 8px rgba(91,117,83,0.25)' }}
                 title="Revisão do colega pronta para aplicar"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -693,7 +693,7 @@ export default function LegalEditor() {
                 </svg>
                 Ver revisão de {completedReviewsForMe[0].reviewer_name}
                 {completedReviewsForMe.length > 1 && (
-                  <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full" style={{ background: '#F5F0E8', color: '#5B7553' }}>
+                  <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full" style={{ background: '#FAF8F5', color: '#5B7553' }}>
                     {completedReviewsForMe.length}
                   </span>
                 )}
@@ -727,7 +727,7 @@ export default function LegalEditor() {
                 </svg>
                 Enviar para colega
                 {correctionCount > 0 && (
-                  <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full" style={{ background: '#142038', color: '#F5F0E8' }}>
+                  <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full" style={{ background: '#142038', color: '#FAF8F5' }}>
                     {correctionCount}
                   </span>
                 )}
@@ -740,7 +740,7 @@ export default function LegalEditor() {
                 onClick={() => handleApproveWithLoading(false)}
                 disabled={isSubmitting || isReprocessing || isGenerating}
                 className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                style={{ background: '#5B7553', color: '#F5F0E8' }}
+                style={{ background: '#5B7553', color: '#FAF8F5' }}
               >
                 {isSubmitting && <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
                 Aprovar
@@ -751,7 +751,7 @@ export default function LegalEditor() {
                 onClick={() => handleApproveWithLoading(true)}
                 disabled={isSubmitting || isReprocessing || isGenerating}
                 className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                style={{ background: '#142038', color: '#F5F0E8' }}
+                style={{ background: '#142038', color: '#FAF8F5' }}
               >
                 {isSubmitting && <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
                 {parecer.status === 'aprovado' ? 'Enviar' : 'Aprovar e enviar'}

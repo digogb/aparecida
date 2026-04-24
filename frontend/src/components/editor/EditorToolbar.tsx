@@ -33,11 +33,11 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
       : { color: '#6B6860' }
 
   return (
-    <div className="flex items-center gap-1 px-4 py-2 flex-wrap" style={{ background: '#F5F0E8', borderBottom: '1px solid #EDE8DF' }}>
+    <div className="flex items-center gap-1 px-4 py-2 flex-wrap" style={{ background: '#FAF8F5', borderBottom: '1px solid #EDE8DF' }}>
       {/* Block type dropdown */}
       <select
         className="text-sm rounded-lg px-2 py-1 mr-2 focus:outline-none"
-        style={{ border: '1.5px solid #E0D9CE', color: '#0A1120', background: '#F5F0E8' }}
+        style={{ border: '1.5px solid #E0D9CE', color: '#0A1120', background: '#FAF8F5' }}
         value={
           editor.isActive('heading', { level: 1 })
             ? 'h1'
@@ -173,7 +173,7 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
               placeholder="Buscar..."
               autoFocus
               className="pl-7 pr-2 py-1 text-sm rounded-lg w-44 focus:outline-none"
-              style={{ border: '1.5px solid #E0D9CE', background: '#F5F0E8', color: '#0A1120' }}
+              style={{ border: '1.5px solid #E0D9CE', background: '#FAF8F5', color: '#0A1120' }}
             />
             <svg className="absolute left-2 top-1/2 -translate-y-1/2" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A69B8D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />
@@ -218,7 +218,7 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
           isSaving
             ? { color: '#A69B8D', cursor: 'not-allowed' }
             : isDirty
-              ? { background: '#142038', color: '#F5F0E8' }
+              ? { background: '#142038', color: '#FAF8F5' }
               : { color: '#A69B8D', border: '1.5px solid #E0D9CE' }
         }
         onClick={onSave}

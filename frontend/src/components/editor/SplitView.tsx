@@ -59,7 +59,7 @@ export default function SplitView({ originalText, editor }: Props) {
       {/* Right: editor */}
       <div
         className={`overflow-y-auto lg:w-1/2 ${activeTab === 'editado' ? 'flex-1' : 'hidden'} lg:flex lg:flex-col`}
-        style={{ background: '#F5F0E8' }}
+        style={{ background: '#FAF8F5' }}
       >
         <EditorContent editor={editor} className="h-full" />
       </div>

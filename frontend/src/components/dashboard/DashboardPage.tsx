@@ -58,7 +58,7 @@ export default function DashboardPage() {
   const hasAlerts = !alertsLoading && allAlerts.length > 0
 
   return (
-    <div className="min-h-full px-6 py-8 space-y-8" style={{ background: '#F5F0E8' }}>
+    <div className="min-h-full px-6 py-8 space-y-8" style={{ background: '#FAF8F5' }}>
 
       {/* Header */}
       <header className="animate-fade-up">
@@ -78,7 +78,7 @@ export default function DashboardPage() {
         {statsLoading ? (
           <div className="grid grid-cols-3 gap-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="rounded-xl px-5 py-4" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
+              <div key={i} className="rounded-xl px-5 py-4" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}>
                 <div className="w-12 h-8 rounded animate-pulse" style={{ background: '#EDE8DF' }} />
                 <div className="w-16 h-4 rounded mt-2 animate-pulse" style={{ background: '#EDE8DF' }} />
               </div>
@@ -101,7 +101,7 @@ export default function DashboardPage() {
           {alertsLoading ? (
             <div className="space-y-2">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="rounded-xl px-5 py-3 h-12" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
+                <div key={i} className="rounded-xl px-5 py-3 h-12" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}>
                   <div className="w-2/3 h-4 rounded animate-pulse" style={{ background: '#EDE8DF' }} />
                 </div>
               ))}
@@ -109,7 +109,7 @@ export default function DashboardPage() {
           ) : hasAlerts ? (
             <AlertsList alerts={allAlerts} />
           ) : (
-            <div className="rounded-xl px-5 py-4" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
+            <div className="rounded-xl px-5 py-4" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}>
               <p className="text-base" style={{ color: '#5B7553' }}>Nenhum alerta no momento.</p>
             </div>
           )}
@@ -123,7 +123,7 @@ export default function DashboardPage() {
               Ver todas &rarr;
             </button>
           </div>
-          <div className="rounded-xl overflow-hidden" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
+          <div className="rounded-xl overflow-hidden" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}>
             {recentLoading ? (
               Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="px-5 py-3.5" style={{ borderBottom: '1px solid #EDE8DF' }}>
@@ -170,7 +170,7 @@ export default function DashboardPage() {
             Ver todos &rarr;
           </button>
         </div>
-        <div className="rounded-xl overflow-hidden" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE' }}>
+        <div className="rounded-xl overflow-hidden" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}>
           {recentLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="px-5 py-3.5 flex justify-between" style={{ borderBottom: '1px solid #EDE8DF' }}>

@@ -37,7 +37,7 @@ export default function AlertsList({ alerts }: { alerts: DashboardAlert[] }) {
             className={`rounded-xl flex items-center gap-4 px-5 py-3 overflow-hidden ${isClickable ? 'cursor-pointer hover:brightness-[0.97] transition-all duration-150' : ''}`}
             title={alert.description || alert.title}
             style={{
-              background: '#F5F0E8',
+              background: '#FAF8F5',
               border: '1.5px solid #E0D9CE',
               borderLeft: `4px solid ${cfg.border}`,
             }}

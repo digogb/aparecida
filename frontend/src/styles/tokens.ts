@@ -14,8 +14,8 @@ export const colors = {
 
   /** Superfícies */
   surface: {
-    page:    '#F5F0E8',   // fundo principal das páginas
-    card:    '#F5F0E8',   // fundo de cards e listas
+    page:    '#FAF8F5',   // fundo principal das páginas
+    card:    '#FAF8F5',   // fundo de cards e listas
     topbar:  '#EDE8DF',   // barra superior
     sidebar: '#142038',   // navegação lateral (base)
     sidebarGradient: 'linear-gradient(180deg, #0A1020 0%, #142038 60%, #1a2847 100%)',

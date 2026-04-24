@@ -45,7 +45,7 @@ export default function TaskFilters({ filters, onFiltersChange, users }: TaskFil
           value={filters.search}
           onChange={(e) => setFilter({ search: e.target.value })}
           className="w-full rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2"
-          style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', color: '#0A1120', '--tw-ring-color': '#C9A94E' } as React.CSSProperties}
+          style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE', color: '#0A1120', '--tw-ring-color': '#C9A94E' } as React.CSSProperties}
           placeholder="Buscar tarefas..."
         />
       </div>
@@ -57,8 +57,8 @@ export default function TaskFilters({ filters, onFiltersChange, users }: TaskFil
           <span className="text-xs font-medium uppercase tracking-widest mr-0.5" style={{ color: '#142038' }}>Categoria</span>
           <button onClick={() => setFilter({ category: null })} className={pillBase}
             style={filters.category === null
-              ? { background: '#142038', color: '#F5F0E8', border: '1.5px solid transparent' }
-              : { background: '#F5F0E8', color: '#6B6860', border: '1.5px solid #E0D9CE' }}>
+              ? { background: '#142038', color: '#FAF8F5', border: '1.5px solid transparent' }
+              : { background: '#FAF8F5', color: '#6B6860', border: '1.5px solid #E0D9CE' }}>
             Todas
           </button>
           {CATS.map(c => (
@@ -67,7 +67,7 @@ export default function TaskFilters({ filters, onFiltersChange, users }: TaskFil
               className={pillBase}
               style={filters.category === c.value
                 ? { background: `${c.color}18`, color: c.color, border: `1.5px solid ${c.color}44` }
-                : { background: '#F5F0E8', color: '#6B6860', border: '1.5px solid #E0D9CE' }}>
+                : { background: '#FAF8F5', color: '#6B6860', border: '1.5px solid #E0D9CE' }}>
               {c.label}
             </button>
           ))}
@@ -85,7 +85,7 @@ export default function TaskFilters({ filters, onFiltersChange, users }: TaskFil
               className={pillBase}
               style={filters.priority === p.value
                 ? { background: `${p.color}18`, color: p.color, border: `1.5px solid ${p.color}44` }
-                : { background: '#F5F0E8', color: '#6B6860', border: '1.5px solid #E0D9CE' }}>
+                : { background: '#FAF8F5', color: '#6B6860', border: '1.5px solid #E0D9CE' }}>
               {p.label}
             </button>
           ))}
@@ -101,7 +101,7 @@ export default function TaskFilters({ filters, onFiltersChange, users }: TaskFil
             value={filters.assignee ?? ''}
             onChange={(e) => setFilter({ assignee: e.target.value || null })}
             className="rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2"
-            style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', color: '#0A1120', '--tw-ring-color': '#C9A94E' } as React.CSSProperties}
+            style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE', color: '#0A1120', '--tw-ring-color': '#C9A94E' } as React.CSSProperties}
           >
             <option value="">Todos</option>
             {users?.map(u => (

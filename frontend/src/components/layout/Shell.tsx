@@ -7,7 +7,7 @@ export function Shell() {
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen" style={{ background: '#F5F0E8' }}>
+    <div className="flex flex-col md:flex-row min-h-screen" style={{ background: '#FAF8F5' }}>
       {/* Sidebar: inline em md+, drawer em mobile */}
       <Sidebar
         variant="inline"

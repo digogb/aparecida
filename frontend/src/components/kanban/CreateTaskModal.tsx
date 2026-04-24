@@ -10,7 +10,7 @@ interface CreateTaskModalProps {
 }
 
 const inputStyle: React.CSSProperties = {
-  background: '#F5F0E8',
+  background: '#FAF8F5',
   border: '1.5px solid #E0D9CE',
   color: '#0A1120',
 }
@@ -51,8 +51,8 @@ export default function CreateTaskModal({ columns, defaultColumnId, onClose }: C
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(27,40,56,0.5)' }}>
-      <div className="rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
-        <div className="flex items-center justify-between px-5 py-4 sticky top-0 z-10" style={{ borderBottom: '1px solid #EDE8DF', background: '#F5F0E8' }}>
+      <div className="rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE', boxShadow: '0 20px 60px rgba(27,40,56,0.15)' }}>
+        <div className="flex items-center justify-between px-5 py-4 sticky top-0 z-10" style={{ borderBottom: '1px solid #EDE8DF', background: '#FAF8F5' }}>
           <h2 className="text-base font-medium" style={{ color: '#0A1120' }}>Nova Tarefa</h2>
           <button onClick={onClose} className="p-1 rounded-lg transition-all duration-150 hover:brightness-[0.97] cursor-pointer" style={{ color: '#A69B8D' }}>
             <X className="w-5 h-5" />
@@ -216,7 +216,7 @@ export default function CreateTaskModal({ columns, defaultColumnId, onClose }: C
               type="button"
               onClick={onClose}
               className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer"
-              style={{ background: '#F5F0E8', color: '#6B6860', border: '1.5px solid #E0D9CE' }}
+              style={{ background: '#FAF8F5', color: '#6B6860', border: '1.5px solid #E0D9CE' }}
             >
               Cancelar
             </button>
@@ -224,7 +224,7 @@ export default function CreateTaskModal({ columns, defaultColumnId, onClose }: C
               type="submit"
               disabled={createTask.isPending}
               className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50"
-              style={{ background: '#142038', color: '#F5F0E8' }}
+              style={{ background: '#142038', color: '#FAF8F5' }}
             >
               {createTask.isPending ? 'Criando...' : 'Criar Tarefa'}
             </button>

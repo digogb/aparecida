@@ -29,7 +29,7 @@ export default function MovementFilters({ filters, onChange }: {
                 className="px-3 py-1 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer"
                 style={active
                   ? { background: `${t.color}18`, color: t.color, border: `1.5px solid ${t.color}44` }
-                  : { background: '#F5F0E8', color: '#6B6860', border: '1.5px solid #E0D9CE' }}>
+                  : { background: '#FAF8F5', color: '#6B6860', border: '1.5px solid #E0D9CE' }}>
                 {t.label}
               </button>
             )
@@ -42,7 +42,7 @@ export default function MovementFilters({ filters, onChange }: {
         <span className="text-xs font-medium uppercase tracking-widest block mb-2" style={{ color: '#A69B8D' }}>Leitura</span>
         <select value={filters.is_read} onChange={e => onChange({ ...filters, is_read: e.target.value as '' | 'true' | 'false' })}
           className="rounded-xl px-3 py-1.5 text-base font-medium focus:outline-none"
-          style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', color: '#0A1120' }}>
+          style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE', color: '#0A1120' }}>
           <option value="">Todas</option>
           <option value="false">Não lidas</option>
           <option value="true">Lidas</option>
@@ -55,7 +55,7 @@ export default function MovementFilters({ filters, onChange }: {
         <input type="text" placeholder="Buscar processo..." value={filters.search}
           onChange={e => onChange({ ...filters, search: e.target.value })}
           className="w-full rounded-xl px-3 py-1.5 text-base focus:outline-none"
-          style={{ background: '#F5F0E8', border: '1.5px solid #E0D9CE', color: '#0A1120' }} />
+          style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE', color: '#0A1120' }} />
       </div>
     </div>
   )
