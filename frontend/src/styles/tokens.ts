@@ -156,11 +156,22 @@ export const animations = {
   staggerMs: 50,
 } as const
 
+/* ── Breakpoints ──────────────────────────────────── */
+
+export const breakpoints = {
+  xs: '480px',
+  sm: '640px',
+  md: '768px',
+  lg: '1024px',
+  xl: '1280px',
+} as const
+
 /* ── Layout ───────────────────────────────────────── */
 
 export const layout = {
   sidebar: {
-    width: '224px',       // w-56
+    width: '224px',            // w-56, desktop inline
+    widthMobile: '288px',      // w-72, drawer em mobile
     background: 'linear-gradient(180deg, #0A1020 0%, #142038 60%, #1a2847 100%)',
     brandColor: '#C9A94E',
     activeItemBg: '#C9A94E18',
@@ -172,6 +183,9 @@ export const layout = {
     height: '48px',       // h-12
     background: '#EDE8DF',
     border: '1px solid #E0D9CE',
+  },
+  page: {
+    padding: 'px-4 md:px-6',
   },
 } as const
 

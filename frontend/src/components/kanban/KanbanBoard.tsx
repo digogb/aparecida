@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import {
   DndContext, DragEndEvent, DragOverEvent, DragOverlay, DragStartEvent,
@@ -47,6 +47,7 @@ export default function KanbanBoard() {
   const [localColumns, setLocalColumns] = useState<Column[] | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [activeColIdx, setActiveColIdx] = useState(0)
   const [filters, setFilters] = useState<TaskFiltersState>({
     category: null,
     priority: null,
@@ -64,6 +65,13 @@ export default function KanbanBoard() {
 
   // Use local columns during drag, otherwise use server data
   const columns = localColumns ?? board?.columns ?? []
+
+  // Clamp activeColIdx when columns change
+  useEffect(() => {
+    if (columns.length && activeColIdx >= columns.length) {
+      setActiveColIdx(columns.length - 1)
+    }
+  }, [columns.length, activeColIdx])
 
   const metrics = useMemo(() => {
     if (!board) return { total: 0, high: 0, overdue: 0, done: 0 }
@@ -227,7 +235,7 @@ export default function KanbanBoard() {
 
   return (
     <div className="min-h-full flex flex-col" style={{ background: '#F5F0E8' }}>
-      <div className="px-6 py-8 space-y-6">
+      <div className="px-4 md:px-6 py-6 md:py-8 space-y-6">
 
         {/* Header */}
         <div className="animate-fade-up flex items-end justify-between">
@@ -273,16 +281,51 @@ export default function KanbanBoard() {
       </div>
 
       {/* Kanban board */}
-      <div className="px-6 pb-8 flex-1 animate-fade-up" style={{ animationDelay: '260ms' }}>
+      <div className="px-4 md:px-6 pb-8 flex-1 animate-fade-up" style={{ animationDelay: '260ms' }}>
+
+        {/* Mobile: tabs de coluna */}
+        <div className="md:hidden flex gap-1 mb-3 overflow-x-auto pb-1">
+          {filteredColumns.map((col, i) => (
+            <button
+              key={col.id}
+              onClick={() => setActiveColIdx(i)}
+              className="flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer"
+              style={
+                activeColIdx === i
+                  ? { background: '#142038', color: '#F5F0E8' }
+                  : { background: '#EDE8DF', color: '#6B6860', border: '1.5px solid #E0D9CE' }
+              }
+            >
+              {col.name}
+              <span className="ml-1.5 text-xs opacity-70">({col.tasks.length})</span>
+            </button>
+          ))}
+        </div>
+
         <DndContext sensors={sensors} collisionDetection={closestCorners}
           onDragStart={handleDragStart} onDragOver={handleDragOver}
           onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
-          <div className="grid gap-4 overflow-x-auto pb-2"
+
+          {/* Mobile: uma coluna por vez */}
+          <div className="md:hidden">
+            {filteredColumns[activeColIdx] && (
+              <KanbanColumn
+                column={filteredColumns[activeColIdx]}
+                tasks={filteredColumns[activeColIdx].tasks}
+                users={users}
+                onTaskClick={handleTaskClick}
+              />
+            )}
+          </div>
+
+          {/* Desktop: todas as colunas */}
+          <div className="hidden md:grid gap-4 overflow-x-auto pb-2"
             style={{ gridTemplateColumns: `repeat(${board.columns.length}, minmax(220px, 1fr))` }}>
             {filteredColumns.map(col => (
               <KanbanColumn key={col.id} column={col} tasks={col.tasks} users={users} onTaskClick={handleTaskClick} />
             ))}
           </div>
+
           {createPortal(
             <DragOverlay>{activeTask ? <TaskCard task={activeTask} users={users} /> : null}</DragOverlay>,
             document.body,

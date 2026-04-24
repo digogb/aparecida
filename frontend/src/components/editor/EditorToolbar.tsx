@@ -13,9 +13,10 @@ interface Props {
   onToggleSearch: () => void
   onSearchChange: (value: string) => void
   onCloseSearch: () => void
+  onSidebarToggle?: () => void
 }
 
-export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDirty, showSearch, searchTerm, searchResults, onToggleSearch, onSearchChange, onCloseSearch }: Props) {
+export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDirty, showSearch, searchTerm, searchResults, onToggleSearch, onSearchChange, onCloseSearch, onSidebarToggle }: Props) {
   const searchInputRef = useRef<HTMLInputElement>(null)
   if (!editor) return null
 
@@ -229,21 +230,37 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
 
       <div className="w-px h-5 mx-1" style={{ background: '#E0D9CE' }} />
 
-      {/* Export */}
+      {/* Export — escondido em mobile para economizar espaço */}
       <button
-        className="px-3 py-1 text-sm rounded-lg transition-all duration-150 cursor-pointer"
+        className="hidden xs:block px-3 py-1 text-sm rounded-lg transition-all duration-150 cursor-pointer"
         style={{ color: '#6B6860' }}
         onClick={() => onExport('docx')}
       >
         .docx
       </button>
       <button
-        className="px-3 py-1 text-sm rounded-lg transition-all duration-150 cursor-pointer"
+        className="hidden xs:block px-3 py-1 text-sm rounded-lg transition-all duration-150 cursor-pointer"
         style={{ color: '#6B6860' }}
         onClick={() => onExport('pdf')}
       >
         .pdf
       </button>
+
+      {/* Botão de info/sidebar — só em mobile (lg: sidebar é inline) */}
+      {onSidebarToggle && (
+        <button
+          onClick={onSidebarToggle}
+          className="lg:hidden px-2 py-1 rounded text-sm transition-all duration-150 cursor-pointer"
+          style={{ color: '#6B6860' }}
+          title="Informações do parecer"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </button>
+      )}
     </div>
   )
 }

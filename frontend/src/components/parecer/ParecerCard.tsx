@@ -69,9 +69,9 @@ export default function ParecerCard({ parecer }: { parecer: ParecerRequest }) {
           <p className="text-base font-medium truncate" style={{ color: '#0A1120' }}>
             {parecer.subject || '(sem assunto)'}
           </p>
-          <p className="text-sm mt-1" style={{ color: '#A69B8D' }}>
-            {parecer.sender_email || '—'}
-            {parecer.municipio_nome && <span className="ml-1">· {parecer.municipio_nome}</span>}
+          <p className="text-sm mt-1 flex flex-wrap gap-x-1 gap-y-0.5" style={{ color: '#A69B8D' }}>
+            <span className="truncate max-w-[200px] xs:max-w-none">{parecer.sender_email || '—'}</span>
+            {parecer.municipio_nome && <span>· {parecer.municipio_nome}</span>}
           </p>
           {enviadoEm && (
             <p className="text-sm mt-1" style={{ color: '#5B7553' }}>
@@ -79,8 +79,8 @@ export default function ParecerCard({ parecer }: { parecer: ParecerRequest }) {
             </p>
           )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-sm" style={{ color: '#A69B8D' }}>{date}</span>
+        <div className="flex items-center gap-2 shrink-0 mt-0.5">
+          <span className="text-xs xs:text-sm" style={{ color: '#A69B8D' }}>{date}</span>
           {DELETABLE_STATUSES.includes(parecer.status) && (
             <button
               onClick={handleDelete}

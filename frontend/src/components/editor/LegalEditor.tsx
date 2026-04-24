@@ -490,6 +490,7 @@ export default function LegalEditor() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false)
 
   const searchResults = editor?.storage.searchHighlight?.results ?? 0
 
@@ -610,6 +611,7 @@ export default function LegalEditor() {
           onToggleSearch={() => setShowSearch(true)}
           onSearchChange={handleSearchChange}
           onCloseSearch={() => { setShowSearch(false); setSearchTerm(''); editor?.commands.setSearchTerm('') }}
+          onSidebarToggle={() => setSidebarDrawerOpen(true)}
         />
       )}
 
@@ -651,6 +653,8 @@ export default function LegalEditor() {
           activeVersion={activeVersion}
           onVersionSelect={setActiveVersion}
           onVersionRestored={setActiveVersion}
+          drawerOpen={sidebarDrawerOpen}
+          onDrawerClose={() => setSidebarDrawerOpen(false)}
         />
       </div>
 

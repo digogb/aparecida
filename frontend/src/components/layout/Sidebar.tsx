@@ -1,11 +1,18 @@
 import { NavLink } from 'react-router-dom'
 import { sidebarRoutes } from '../../routes'
+import { MobileDrawer } from './MobileDrawer'
 
-export function Sidebar() {
+interface Props {
+  variant: 'inline' | 'drawer'
+  drawerOpen?: boolean
+  onDrawerClose?: () => void
+}
+
+function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
   return (
     <aside
-      className="w-56 h-screen p-4 flex-shrink-0 flex flex-col"
-      style={{ background: 'linear-gradient(180deg, #0A1020 0%, #142038 60%, #1a2847 100%)' }}
+      className="w-56 md:w-56 h-full p-4 flex flex-col"
+      style={{ background: 'linear-gradient(180deg, #0A1020 0%, #142038 60%, #1a2847 100%)', minWidth: '224px' }}
     >
       <div className="flex items-center gap-3 mb-8 px-3 pt-1">
         <div>
@@ -23,11 +30,10 @@ export function Sidebar() {
           <NavLink
             key={r.path}
             to={r.path!}
+            onClick={onLinkClick}
             className={({ isActive }) =>
               `px-3 py-2 rounded-lg text-sm transition-colors duration-150 ${
-                isActive
-                  ? 'font-medium'
-                  : 'hover:bg-white/[0.06]'
+                isActive ? 'font-medium' : 'hover:bg-white/[0.06]'
               }`
             }
             style={({ isActive }) =>
@@ -41,5 +47,21 @@ export function Sidebar() {
         ))}
       </nav>
     </aside>
+  )
+}
+
+export function Sidebar({ variant, drawerOpen = false, onDrawerClose }: Props) {
+  return (
+    <>
+      {/* Inline: só visível em md+ */}
+      <div className="hidden md:flex flex-shrink-0 h-screen">
+        <SidebarContent />
+      </div>
+
+      {/* Drawer: visível em mobile quando aberto */}
+      <MobileDrawer open={drawerOpen} onClose={onDrawerClose ?? (() => {})} side="left">
+        <SidebarContent onLinkClick={onDrawerClose} />
+      </MobileDrawer>
+    </>
   )
 }

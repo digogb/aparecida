@@ -79,7 +79,7 @@ function PipelineBar({ stages }: { stages: PipelineStage[] }) {
         </div>
       )}
       {/* Etapas */}
-      <div className="grid grid-cols-4 sm:grid-cols-8 divide-x" style={{ borderColor: '#E0D9CE' }}>
+      <div className="grid grid-cols-2 xs:grid-cols-4 sm:grid-cols-8 divide-x" style={{ borderColor: '#E0D9CE' }}>
         {ordered.map((s) => (
           <div key={s.status} className="px-3 py-3 text-center" style={{ borderRight: '1px solid #E0D9CE' }}>
             <span
@@ -176,18 +176,18 @@ export default function DashboardPareceresPage() {
   const today = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
-    <div className="min-h-full px-6 py-8 space-y-8" style={{ background: '#F5F0E8' }}>
+    <div className="min-h-full px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8" style={{ background: '#F5F0E8' }}>
 
       {/* Header */}
       <header className="animate-fade-up">
         <p className="text-sm font-medium uppercase tracking-widest mb-0.5" style={{ color: '#A69B8D' }}>
           {getGreeting()}
         </p>
-        <div className="flex items-baseline justify-between">
-          <h1 className="font-display" style={{ fontSize: 32, fontWeight: 400, color: '#142038', letterSpacing: '-0.02em' }}>
+        <div className="flex items-baseline justify-between gap-2">
+          <h1 className="font-display" style={{ fontSize: 28, fontWeight: 400, color: '#142038', letterSpacing: '-0.02em' }}>
             {isAdvogado ? `Dr. ${firstName}` : firstName}
           </h1>
-          <p className="text-base capitalize" style={{ color: '#A69B8D' }}>{today}</p>
+          <p className="text-sm capitalize hidden xs:block" style={{ color: '#A69B8D' }}>{today}</p>
         </div>
       </header>
 

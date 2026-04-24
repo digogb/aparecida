@@ -4,6 +4,7 @@ import type { ReviewFlowStep } from '../../types/editor'
 import { restoreVersion, fetchPeerReviews } from '../../services/editorApi'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import PeerReviewPanel from './PeerReviewPanel'
+import { MobileDrawer } from '../layout/MobileDrawer'
 
 function getCurrentUserId(): string {
   try {
@@ -21,6 +22,9 @@ interface Props {
   activeVersion: ParecerVersion | null
   onVersionSelect: (version: ParecerVersion) => void
   onVersionRestored: (version: ParecerVersion) => void
+  /** Mobile drawer mode */
+  drawerOpen?: boolean
+  onDrawerClose?: () => void
 }
 
 const statusLabels: Record<string, string> = {
@@ -111,6 +115,8 @@ export default function EditorSidebar({
   activeVersion,
   onVersionSelect,
   onVersionRestored,
+  drawerOpen = false,
+  onDrawerClose,
 }: Props) {
   const [isRestoring, setIsRestoring] = useState(false)
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false)
@@ -146,8 +152,8 @@ export default function EditorSidebar({
     }
   }
 
-  return (
-    <aside className="w-[220px] overflow-y-auto flex-shrink-0" style={{ borderLeft: '1px solid #EDE8DF', background: '#EDE8DF' }}>
+  const content = (
+    <aside className="w-[220px] lg:w-[220px] h-full overflow-y-auto flex-shrink-0" style={{ borderLeft: '1px solid #EDE8DF', background: '#EDE8DF' }}>
       {/* Info */}
       <div className="p-3" style={{ borderBottom: '1px solid #E0D9CE' }}>
         <h3 className="text-sm font-medium uppercase tracking-widest mb-2" style={{ color: '#A69B8D' }}>
@@ -318,5 +324,17 @@ export default function EditorSidebar({
       {/* Peer Reviews */}
       <PeerReviewPanel parecerId={parecer.id} currentUserId={currentUserId} />
     </aside>
+  )
+
+  return (
+    <>
+      {/* Inline sidebar — só em lg+ */}
+      <div className="hidden lg:flex">{content}</div>
+
+      {/* Drawer — mobile */}
+      <MobileDrawer open={drawerOpen} onClose={onDrawerClose ?? (() => {})} side="right">
+        {content}
+      </MobileDrawer>
+    </>
   )
 }

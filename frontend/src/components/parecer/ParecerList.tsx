@@ -60,7 +60,7 @@ export default function ParecerList() {
   const sorted = [...items].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 
   return (
-    <div className="min-h-full px-6 py-8 space-y-8" style={{ background: '#F5F0E8' }}>
+    <div className="min-h-full px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8" style={{ background: '#F5F0E8' }}>
 
       {/* Header */}
       <div className="animate-fade-up flex items-end justify-between">
