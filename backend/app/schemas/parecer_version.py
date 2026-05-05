@@ -69,6 +69,7 @@ class ParecerVersionListItem(BaseModel):
     version_number: int
     source: VersionSource
     created_by: Optional[uuid.UUID] = None
+    created_by_name: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

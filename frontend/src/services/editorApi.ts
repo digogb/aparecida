@@ -35,6 +35,18 @@ export async function saveVersion(
   return data
 }
 
+export async function saveVersionSnapshot(
+  parecerId: string,
+  contentHtml: string,
+  contentTiptap?: Record<string, unknown>
+): Promise<ParecerVersion> {
+  const { data } = await api.post<ParecerVersion>(
+    `/api/parecer-requests/${parecerId}/snapshot`,
+    { content_html: contentHtml, content_tiptap: contentTiptap }
+  )
+  return data
+}
+
 export async function previewCorrection(
   parecerId: string,
   instructions: string

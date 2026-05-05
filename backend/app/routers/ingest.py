@@ -22,7 +22,6 @@ from app.models.parecer import Attachment as AttachmentModel
 UPLOADS_DIR = Path("/app/uploads")
 
 from app.database import get_db
-from app.models.municipio import Municipio
 from app.models.parecer import (
     Attachment,
     ExtractionMethod,
@@ -122,15 +121,6 @@ def _extract_domain(email_addr: str) -> str:
     return match.group(1).lower() if match else ""
 
 
-async def _identify_municipio(domain: str, db: AsyncSession):
-    result = await db.execute(select(Municipio).where(Municipio.is_active.is_(True)))
-    for m in result.scalars():
-        domains = [d.lower() for d in (m.dominios_email or [])]
-        if domain in domains:
-            return m
-    return None
-
-
 # ---------------------------------------------------------------------------
 # Endpoint
 # ---------------------------------------------------------------------------
@@ -166,10 +156,6 @@ async def ingest_eml(
     )
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Parecer já importado para este email")
-
-    # Resolve municipio from sender domain
-    domain = _extract_domain(sender_email)
-    municipio = await _identify_municipio(domain, db) if domain else None
 
     # Extract body
     body = _extract_body(msg)
@@ -218,7 +204,6 @@ async def ingest_eml(
         gmail_message_id=message_id,
         sender_email=sender_email,
         subject=subject,
-        municipio_id=municipio.id if municipio else None,
         extracted_text=extracted_text,
         extraction_status=ExtractionStatus.success if extracted_text else ExtractionStatus.partial,
         status=ParecerStatus.pendente,

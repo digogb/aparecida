@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useEditor as useTipTapEditor } from '@tiptap/react'
+import type { Node as PmNode } from '@tiptap/pm/model'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -8,8 +9,10 @@ import { useQueryClient } from '@tanstack/react-query'
 import AIContent from '../components/editor/extensions/AIContent'
 import CorrectionMark from '../components/editor/extensions/CorrectionMark'
 import SearchHighlight from '../components/editor/extensions/SearchHighlight'
+import DiffHighlight from '../components/editor/extensions/DiffHighlight'
+import type { DiffAnnotation } from '../components/editor/extensions/DiffHighlight'
 import {
-  saveVersion,
+  saveVersionSnapshot,
   previewCorrection,
   applyCorrection,
   approveParecer,
@@ -206,6 +209,155 @@ function replaceTextInEditor(
   return true
 }
 
+// ── Diff utilities ────────────────────────────────────────────────────────────────────────────
+
+type DiffToken = { type: 'same' | 'add' | 'remove'; value: string }
+
+// Strip leading/trailing punctuation before comparing — avoids marking
+// "interno." ≠ "interno" when a word is inserted before the sentence-final period.
+const normTok = (s: string) =>
+  s.replace(/^[.,;:!?()[\]{}'"""''«»—–…]+|[.,;:!?()[\]{}'"""''«»—–…]+$/g, '').toLowerCase()
+
+function diffWords(a: string[], b: string[]): DiffToken[] {
+  const m = a.length, n = b.length
+  const al = a.map(normTok)
+  const bl = b.map(normTok)
+  const lcs = Array.from({ length: m + 1 }, () => new Int32Array(n + 1))
+  for (let i = m - 1; i >= 0; i--)
+    for (let j = n - 1; j >= 0; j--)
+      lcs[i][j] = al[i] === bl[j] ? lcs[i+1][j+1] + 1 : Math.max(lcs[i+1][j], lcs[i][j+1])
+  const result: DiffToken[] = []
+  let i = 0, j = 0
+  while (i < m && j < n) {
+    if (al[i] === bl[j]) { result.push({ type: 'same', value: b[j] }); i++; j++ }
+    else if (lcs[i+1][j] >= lcs[i][j+1]) { result.push({ type: 'remove', value: a[i] }); i++ }
+    else { result.push({ type: 'add', value: b[j] }); j++ }
+  }
+  while (j < n) result.push({ type: 'add', value: b[j++] })
+  return result
+}
+
+interface ParaSegment {
+  rawText: string
+  charToPos: number[]
+  firstPos: number
+}
+
+function extractParaSegments(doc: PmNode): ParaSegment[] {
+  const result: ParaSegment[] = []
+  doc.descendants((node: PmNode, pos: number) => {
+    if (node.type.name !== 'paragraph' && node.type.name !== 'heading') return
+    const charToPos: number[] = []
+    const parts: string[] = []
+    node.forEach((child: PmNode, offset: number) => {
+      if (child.isText && child.text) {
+        const absStart = pos + 1 + offset
+        for (let i = 0; i < child.text.length; i++) charToPos.push(absStart + i)
+        parts.push(child.text)
+      }
+    })
+    if (charToPos.length > 0) {
+      result.push({ rawText: parts.join(''), charToPos, firstPos: charToPos[0] })
+    }
+  })
+  return result
+}
+
+function extractPrevParaTexts(html: string): string[] {
+  const div = document.createElement('div')
+  div.innerHTML = html
+  const texts: string[] = []
+  function walk(el: Element) {
+    for (const child of Array.from(el.children)) {
+      const tag = child.tagName.toLowerCase()
+      if (['p','h1','h2','h3','h4','h5','h6','li'].includes(tag)) {
+        const t = (child.textContent ?? '').replace(/\s+/g, ' ').trim()
+        if (t) texts.push(t)
+      } else {
+        walk(child)
+      }
+    }
+  }
+  walk(div)
+  return texts
+}
+
+/** Extrai textos dos paragraph/heading de um doc TipTap (JSON), recursivamente.
+ *  Reflete o comportamento de `extractParaSegments` (que usa doc.descendants) —
+ *  só assim os índices alinham entre versões. */
+function extractTiptapParaTexts(tiptap: Record<string, unknown> | null | undefined): string[] {
+  if (!tiptap) return []
+  const result: string[] = []
+
+  const collectText = (n: Record<string, unknown>): string => {
+    if (n.type === 'text' && typeof n.text === 'string') return n.text
+    const children = Array.isArray(n.content) ? n.content : []
+    return children.map((c) => collectText(c as Record<string, unknown>)).join('')
+  }
+
+  const walk = (node: Record<string, unknown>) => {
+    const type = node.type
+    if (type === 'paragraph' || type === 'heading') {
+      const children = Array.isArray(node.content) ? node.content : []
+      const text = children
+        .map((c) => collectText(c as Record<string, unknown>))
+        .join('')
+        .replace(/\s+/g, ' ')
+        .trim()
+      if (text) result.push(text)
+    }
+    // Continua descendo para pegar paragraph/heading aninhados (ex: dentro de blockquote)
+    const children = Array.isArray(node.content) ? node.content : []
+    for (const c of children) walk(c as Record<string, unknown>)
+  }
+
+  const top = Array.isArray(tiptap.content) ? tiptap.content : []
+  for (const n of top) walk(n as Record<string, unknown>)
+  return result
+}
+
+/** Pega os parágrafos da versão anterior priorizando o TipTap JSON (estável)
+ *  e caindo para HTML quando o JSON não está disponível. */
+function getPrevVersionParaTexts(version: { content_tiptap?: Record<string, unknown> | null; content_html?: string | null }): string[] {
+  if (version.content_tiptap) {
+    const texts = extractTiptapParaTexts(version.content_tiptap)
+    if (texts.length > 0) return texts
+  }
+  return extractPrevParaTexts(version.content_html ?? '')
+}
+
+// ── End diff utilities ──────────────────────────────────────────────────────────────────────────
+
+function textExistsInEditor(
+  editor: ReturnType<typeof useTipTapEditor>,
+  text: string,
+): boolean {
+  if (!editor || !text) return false
+  const target = normalizeForMatch(text)
+  if (!target) return false
+
+  let normText = ''
+  let prevWasSpace = true
+  editor.state.doc.descendants((node) => {
+    if (node.isText && node.text) {
+      for (const c of node.text) {
+        const isSpace = /\s/.test(c) || c === ' '
+        if (isSpace) {
+          if (!prevWasSpace) { normText += ' '; prevWasSpace = true }
+        } else {
+          normText += c
+            .replace(/[“”„‟″]/g, '"')
+            .replace(/[‘’‚‛′]/g, "'")
+            .replace(/[–—−]/g, '-')
+            .toLowerCase()
+          prevWasSpace = false
+        }
+      }
+    }
+  })
+  return normText.includes(target)
+}
+
 function getDismissedReviewIds(parecerId: string): string[] {
   try {
     const raw = localStorage.getItem(`peer_review_dismissed:${parecerId}`)
@@ -246,7 +398,7 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
   const [completedReviewsForMe, setCompletedReviewsForMe] = useState<PeerReviewListItem[]>([])
   const [activeCompletedReview, setActiveCompletedReview] = useState<PeerReviewListItem | null>(null)
   const [showCompletedReviewModal, setShowCompletedReviewModal] = useState(false)
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [diffAnnotation, setDiffAnnotation] = useState<DiffAnnotation | null>(null)
   const saveRef = useRef<() => void>(() => {})
   const queryClient = useQueryClient()
 
@@ -269,6 +421,7 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
       AIContent,
       CorrectionMark,
       SearchHighlight,
+      DiffHighlight,
     ],
     content: activeVersion?.content_tiptap || activeVersion?.content_html || '',
     onUpdate: () => {
@@ -277,7 +430,7 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     editorProps: {
       attributes: {
         class:
-          'prose prose-sm max-w-none focus:outline-none min-h-[500px] px-8 py-6',
+          'prose prose-sm max-w-none focus:outline-none min-h-[500px] pl-8 pr-16 py-6',
       },
       handleKeyDown: (_view, event) => {
         if ((event.ctrlKey || event.metaKey) && event.key === 's') {
@@ -302,36 +455,197 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     }
   }, [editor])
 
-  // Sync content when activeVersion changes
+  // Sync content when activeVersion changes.
+  // `setContent(..., false)` evita emitir onUpdate — caso contrário a troca
+  // de versão (ex.: restauração) marcaria isDirty=true e geraria nova versão
+  // ao salvar/enviar mesmo sem o usuário ter editado nada.
   useEffect(() => {
     if (editor && activeVersion) {
       const newContent = activeVersion.content_tiptap || activeVersion.content_html || ''
-      editor.commands.setContent(newContent)
+      editor.commands.setContent(newContent, false)
       setIsDirty(false)
       setCorrectionCount(0)
     }
   }, [activeVersion, editor])
 
-  // Auto-save debounce 2s
+  // Diff highlight acumulado: percorre o histórico efetivo até a versão ativa
+  // e marca cada palavra adicionada com as iniciais do autor da versão.
+  // Restauração: ao encontrar uma versão `restaurado`, descarta as versões
+  // intermediárias e retoma o histórico até a versão de origem.
   useEffect(() => {
-    if (!isDirty || !editor || !parecer || !activeVersion) return
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    saveTimerRef.current = setTimeout(async () => {
-      setIsSaving(true)
-      try {
-        await saveVersion(parecer.id, activeVersion.id, editor.getHTML(), editor.getJSON())
-        setIsDirty(false)
-        queryClient.invalidateQueries({ queryKey: ['parecer', parecer.id] })
-      } catch (err) {
-        console.error('Auto-save failed:', err)
-      } finally {
-        setIsSaving(false)
-      }
-    }, 2000)
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    if (!editor || !activeVersion || !parecer) {
+      editor?.commands.setDiffAnnotation(null)
+      setDiffAnnotation(null)
+      return
     }
-  }, [isDirty, editor, parecer, activeVersion, queryClient])
+
+    const toInitials = (name: string | null | undefined, source?: string) => {
+      // Versões geradas pela IA (sem created_by) sempre aparecem como 'IA',
+      // incluindo `ia_gerado` e `ia_reprocessado` (correção solicitada à IA).
+      if (!name || source === 'ia_gerado' || source === 'ia_reprocessado') return 'IA'
+      return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')
+    }
+
+    const allSorted = [...parecer.versions].sort((a, b) => a.version_number - b.version_number)
+    const activeIdx = allSorted.findIndex(v => v.id === activeVersion.id)
+    if (activeIdx < 0) {
+      editor.commands.setDiffAnnotation(null)
+      setDiffAnnotation(null)
+      return
+    }
+
+    // Histórico efetivo: aplica restaurações truncando a linha do tempo.
+    // Ex.: v1, v2 (RB), v3 (MM), v4 (restaurado da v2) → efetivo: v1, v2.
+    // Edições de v3 desaparecem; marcações de RB em v2 permanecem.
+    const effective: typeof allSorted = []
+    for (let i = 0; i <= activeIdx; i++) {
+      const v = allSorted[i]
+      if (v.source === 'restaurado' && v.reprocess_instructions) {
+        const m = v.reprocess_instructions.match(/v(\d+)/)
+        if (m) {
+          const fromNum = parseInt(m[1], 10)
+          const fromIdx = allSorted.findIndex(x => x.version_number === fromNum)
+          if (fromIdx >= 0) {
+            effective.length = 0
+            for (let j = 0; j <= fromIdx; j++) effective.push(allSorted[j])
+            continue
+          }
+        }
+        // Fallback: se não conseguir parsear, trata como versão normal
+        effective.push(v)
+      } else {
+        effective.push(v)
+      }
+    }
+
+    if (effective.length < 2) {
+      editor.commands.setDiffAnnotation(null)
+      setDiffAnnotation(null)
+      return
+    }
+
+    const timer = setTimeout(() => {
+      // Para cada par consecutivo (vN, vN+1) do histórico efetivo: faz diff
+      // palavra-a-palavra dos parágrafos correspondentes (por índice). Cada
+      // palavra adicionada é marcada com as iniciais do autor de vN+1.
+      // Múltiplos autores no mesmo parágrafo → iniciais acumulam ('RB / MM').
+      const paraMap = new Map<number, Set<string>>() // paraIdx → conjunto de iniciais
+      const allWordRanges: DiffAnnotation['wordRanges'] = []
+      const curParas = extractParaSegments(editor.state.doc)
+
+      // Normaliza um parágrafo para fins de comparação:
+      // - remove marcadores **bold** e _italic_
+      // - unifica aspas, traços e espaços
+      // - lowercase
+      const normalizePara = (s: string) =>
+        s
+          .replace(/\*\*/g, '')
+          .replace(/[“”„‟″]/g, '"')
+          .replace(/[‘’‚‛′]/g, "'")
+          .replace(/[–—−]/g, '-')
+          .replace(/ /g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .toLowerCase()
+
+      for (let i = 1; i < effective.length; i++) {
+        const prev = effective[i - 1]
+        const next = effective[i]
+
+        const prevParas = getPrevVersionParaTexts(prev)
+        const nextParas = getPrevVersionParaTexts(next)
+        if (prevParas.length === 0 || nextParas.length === 0) continue
+
+        const initials = toInitials(next.created_by_name, next.source)
+
+        // Set de parágrafos prévios (normalizados) para detectar quando o texto
+        // foi preservado mesmo que o índice tenha mudado (ex.: a IA reconstrói
+        // todos os nodes TipTap mesmo em seções inalteradas).
+        const prevSet = new Set(prevParas.map(normalizePara))
+
+        const minLen = Math.min(prevParas.length, nextParas.length)
+
+        for (let p = 0; p < minLen; p++) {
+          const prevRaw = prevParas[p].replace(/\s+/g, ' ').trim()
+          const nextRaw = nextParas[p].replace(/\s+/g, ' ').trim()
+          if (!prevRaw || !nextRaw || prevRaw === nextRaw) continue
+          // Texto idêntico (em qualquer posição da versão anterior) → preservado
+          if (prevSet.has(normalizePara(nextRaw))) continue
+          if (p >= curParas.length) continue
+
+          const cur = curParas[p]
+          const prevToks = prevRaw.match(/\S+/g) ?? []
+          const nextToks = nextRaw.match(/\S+/g) ?? []
+          const tokens = diffWords(prevToks, nextToks)
+
+          const addedCount = tokens.filter(t => t.type === 'add').length
+          // Reescrita total (>60%): só badge, sem word ranges para não poluir
+          const fullRewrite = nextToks.length > 0 && addedCount / nextToks.length > 0.6
+
+          let addedRanges = 0
+          if (!fullRewrite) {
+            const curRaw = cur.rawText.replace(/\s+/g, ' ').trim()
+            let charOffset = 0
+            for (const tok of tokens) {
+              if (tok.type === 'remove') continue
+              const idx = curRaw.indexOf(tok.value, charOffset)
+              if (idx === -1) { charOffset += tok.value.length; continue }
+              charOffset = idx
+              if (tok.type === 'add' && tok.value.trim() && idx < cur.charToPos.length) {
+                allWordRanges.push({
+                  from: cur.charToPos[idx],
+                  to: cur.charToPos[Math.min(idx + tok.value.length - 1, cur.charToPos.length - 1)] + 1,
+                  initials,
+                })
+                addedRanges++
+              }
+              charOffset += tok.value.length
+            }
+          }
+
+          // Badge: aparece quando houve word ranges OU reescrita total
+          if (addedRanges > 0 || fullRewrite) {
+            const set = paraMap.get(p) ?? new Set<string>()
+            set.add(initials)
+            paraMap.set(p, set)
+          }
+        }
+      }
+
+      const paraFirstPositions: number[] = []
+      const paraInitials: string[] = []
+      const sortedEntries = [...paraMap.entries()].sort(([a], [b]) => a - b)
+      for (const [idx, set] of sortedEntries) {
+        if (idx < curParas.length) {
+          paraFirstPositions.push(curParas[idx].firstPos)
+          // Ordenar: 'IA' primeiro, depois iniciais humanas alfabeticamente
+          const list = [...set].sort((a, b) => {
+            if (a === 'IA') return -1
+            if (b === 'IA') return 1
+            return a.localeCompare(b)
+          })
+          paraInitials.push(list.join(' / '))
+        }
+      }
+
+      if (paraFirstPositions.length === 0 && allWordRanges.length === 0) {
+        editor.commands.setDiffAnnotation(null)
+        setDiffAnnotation(null)
+        return
+      }
+
+      const annotation: DiffAnnotation = {
+        wordRanges: allWordRanges,
+        paraFirstPositions,
+        initials: '',
+        paraInitials,
+      }
+      editor.commands.setDiffAnnotation(annotation)
+      setDiffAnnotation(annotation)
+    }, 80)
+
+    return () => clearTimeout(timer)
+  }, [activeVersion, editor, parecer])
 
   // Fetch peer reviews to detect pending review (as reviewer)
   // and completed reviews that the user requested (as requester, awaiting action)
@@ -375,18 +689,22 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
 
   const handleSave = useCallback(async () => {
     if (!editor || !parecer || !activeVersion) return
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    // Não cria nova versão se o conteúdo não foi alterado pelo usuário.
+    // Evita gerar snapshot supérfluo após restaurar versão ou aprovar/enviar
+    // sem ter editado nada.
+    if (!isDirty) return
     setIsSaving(true)
     try {
-      await saveVersion(parecer.id, activeVersion.id, editor.getHTML(), editor.getJSON())
+      const newVersion = await saveVersionSnapshot(parecer.id, editor.getHTML(), editor.getJSON())
       setIsDirty(false)
+      setActiveVersion(newVersion)
       queryClient.invalidateQueries({ queryKey: ['parecer', parecer.id] })
     } catch (err) {
       console.error('Save failed:', err)
     } finally {
       setIsSaving(false)
     }
-  }, [editor, parecer, activeVersion, queryClient])
+  }, [editor, parecer, activeVersion, isDirty, queryClient])
 
   // Keep saveRef current so Ctrl+S always calls the latest handleSave
   saveRef.current = handleSave
@@ -507,11 +825,12 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
   }, [])
 
   /** Apply a single suggestion: replace `original` with `sugestao` in the editor.
-   *  On success, silently mark the active review as dismissed so the footer
-   *  button disappears as soon as the user actually applied something. */
+   *  If the backend already applied the replacement (sugestao text already present
+   *  and original text absent), treat as success without modifying the editor. */
   const handleApplySuggestion = useCallback(
     (original: string, sugestao: string): boolean => {
-      const ok = replaceTextInEditor(editor, original, sugestao)
+      const alreadyApplied = !textExistsInEditor(editor, original) && textExistsInEditor(editor, sugestao)
+      const ok = alreadyApplied || replaceTextInEditor(editor, original, sugestao)
       if (ok && parecer && activeCompletedReview) {
         const reviewId = activeCompletedReview.id
         addDismissedReviewId(parecer.id, reviewId)
@@ -589,6 +908,7 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     setActiveVersion,
     isDirty,
     isSaving,
+    diffAnnotation,
     showSplitView,
     setShowSplitView,
     showReturnModal,

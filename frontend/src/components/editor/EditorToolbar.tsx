@@ -3,20 +3,21 @@ import type { Editor } from '@tiptap/react'
 
 interface Props {
   editor: Editor | null
-  onExport: (format: 'docx' | 'pdf') => void
   onSave: () => void
   isSaving: boolean
   isDirty: boolean
+  onExport: (format: 'docx' | 'pdf') => void
+  showSplitView: boolean
+  onToggleSplitView: () => void
   showSearch: boolean
   searchTerm: string
   searchResults: number
   onToggleSearch: () => void
   onSearchChange: (value: string) => void
   onCloseSearch: () => void
-  onSidebarToggle?: () => void
 }
 
-export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDirty, showSearch, searchTerm, searchResults, onToggleSearch, onSearchChange, onCloseSearch, onSidebarToggle }: Props) {
+export default function EditorToolbar({ editor, onSave, isSaving, isDirty, onExport, showSplitView, onToggleSplitView, showSearch, searchTerm, searchResults, onToggleSearch, onSearchChange, onCloseSearch }: Props) {
   const searchInputRef = useRef<HTMLInputElement>(null)
   if (!editor) return null
 
@@ -214,53 +215,44 @@ export default function EditorToolbar({ editor, onExport, onSave, isSaving, isDi
       {/* Save */}
       <button
         className="px-3 py-1 text-sm rounded-lg font-medium transition-all duration-150 cursor-pointer"
-        style={
-          isSaving
-            ? { color: '#A69B8D', cursor: 'not-allowed' }
-            : isDirty
-              ? { background: '#142038', color: '#FAF8F5' }
-              : { color: '#A69B8D', border: '1.5px solid #E0D9CE' }
-        }
+        style={isSaving ? { color: '#A69B8D', cursor: 'not-allowed' } : { background: '#142038', color: '#FAF8F5' }}
         onClick={onSave}
-        disabled={isSaving || !isDirty}
-        title="Salvar (Ctrl+S)"
+        disabled={isSaving}
+        title="Salvar versão (Ctrl+S)"
       >
-        {isSaving ? 'Salvando…' : 'Salvar'}
+        {isSaving ? 'Salvando…' : isDirty ? 'Salvar *' : 'Salvar'}
       </button>
 
       <div className="w-px h-5 mx-1" style={{ background: '#E0D9CE' }} />
 
-      {/* Export — escondido em mobile para economizar espaço */}
       <button
-        className="hidden xs:block px-3 py-1 text-sm rounded-lg transition-all duration-150 cursor-pointer"
+        className="px-3 py-1 text-sm rounded-lg transition-all duration-150 cursor-pointer"
         style={{ color: '#6B6860' }}
         onClick={() => onExport('docx')}
       >
         .docx
       </button>
       <button
-        className="hidden xs:block px-3 py-1 text-sm rounded-lg transition-all duration-150 cursor-pointer"
+        className="px-3 py-1 text-sm rounded-lg transition-all duration-150 cursor-pointer"
         style={{ color: '#6B6860' }}
         onClick={() => onExport('pdf')}
       >
         .pdf
       </button>
 
-      {/* Botão de info/sidebar — só em mobile (lg: sidebar é inline) */}
-      {onSidebarToggle && (
-        <button
-          onClick={onSidebarToggle}
-          className="lg:hidden px-2 py-1 rounded text-sm transition-all duration-150 cursor-pointer"
-          style={{ color: '#6B6860' }}
-          title="Informações do parecer"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-        </button>
-      )}
+      <div className="w-px h-5 mx-1" style={{ background: '#E0D9CE' }} />
+
+      <button
+        onClick={onToggleSplitView}
+        className="px-3 py-1 text-sm rounded-lg transition-all duration-150 cursor-pointer"
+        style={
+          showSplitView
+            ? { background: '#C9A94E18', color: '#C9A94E', border: '1.5px solid #C9A94E44' }
+            : { color: '#6B6860', border: '1.5px solid #E0D9CE' }
+        }
+      >
+        Split
+      </button>
     </div>
   )
 }

@@ -295,9 +295,9 @@ def _extract_text_from_node(node: dict) -> str:
 
 
 def _build_metadata(pr: ParecerRequest, classification: dict) -> dict:
-    """Monta o dict de metadata para render_parecer_html."""
-    municipio = classification.get("municipio", "")
-    uf = classification.get("uf", "CE")
+    """Monta o dict de metadata para render_parecer_html usando os dados da IA."""
+    municipio = (classification.get("municipio") or "").strip()
+    uf = (classification.get("uf") or "CE").strip()
     municipio_uf = f"{municipio}/{uf}" if municipio else "[Município/UF]"
     return {
         "orgao_consulente": classification.get("orgao_consulente", pr.sender_email or ""),

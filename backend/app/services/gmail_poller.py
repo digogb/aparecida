@@ -26,7 +26,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import async_session
-from app.models.municipio import Municipio
 from app.models.parecer import (
     Attachment,
     ExtractionMethod,
@@ -215,15 +214,6 @@ async def _get_or_create_config(db: AsyncSession, key: str) -> SystemConfig:
     return cfg
 
 
-async def _identify_municipio(domain: str, db: AsyncSession) -> Municipio | None:
-    result = await db.execute(select(Municipio).where(Municipio.is_active.is_(True)))
-    for m in result.scalars():
-        domains = [d.lower() for d in (m.dominios_email or [])]
-        if domain in domains:
-            return m
-    return None
-
-
 async def _already_imported(thread_id: str, message_id: str, db: AsyncSession) -> bool:
     result = await db.execute(
         select(ParecerRequest).where(
@@ -297,15 +287,12 @@ async def _ingest_message(
     header_context = f"Assunto: {subject}\nRemetente: {sender_email}"
     extracted_text = f"{header_context}\n\n{extracted_text}" if extracted_text else header_context
 
-    municipio = await _identify_municipio(domain, db) if domain else None
-
     parecer = ParecerRequest(
         id=uuid.uuid4(),
         gmail_thread_id=thread_id,
         gmail_message_id=message_id,
         sender_email=sender_email,
         subject=subject,
-        municipio_id=municipio.id if municipio else None,
         extracted_text=extracted_text,
         extraction_status=ExtractionStatus.success if extracted_text else ExtractionStatus.partial,
         status=ParecerStatus.pendente,

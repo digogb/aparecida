@@ -3,13 +3,12 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, literal_column, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
 from app.models.movement import Movement, MovementType, Process
-from app.models.municipio import Municipio
 from app.models.parecer import ParecerRequest, ParecerStatus, PeerReview, PeerReviewStatus
 from app.models.task import Column, Task, TaskPriority
 from app.models.user import User
@@ -248,24 +247,21 @@ async def get_dashboard_recent(
 ) -> DashboardRecent:
     _require_user(credentials)
 
-    # Últimos 5 pareceres (com join para municipio)
+    # Últimos 5 pareceres
     pareceres_q = await db.execute(
-        select(ParecerRequest, Municipio.name.label("municipio_nome"))
-        .outerjoin(Municipio, ParecerRequest.municipio_id == Municipio.id)
+        select(ParecerRequest)
         .order_by(ParecerRequest.created_at.desc())
         .limit(5)
     )
-    pareceres_rows = pareceres_q.all()
-
     pareceres = [
         RecentParecer(
-            id=row.ParecerRequest.id,
-            subject=row.ParecerRequest.subject,
-            status=row.ParecerRequest.status.value,
-            municipio_nome=row.municipio_nome,
-            created_at=row.ParecerRequest.created_at,
+            id=pr.id,
+            subject=pr.subject,
+            status=pr.status.value,
+            municipio_nome=(pr.classificacao or {}).get("municipio"),
+            created_at=pr.created_at,
         )
-        for row in pareceres_rows
+        for pr in pareceres_q.scalars().all()
     ]
 
     # Últimas 5 movimentações
@@ -343,23 +339,22 @@ async def get_pareceres_overview(
 
     total_abertos = sum(status_counts.get(s, 0) for s in _ABERTOS_STATUSES)
 
-    # Por município (top 6, apenas abertos)
+    # Por município (top 6, apenas abertos) — agrupado pelo nome detectado pela IA
+    _mun_expr = literal_column("classificacao->>'municipio'")
     mun_q = await db.execute(
         select(
-            Municipio.id.label("municipio_id"),
-            Municipio.name.label("municipio_nome"),
+            _mun_expr.label("municipio_nome"),
             func.count().label("cnt"),
         )
         .select_from(ParecerRequest)
-        .outerjoin(Municipio, ParecerRequest.municipio_id == Municipio.id)
         .where(ParecerRequest.status.in_(_ABERTOS_STATUSES))
-        .group_by(Municipio.id, Municipio.name)
+        .group_by(_mun_expr)
         .order_by(func.count().desc())
         .limit(6)
     )
     por_municipio = [
         MunicipioItem(
-            municipio_id=row.municipio_id,
+            municipio_id=None,
             municipio_nome=row.municipio_nome or "Sem município",
             count=row.cnt,
         )
@@ -390,22 +385,21 @@ async def get_pareceres_overview(
 
     # 5 pareceres mais antigos ainda abertos
     antigos_q = await db.execute(
-        select(ParecerRequest, Municipio.name.label("municipio_nome"))
-        .outerjoin(Municipio, ParecerRequest.municipio_id == Municipio.id)
+        select(ParecerRequest)
         .where(ParecerRequest.status.in_(_ABERTOS_STATUSES))
         .order_by(ParecerRequest.created_at.asc())
         .limit(5)
     )
     mais_antigos = [
         OldestParecer(
-            id=row.ParecerRequest.id,
-            subject=row.ParecerRequest.subject,
-            status=row.ParecerRequest.status.value,
-            municipio_nome=row.municipio_nome,
-            created_at=row.ParecerRequest.created_at,
-            dias_aberto=max(0, (now - row.ParecerRequest.created_at).days),
+            id=pr.id,
+            subject=pr.subject,
+            status=pr.status.value,
+            municipio_nome=(pr.classificacao or {}).get("municipio"),
+            created_at=pr.created_at,
+            dias_aberto=max(0, (now - pr.created_at).days),
         )
-        for row in antigos_q.all()
+        for pr in antigos_q.scalars().all()
     ]
 
     # Concluídos na semana (enviados ou aprovados nos últimos 7 dias)

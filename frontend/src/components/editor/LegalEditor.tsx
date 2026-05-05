@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { EditorContent } from '@tiptap/react'
 import { useParecer } from '../../hooks/useParecer'
@@ -10,6 +10,7 @@ import EditorSidebar from './EditorSidebar'
 import SplitView from './SplitView'
 import PeerReviewModal from './PeerReviewModal'
 import CompletedReviewModal from './CompletedReviewModal'
+import DiffGutter from './DiffGutter'
 
 const SECTION_LABELS: Record<string, string> = {
   ementa: 'Ementa',
@@ -451,6 +452,7 @@ export default function LegalEditor() {
     setActiveVersion,
     isDirty,
     isSaving,
+    diffAnnotation,
     showSplitView,
     setShowSplitView,
     showReturnModal,
@@ -487,6 +489,7 @@ export default function LegalEditor() {
     handleDismissCompletedReview,
   } = useEditorInstance(parecer ?? null)
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -582,72 +585,70 @@ export default function LegalEditor() {
             <span className="text-sm" style={{ color: '#5B7553' }}>Salvo</span>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowSplitView(!showSplitView)}
-            className="px-3 py-1 text-sm rounded-lg transition-all duration-150 cursor-pointer"
-            style={
-              showSplitView
-                ? { background: '#C9A94E18', color: '#C9A94E', border: '1.5px solid #C9A94E44' }
-                : { color: '#6B6860', border: '1.5px solid #E0D9CE' }
-            }
-          >
-            Split View
-          </button>
-        </div>
       </div>
 
-      {/* Toolbar — hidden while generating */}
-      {activeVersion && (
-        <EditorToolbar
-          editor={editor}
-          onExport={handleExport}
-          onSave={handleSave}
-          isSaving={isSaving}
-          isDirty={isDirty}
-          showSearch={showSearch}
-          searchTerm={searchTerm}
-          searchResults={searchResults}
-          onToggleSearch={() => setShowSearch(true)}
-          onSearchChange={handleSearchChange}
-          onCloseSearch={() => { setShowSearch(false); setSearchTerm(''); editor?.commands.setSearchTerm('') }}
-          onSidebarToggle={() => setSidebarDrawerOpen(true)}
-        />
-      )}
+      {/* Main content area */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left column: toolbar + editor */}
+        <div className={`flex flex-col flex-1 overflow-hidden ${!activeVersion && (parecer.status === 'classificado' || parecer.status === 'pendente') ? '' : ''}`}>
+          {/* Toolbar — hidden while generating */}
+          {activeVersion && (
+            <EditorToolbar
+              editor={editor}
+              onSave={handleSave}
+              isSaving={isSaving}
+              isDirty={isDirty}
+              onExport={handleExport}
+              showSplitView={showSplitView}
+              onToggleSplitView={() => setShowSplitView(!showSplitView)}
+              showSearch={showSearch}
+              searchTerm={searchTerm}
+              searchResults={searchResults}
+              onToggleSearch={() => setShowSearch(true)}
+              onSearchChange={handleSearchChange}
+              onCloseSearch={() => { setShowSearch(false); setSearchTerm(''); editor?.commands.setSearchTerm('') }}
+            />
+          )}
 
-      {/* Pipeline processing state — shown while classify + generate runs in background */}
-      {!activeVersion && (parecer.status === 'classificado' || parecer.status === 'pendente') && (
-        <div className="flex flex-1 items-center justify-center" style={{ background: '#FAF8F5' }}>
-          <div className="text-center max-w-sm">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: '#C9A94E18' }}>
-              <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C9A94E" strokeWidth="2.5">
-                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-              </svg>
+          {/* Pipeline processing state */}
+          {!activeVersion && (parecer.status === 'classificado' || parecer.status === 'pendente') && (
+            <div className="flex flex-1 items-center justify-center" style={{ background: '#FAF8F5' }}>
+              <div className="text-center max-w-sm">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: '#C9A94E18' }}>
+                  <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C9A94E" strokeWidth="2.5">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                  </svg>
+                </div>
+                <h2 className="text-base font-medium mb-1" style={{ color: '#0A1120' }}>Gerando minuta...</h2>
+                <p className="text-sm mb-2" style={{ color: '#A69B8D' }}>A IA está classificando o pedido e redigindo a minuta do parecer. Isso pode levar alguns segundos.</p>
+                {generateError && (
+                  <p className="text-sm mb-3" style={{ color: '#8B2332' }}>{generateError}</p>
+                )}
+              </div>
             </div>
-            <h2 className="text-base font-medium mb-1" style={{ color: '#0A1120' }}>Gerando minuta...</h2>
-            <p className="text-sm mb-2" style={{ color: '#A69B8D' }}>A IA está classificando o pedido e redigindo a minuta do parecer. Isso pode levar alguns segundos.</p>
-            {generateError && (
-              <p className="text-sm mb-3" style={{ color: '#8B2332' }}>{generateError}</p>
+          )}
+
+          {/* Editor area */}
+          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto relative" style={{ background: '#FAF8F5' }}>
+            {showSplitView ? (
+              <SplitView
+                originalText={parecer.extracted_text}
+                editor={editor}
+              />
+            ) : (
+              <EditorContent editor={editor} />
+            )}
+            {diffAnnotation && editor && (
+              <DiffGutter
+                editor={editor}
+                annotation={diffAnnotation}
+                scrollContainerRef={scrollContainerRef as React.RefObject<HTMLDivElement>}
+              />
             )}
           </div>
         </div>
-      )}
 
-      {/* Main content area */}
-      <div className={`flex flex-1 overflow-hidden ${!activeVersion && (parecer.status === 'classificado' || parecer.status === 'pendente') ? 'hidden' : ''}`}>
-        {/* Editor area */}
-        <div className="flex-1 overflow-y-auto" style={{ background: '#FAF8F5' }}>
-          {showSplitView ? (
-            <SplitView
-              originalText={parecer.extracted_text}
-              editor={editor}
-            />
-          ) : (
-            <EditorContent editor={editor} />
-          )}
-        </div>
-
-        {/* Sidebar */}
+        {/* Sidebar — full height from header */}
         <EditorSidebar
           parecer={parecer}
           activeVersion={activeVersion}

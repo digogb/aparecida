@@ -57,7 +57,9 @@ class ParecerVersionOut(BaseModel):
     source: VersionSource
     content_tiptap: Optional[dict] = None
     content_html: Optional[str] = None
+    reprocess_instructions: Optional[str] = None
     created_by: Optional[uuid.UUID] = None
+    created_by_name: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -106,7 +108,7 @@ class PaginatedParecerRequests(BaseModel):
 async def list_parecer_requests(
     status: Optional[ParecerStatus] = Query(default=None),
     tema: Optional[ParecerTema] = Query(default=None),
-    municipio_id: Optional[uuid.UUID] = Query(default=None),
+    municipio: Optional[str] = Query(default=None),
     remetente: Optional[str] = Query(default=None),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -118,8 +120,10 @@ async def list_parecer_requests(
         base_filters.append(ParecerRequest.status == status)
     if tema is not None:
         base_filters.append(ParecerRequest.tema == tema)
-    if municipio_id is not None:
-        base_filters.append(ParecerRequest.municipio_id == municipio_id)
+    if municipio is not None:
+        base_filters.append(
+            ParecerRequest.classificacao["municipio"].astext.ilike(f"%{municipio}%")
+        )
     if remetente is not None:
         base_filters.append(ParecerRequest.sender_email.ilike(f"%{remetente}%"))
 
@@ -150,6 +154,8 @@ async def get_parecer_request(
     id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ) -> ParecerRequestDetail:
+    from app.models.user import User
+
     result = await db.execute(
         select(ParecerRequest)
         .options(
@@ -162,7 +168,18 @@ async def get_parecer_request(
     if not item:
         raise HTTPException(status_code=404, detail="Parecer request nao encontrado")
 
-    return ParecerRequestDetail.model_validate(item)
+    user_ids = {v.created_by for v in item.versions if v.created_by}
+    user_names: dict[uuid.UUID, str] = {}
+    if user_ids:
+        users_result = await db.execute(select(User.id, User.name).where(User.id.in_(user_ids)))
+        user_names = {row.id: row.name for row in users_result}
+
+    detail = ParecerRequestDetail.model_validate(item)
+    detail.versions = [
+        v.model_copy(update={"created_by_name": user_names.get(v.created_by)})
+        for v in detail.versions
+    ]
+    return detail
 
 
 @router.post("/parecer-requests/{id}/retry-extraction", response_model=ParecerRequestOut)

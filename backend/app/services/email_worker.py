@@ -15,7 +15,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
-from app.models.municipio import Municipio
 from app.models.parecer import (
     Attachment,
     ExtractionMethod,
@@ -183,20 +182,6 @@ async def fetch_email(message_id: str) -> dict[str, Any]:
     }
 
 
-async def identify_municipio(
-    email_domain: str, db: AsyncSession
-) -> Optional[Municipio]:
-    """Return the Municipio whose dominios_email list contains *email_domain*."""
-    result = await db.execute(
-        select(Municipio).where(Municipio.is_active.is_(True))
-    )
-    for municipio in result.scalars():
-        domains = [d.lower() for d in (municipio.dominios_email or [])]
-        if email_domain.lower() in domains:
-            return municipio
-    return None
-
-
 async def process_pending_requests(db: AsyncSession) -> None:
     """Fetch and process every parecer_request with status='pendente'."""
     result = await db.execute(
@@ -217,14 +202,6 @@ async def process_pending_requests(db: AsyncSession) -> None:
 
         try:
             email_data = await fetch_email(req.gmail_message_id)
-
-            # Resolve municipality from sender domain if not already set
-            if not req.municipio_id:
-                domain = _extract_domain(email_data["sender"])
-                if domain:
-                    municipio = await identify_municipio(domain, db)
-                    if municipio:
-                        req.municipio_id = municipio.id
 
             # Update thread metadata
             req.gmail_thread_id = req.gmail_thread_id or email_data["thread_id"]

@@ -1,5 +1,5 @@
 """
-Email sender: sends parecer DOCX+PDF as a Gmail reply on the original thread.
+Email sender: sends parecer PDF as a Gmail reply on the original thread.
 
 Suporta dois modos de autenticação:
 - OAuth2 refresh token (para teste / Gmail pessoal) — preferido
@@ -82,7 +82,6 @@ def _build_email_body(req: ParecerRequest) -> str:
         f"{saudacao},\n\n"
         f"Segue em anexo o Parecer Jurídico nº {numero}, "
         f'referente à consulta "{subject}".\n\n'
-        f"O documento encontra-se em formato DOCX e PDF para sua conveniência. "
         f"Caso necessite de alguma correção ou esclarecimento adicional, "
         f"solicitamos que responda a este e-mail.\n\n"
         f"Permanecemos à disposição.\n\n"
@@ -99,12 +98,11 @@ def _build_email_body(req: ParecerRequest) -> str:
 
 async def send_parecer(
     parecer_request: ParecerRequest,
-    docx_bytes: bytes,
     pdf_bytes: bytes,
     db: AsyncSession,
     changed_by_id: str | None = None,
 ) -> None:
-    """Send the parecer (DOCX + PDF) as a reply in the original Gmail thread.
+    """Send the parecer (PDF) as a reply in the original Gmail thread.
 
     Updates parecer_request.status to 'enviado' and records
     the transition in parecer_status_history.
@@ -132,16 +130,8 @@ async def send_parecer(
     body_text = _build_email_body(parecer_request)
     msg.attach(MIMEText(body_text, "plain", "utf-8"))
 
-    # DOCX attachment
-    base_filename = f"Parecer_{parecer_request.numero_parecer or 'SN'}"
-    docx_att = MIMEApplication(
-        docx_bytes,
-        _subtype="vnd.openxmlformats-officedocument.wordprocessingml.document",
-    )
-    docx_att.add_header("Content-Disposition", "attachment", filename=f"{base_filename}.docx")
-    msg.attach(docx_att)
-
     # PDF attachment
+    base_filename = f"Parecer_{parecer_request.numero_parecer or 'SN'}"
     pdf_att = MIMEApplication(pdf_bytes, _subtype="pdf")
     pdf_att.add_header("Content-Disposition", "attachment", filename=f"{base_filename}.pdf")
     msg.attach(pdf_att)

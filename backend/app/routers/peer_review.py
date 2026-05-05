@@ -3,6 +3,9 @@ Router para revisão por pares (peer review) de pareceres.
 """
 from __future__ import annotations
 
+import copy
+import re
+import unicodedata
 import uuid
 from datetime import datetime, timezone
 
@@ -53,6 +56,187 @@ def _require_user_id(credentials: HTTPAuthorizationCredentials | None) -> str:
         return payload["sub"]
     except Exception:
         raise HTTPException(status_code=401, detail="Token invalido")
+
+
+def _normalize_for_match(text: str) -> str:
+    """Normaliza texto para busca fuzzy: unifica aspas, traços, espaços e lowercase."""
+    s = unicodedata.normalize("NFC", text)
+    s = re.sub(r'[“”„‟″]', '"', s)
+    s = re.sub(r'[‘’‚‛′]', "'", s)
+    s = re.sub(r'[–—−]', '-', s)
+    s = re.sub(r'[\xa0 ]', ' ', s)
+    s = re.sub(r'\s+', ' ', s).strip()
+    return s
+
+
+def _apply_replacements_html(html: str, replacements: list[tuple[str, str]]) -> str:
+    """Aplica substituições de texto no HTML, ignorando tags."""
+    from html.parser import HTMLParser
+
+    class _TextExtractor(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=True)
+            self.parts: list[tuple[str, bool]] = []  # (content, is_tag)
+
+        def handle_starttag(self, tag, attrs):
+            self.parts.append((self.get_starttag_text() or "", True))
+
+        def handle_endtag(self, tag):
+            self.parts.append((f"</{tag}>", True))
+
+        def handle_data(self, data):
+            self.parts.append((data, False))
+
+        def handle_comment(self, data):
+            self.parts.append((f"<!--{data}-->", True))
+
+    parser = _TextExtractor()
+    parser.feed(html)
+
+    for original, replacement in replacements:
+        norm_orig = _normalize_for_match(original).lower()
+        if not norm_orig:
+            continue
+
+        text_only = "".join(p for p, is_tag in parser.parts if not is_tag)
+        norm_text = _normalize_for_match(text_only).lower()
+        idx = norm_text.find(norm_orig)
+        if idx == -1:
+            continue
+
+        char_count = 0
+        new_parts: list[tuple[str, bool]] = []
+        replaced = False
+
+        for content, is_tag in parser.parts:
+            if is_tag or replaced:
+                new_parts.append((content, is_tag))
+                continue
+
+            norm_content = _normalize_for_match(content).lower()
+            piece_start = char_count
+            piece_end = char_count + len(norm_content)
+
+            if not replaced and piece_start <= idx < piece_end:
+                local_idx = idx - piece_start
+                orig_len_in_norm = len(norm_orig)
+                src_start = _map_norm_to_src(content, local_idx)
+                src_end = _map_norm_to_src(content, local_idx + orig_len_in_norm)
+                new_content = content[:src_start] + replacement + content[src_end:]
+                new_parts.append((new_content, False))
+                replaced = True
+            else:
+                new_parts.append((content, is_tag))
+
+            char_count = piece_end
+
+        if replaced:
+            parser.parts = new_parts
+
+    return "".join(p for p, _ in parser.parts)
+
+
+def _map_norm_to_src(text: str, norm_idx: int) -> int:
+    """Mapeia posição no texto normalizado para posição no texto original."""
+    norm_pos = 0
+    prev_was_space = True
+    for i, ch in enumerate(text):
+        if norm_pos >= norm_idx:
+            return i
+        is_space = ch in (' ', '\t', '\n', '\r', '\xa0', ' ')
+        if is_space:
+            if not prev_was_space:
+                norm_pos += 1
+                prev_was_space = True
+        else:
+            norm_pos += 1
+            prev_was_space = False
+    return len(text)
+
+
+def _apply_replacements_tiptap(
+    tiptap: dict | None, replacements: list[tuple[str, str]]
+) -> dict | None:
+    """Aplica substituições de texto no JSON TipTap, percorrendo text nodes."""
+    if not tiptap:
+        return tiptap
+
+    result = copy.deepcopy(tiptap)
+
+    for original, replacement in replacements:
+        norm_orig = _normalize_for_match(original).lower()
+        if not norm_orig:
+            continue
+        _replace_in_node(result, norm_orig, replacement)
+
+    return result
+
+
+def _replace_in_node(node: dict, norm_orig: str, replacement: str) -> bool:
+    """Tenta substituir o texto em text nodes de um nó TipTap. Retorna True se substituiu."""
+    children = node.get("content")
+    if not isinstance(children, list):
+        return False
+
+    if node.get("type") in ("paragraph", "heading"):
+        full_text = ""
+        for child in children:
+            if child.get("type") == "text" and isinstance(child.get("text"), str):
+                full_text += child["text"]
+
+        norm_full = _normalize_for_match(full_text).lower()
+        idx = norm_full.find(norm_orig)
+        if idx != -1:
+            src_start = _map_norm_to_src(full_text, idx)
+            src_end = _map_norm_to_src(full_text, idx + len(norm_orig))
+            new_full = full_text[:src_start] + replacement + full_text[src_end:]
+
+            # Preserva a estrutura de text nodes: localiza quais nodes cobrem
+            # o trecho substituído e reescreve apenas eles.
+            offset = 0
+            new_children: list[dict] = []
+            replaced = False
+            for child in children:
+                if child.get("type") != "text" or not isinstance(child.get("text"), str):
+                    new_children.append(child)
+                    continue
+                t = child["text"]
+                child_start = offset
+                child_end = offset + len(t)
+
+                if replaced or child_end <= src_start or child_start >= src_end:
+                    new_children.append(child)
+                elif child_start <= src_start and child_end >= src_end:
+                    # Substituição cabe inteira neste node
+                    new_text = t[: src_start - child_start] + replacement + t[src_end - child_start :]
+                    new_children.append({**child, "text": new_text})
+                    replaced = True
+                else:
+                    # Substituição cruza nodes — colapsa trecho afetado
+                    if child_start <= src_start:
+                        prefix = t[: src_start - child_start]
+                        new_text = prefix + replacement
+                        new_children.append({**child, "text": new_text})
+                    elif child_start >= src_start and child_end <= src_end:
+                        pass  # node inteiro dentro do trecho — remove
+                    else:
+                        suffix = t[src_end - child_start :]
+                        if suffix:
+                            new_children.append({**child, "text": suffix})
+                        replaced = True
+                offset = child_end
+
+            if not replaced and not new_children:
+                new_children = [{"type": "text", "text": new_full}]
+
+            node["content"] = new_children
+            return True
+
+    for child in children:
+        if _replace_in_node(child, norm_orig, replacement):
+            return True
+
+    return False
 
 
 def _peer_review_to_out(pr: PeerReview) -> PeerReviewOut:
@@ -335,13 +519,27 @@ async def respond_peer_review(
             nota += f" ({rt.comentario})"
         notas.append(nota)
 
-    # Criar nova versão com as notas do revisor
+    # Montar lista de substituições a partir das sugestões do revisor
+    replacements: list[tuple[str, str]] = []
+    for rt in body.resposta_trechos:
+        if rt.original and rt.sugestao:
+            replacements.append((rt.original, rt.sugestao))
+
+    # Aplicar substituições ao conteúdo
+    src_html = src_version.content_html if src_version else None
+    src_tiptap = src_version.content_tiptap if src_version else None
+    if replacements:
+        if src_html:
+            src_html = _apply_replacements_html(src_html, replacements)
+        if src_tiptap:
+            src_tiptap = _apply_replacements_tiptap(src_tiptap, replacements)
+
     new_version = ParecerVersion(
         request_id=parecer.id,
         version_number=next_num,
         source=VersionSource.peer_review,
-        content_tiptap=src_version.content_tiptap if src_version else None,
-        content_html=src_version.content_html if src_version else None,
+        content_tiptap=src_tiptap,
+        content_html=src_html,
         prompt_version=src_version.prompt_version if src_version else None,
         citacoes_verificar=src_version.citacoes_verificar or [] if src_version else [],
         ressalvas=src_version.ressalvas or [] if src_version else [],

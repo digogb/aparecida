@@ -182,11 +182,10 @@ async def approve_and_send(
             req, ParecerStatus.aprovado, db, changed_by=user_id, notes="Parecer aprovado"
         )
 
-    # Generate DOCX + PDF and send
+    # Generate PDF and send
     version = _latest_version(req)
-    docx_bytes = await to_docx(req, version, db)
     pdf_bytes = await to_pdf(req, version, db)
-    await send_parecer(req, docx_bytes, pdf_bytes, db, changed_by_id=user_id)
+    await send_parecer(req, pdf_bytes, db, changed_by_id=user_id)
 
     return StatusOut(
         id=req.id, status=req.status, message="Parecer enviado com sucesso"

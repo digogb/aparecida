@@ -141,14 +141,20 @@ async def list_versions(
     if pr_result.scalar_one_or_none() is None:
         raise HTTPException(status_code=404, detail="Parecer request nao encontrado")
 
+    from app.models.user import User
+
     result = await db.execute(
-        select(ParecerVersion)
+        select(ParecerVersion, User.name)
+        .outerjoin(User, User.id == ParecerVersion.created_by)
         .where(ParecerVersion.request_id == id)
         .order_by(ParecerVersion.version_number)
     )
-    versions = result.scalars().all()
+    rows = result.all()
 
-    return [ParecerVersionListItem.model_validate(v) for v in versions]
+    return [
+        ParecerVersionListItem.model_validate(version).model_copy(update={"created_by_name": name})
+        for version, name in rows
+    ]
 
 
 @router.get(
@@ -285,3 +291,70 @@ async def update_version(
     await db.commit()
     await db.refresh(version)
     return ParecerVersionDetail.model_validate(version)
+
+
+@router.post(
+    "/parecer-requests/{id}/snapshot",
+    response_model=ParecerVersionDetail,
+)
+async def snapshot_version(
+    id: uuid.UUID,
+    body: VersionUpdateIn,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    db: AsyncSession = Depends(get_db),
+) -> ParecerVersionDetail:
+    """Cria nova versão manual_edit a partir de um salvamento explícito do editor."""
+    from sqlalchemy import func
+    from app.models.parecer import ParecerStatus, ParecerStatusHistory, VersionSource
+
+    pr_result = await db.execute(select(ParecerRequest).where(ParecerRequest.id == id))
+    pr = pr_result.scalar_one_or_none()
+    if pr is None:
+        raise HTTPException(status_code=404, detail="Parecer request nao encontrado")
+
+    last_result = await db.execute(
+        select(ParecerVersion)
+        .where(ParecerVersion.request_id == id)
+        .order_by(ParecerVersion.version_number.desc())
+        .limit(1)
+    )
+    last = last_result.scalar_one_or_none()
+
+    next_num_result = await db.execute(
+        select(func.coalesce(func.max(ParecerVersion.version_number), 0))
+        .where(ParecerVersion.request_id == id)
+    )
+    next_num = next_num_result.scalar_one() + 1
+
+    user_id = _get_user_id(credentials)
+
+    new_version = ParecerVersion(
+        request_id=pr.id,
+        version_number=next_num,
+        source=VersionSource.manual_edit,
+        content_tiptap=body.content_tiptap,
+        content_html=body.content_html,
+        prompt_version=last.prompt_version if last else None,
+        citacoes_verificar=last.citacoes_verificar or [] if last else [],
+        ressalvas=last.ressalvas or [] if last else [],
+        notas_revisor=[],
+        created_by=user_id,
+    )
+    db.add(new_version)
+
+    if user_id and not pr.assigned_to:
+        pr.assigned_to = user_id
+
+    if pr.status not in (ParecerStatus.aprovado, ParecerStatus.enviado, ParecerStatus.em_correcao):
+        old_status = pr.status
+        pr.status = ParecerStatus.em_correcao
+        db.add(ParecerStatusHistory(
+            request_id=pr.id,
+            from_status=old_status,
+            to_status=ParecerStatus.em_correcao,
+            notes="Edição manual pelo advogado",
+        ))
+
+    await db.commit()
+    await db.refresh(new_version)
+    return ParecerVersionDetail.model_validate(new_version)

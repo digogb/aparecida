@@ -5,6 +5,7 @@ import { restoreVersion, fetchPeerReviews } from '../../services/editorApi'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import PeerReviewPanel from './PeerReviewPanel'
 import { MobileDrawer } from '../layout/MobileDrawer'
+import { colorForInitials } from '../../utils/authorColors'
 
 function getCurrentUserId(): string {
   try {
@@ -79,8 +80,11 @@ function getReviewFlow(status: string, hasPeerReview: boolean): ReviewFlowStep[]
   }
 
   const idx = statusToStep[status] ?? -1
+  // Quando o parecer foi enviado (último passo), pinta tudo de verde — incluindo
+  // o próprio "Enviado". Para os demais status, o passo atual fica em amarelo.
+  const isFinal = status === 'enviado'
   for (let i = 0; i <= idx && i < base.length; i++) {
-    base[i].status = i === idx ? 'current' : 'done'
+    base[i].status = !isFinal && i === idx ? 'current' : 'done'
   }
   return base
 }
@@ -100,6 +104,16 @@ function formatDate(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+function getInitials(name: string | null | undefined): string {
+  if (!name) return '?'
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('')
 }
 
 const VERSION_SOURCE_LABELS: Record<string, string> = {
@@ -154,104 +168,8 @@ export default function EditorSidebar({
 
   const content = (
     <aside className="w-[220px] lg:w-[220px] h-full overflow-y-auto flex-shrink-0" style={{ borderLeft: '1px solid #EDE8DF', background: '#EDE8DF' }}>
-      {/* Info */}
-      <div className="p-3" style={{ borderBottom: '1px solid #E0D9CE' }}>
-        <h3 className="text-sm font-medium uppercase tracking-widest mb-2" style={{ color: '#A69B8D' }}>
-          Informações
-        </h3>
-        <dl className="space-y-1 text-sm">
-          <div>
-            <dt className="text-sm" style={{ color: '#A69B8D' }}>Remetente</dt>
-            <dd className="truncate" style={{ color: '#0A1120' }}>{parecer.sender_email || '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-sm" style={{ color: '#A69B8D' }}>Data</dt>
-            <dd style={{ color: '#0A1120' }}>{formatDate(parecer.created_at)}</dd>
-          </div>
-          <div>
-            <dt className="text-sm" style={{ color: '#A69B8D' }}>Município</dt>
-            <dd style={{ color: '#0A1120' }}>{parecer.municipio_nome || '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-sm" style={{ color: '#A69B8D' }}>Tema</dt>
-            <dd className="capitalize" style={{ color: '#0A1120' }}>{parecer.tema || '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-sm" style={{ color: '#A69B8D' }}>Status</dt>
-            <dd style={{ color: '#0A1120' }}>
-              {statusLabels[parecer.status] || parecer.status}
-            </dd>
-          </div>
-        </dl>
-      </div>
-
-      {/* Attachments */}
-      {parecer.attachments.length > 0 && (
-        <div className="p-3" style={{ borderBottom: '1px solid #E0D9CE' }}>
-          <h3 className="text-sm font-medium uppercase tracking-widest mb-2" style={{ color: '#A69B8D' }}>
-            Anexos
-          </h3>
-          <ul className="space-y-1">
-            {parecer.attachments.map((att) => (
-              <li key={att.id}>
-                <a
-                  href={`/api/attachments/${att.id}/file`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm truncate block"
-                  style={{ color: '#C9A94E' }}
-                  title={att.filename}
-                >
-                  {att.filename}
-                </a>
-                <span className="text-sm" style={{ color: '#A69B8D' }}>
-                  {formatBytes(att.size_bytes)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Review Flow */}
-      <div className="p-3" style={{ borderBottom: '1px solid #E0D9CE' }}>
-        <h3 className="text-sm font-medium uppercase tracking-widest mb-2" style={{ color: '#A69B8D' }}>
-          Fluxo de Revisão
-        </h3>
-        <ol className="space-y-1">
-          {flow.map((step, i) => (
-            <li key={i} className="flex items-center gap-2 text-sm">
-              <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{
-                  background:
-                    step.status === 'done'
-                      ? '#5B7553'
-                      : step.status === 'current'
-                        ? '#C9A94E'
-                        : '#E0D9CE',
-                }}
-              />
-              <span
-                style={{
-                  color:
-                    step.status === 'current'
-                      ? '#C9A94E'
-                      : step.status === 'done'
-                        ? '#6B6860'
-                        : '#A69B8D',
-                  fontWeight: step.status === 'current' ? 500 : 400,
-                }}
-              >
-                {step.label}
-              </span>
-            </li>
-          ))}
-        </ol>
-      </div>
-
       {/* Versions */}
-      <div className="p-3">
+      <div className="p-3" style={{ borderBottom: '1px solid #E0D9CE' }}>
         <h3 className="text-sm font-medium uppercase tracking-widest mb-2" style={{ color: '#A69B8D' }}>
           Versões
         </h3>
@@ -313,6 +231,19 @@ export default function EditorSidebar({
                   >
                     {VERSION_SOURCE_LABELS[v.source] ?? v.source}
                   </span>
+                  {v.created_by_name && (() => {
+                    const ini = getInitials(v.created_by_name)
+                    const color = colorForInitials(ini)
+                    return (
+                      <span
+                        className="text-xs font-medium px-1.5 py-0.5 rounded"
+                        style={{ background: color.bg, color: color.text, border: `1px solid ${color.border}` }}
+                        title={v.created_by_name}
+                      >
+                        {ini}
+                      </span>
+                    )
+                  })()}
                 </div>
                 <div style={{ color: '#A69B8D' }}>{formatDate(v.created_at)}</div>
               </button>
@@ -320,6 +251,102 @@ export default function EditorSidebar({
           ))}
         </ul>
       </div>
+
+      {/* Review Flow */}
+      <div className="p-3" style={{ borderBottom: '1px solid #E0D9CE' }}>
+        <h3 className="text-sm font-medium uppercase tracking-widest mb-2" style={{ color: '#A69B8D' }}>
+          Fluxo de Revisão
+        </h3>
+        <ol className="space-y-1">
+          {flow.map((step, i) => (
+            <li key={i} className="flex items-center gap-2 text-sm">
+              <span
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{
+                  background:
+                    step.status === 'done'
+                      ? '#5B7553'
+                      : step.status === 'current'
+                        ? '#C9A94E'
+                        : '#E0D9CE',
+                }}
+              />
+              <span
+                style={{
+                  color:
+                    step.status === 'current'
+                      ? '#C9A94E'
+                      : step.status === 'done'
+                        ? '#6B6860'
+                        : '#A69B8D',
+                  fontWeight: step.status === 'current' ? 500 : 400,
+                }}
+              >
+                {step.label}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      {/* Info */}
+      <div className="p-3" style={{ borderBottom: '1px solid #E0D9CE' }}>
+        <h3 className="text-sm font-medium uppercase tracking-widest mb-2" style={{ color: '#A69B8D' }}>
+          Informações
+        </h3>
+        <dl className="space-y-1 text-sm">
+          <div>
+            <dt className="text-sm" style={{ color: '#A69B8D' }}>Remetente</dt>
+            <dd className="truncate" style={{ color: '#0A1120' }}>{parecer.sender_email || '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-sm" style={{ color: '#A69B8D' }}>Data</dt>
+            <dd style={{ color: '#0A1120' }}>{formatDate(parecer.created_at)}</dd>
+          </div>
+          <div>
+            <dt className="text-sm" style={{ color: '#A69B8D' }}>Município</dt>
+            <dd style={{ color: '#0A1120' }}>{parecer.municipio_nome || '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-sm" style={{ color: '#A69B8D' }}>Tema</dt>
+            <dd className="capitalize" style={{ color: '#0A1120' }}>{parecer.tema || '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-sm" style={{ color: '#A69B8D' }}>Status</dt>
+            <dd style={{ color: '#0A1120' }}>
+              {statusLabels[parecer.status] || parecer.status}
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      {/* Attachments */}
+      {parecer.attachments.length > 0 && (
+        <div className="p-3" style={{ borderBottom: '1px solid #E0D9CE' }}>
+          <h3 className="text-sm font-medium uppercase tracking-widest mb-2" style={{ color: '#A69B8D' }}>
+            Anexos
+          </h3>
+          <ul className="space-y-1">
+            {parecer.attachments.map((att) => (
+              <li key={att.id}>
+                <a
+                  href={`/api/attachments/${att.id}/file`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm truncate block"
+                  style={{ color: '#C9A94E' }}
+                  title={att.filename}
+                >
+                  {att.filename}
+                </a>
+                <span className="text-sm" style={{ color: '#A69B8D' }}>
+                  {formatBytes(att.size_bytes)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Peer Reviews */}
       <PeerReviewPanel parecerId={parecer.id} currentUserId={currentUserId} />
