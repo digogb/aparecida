@@ -15,6 +15,7 @@ from app.models.parecer import (
     ParecerVersion,
     VersionSource,
 )
+from app.services.content_assembler import extract_body_section
 from app.services.parecer_ai_service import classify_email, generate_parecer, revise_parecer
 from app.services.parecer_html_service import render_parecer_html, parse_parecer_xml
 from app.services.prompt_service import get_prompt_version
@@ -332,6 +333,11 @@ async def generate(parecer_request_id: str, db: AsyncSession) -> ParecerVersion:
     if not pr.extracted_text:
         raise ValueError("ParecerRequest sem texto extraido para gerar parecer")
 
+    # extract_body_section evita duplicar anexos no user_message do P1/P2.
+    # pr.extracted_text é o assemble() completo (corpo + anexos); queremos só
+    # a primeira seção. Os anexos vão separados em pr.attachments.
+    body_section = extract_body_section(pr.extracted_text)
+
     # Usa classificação P1 existente ou classifica agora
     classification = pr.classificacao
     if not classification:
@@ -340,14 +346,14 @@ async def generate(parecer_request_id: str, db: AsyncSession) -> ParecerVersion:
             for a in pr.attachments
             if a.extracted_text
         ]
-        classification = await classify_email(pr.extracted_text, attachments, subject=pr.subject or "")
+        classification = await classify_email(body_section, attachments, subject=pr.subject or "")
         pr.classificacao = classification
 
     # Coleta textos dos anexos
     attachment_texts = [a.extracted_text for a in pr.attachments if a.extracted_text]
 
     # P2 — Gerar parecer
-    sections = await generate_parecer(classification, attachment_texts, pr.extracted_text)
+    sections = await generate_parecer(classification, attachment_texts, body_section)
 
     # Renderizar HTML profissional (P4)
     metadata = _build_metadata(pr, classification)

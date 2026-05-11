@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.parecer import ParecerModelo, ParecerRequest, ParecerStatus, ParecerTema
+from app.services.content_assembler import extract_body_section
 from app.services.parecer_ai_service import classify_email
 
 logger = logging.getLogger(__name__)
@@ -65,7 +66,9 @@ async def classify(parecer_request_id: str, db: AsyncSession) -> tuple[ParecerRe
         for a in pr.attachments
         if a.extracted_text
     ]
-    email_body = pr.extracted_text
+    # extract_body_section evita duplicar os anexos no user_message: pr.extracted_text
+    # já contém o corpo + todos os anexos concatenados; queremos só a primeira seção.
+    email_body = extract_body_section(pr.extracted_text)
 
     data = await classify_email(email_body, attachments, subject=pr.subject or "")
     logger.warning("P1 classificacao: %s", data)

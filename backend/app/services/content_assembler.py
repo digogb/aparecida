@@ -8,6 +8,9 @@ from typing import List
 
 _BLANK_LINES_RE = re.compile(r"\n{3,}")
 
+# Separador entre seções do texto montado (corpo + anexos).
+SECTION_SEPARATOR = "\n\n---\n\n"
+
 # Common email header lines to strip
 _HEADER_PATTERNS: list[re.Pattern] = [
     re.compile(r"^De:.*$", re.MULTILINE | re.IGNORECASE),
@@ -66,4 +69,17 @@ def assemble(corpo_email: str, attachments_texts: List[str]) -> str:
             if cleaned:
                 sections.append(cleaned)
 
-    return "\n\n---\n\n".join(sections)
+    return SECTION_SEPARATOR.join(sections)
+
+
+def extract_body_section(assembled: str | None) -> str:
+    """Devolve apenas a primeira seção do texto montado (header + corpo do email).
+
+    O texto persistido em `pr.extracted_text` é o resultado de `assemble()`:
+    a primeira seção é o corpo do email; as demais são anexos. Para alimentar
+    classify_email / generate_parecer, queremos só essa primeira seção — os
+    anexos vêm separados via `pr.attachments` para evitar duplicação no prompt.
+    """
+    if not assembled:
+        return ""
+    return assembled.split(SECTION_SEPARATOR, 1)[0]
