@@ -9,6 +9,9 @@ from __future__ import annotations
 
 import io
 import logging
+import subprocess
+import tempfile
+from pathlib import Path
 from typing import Optional, Tuple
 
 import chardet
@@ -21,6 +24,53 @@ logger = logging.getLogger(__name__)
 
 # Average characters per page below this threshold triggers OCR fallback
 _OCR_THRESHOLD = 100
+
+# LibreOffice conversion timeout (soffice can hang on malformed input)
+_SOFFICE_TIMEOUT_S = 60
+
+
+def _sanitize_text(text: str) -> str:
+    """Strip NUL bytes — PostgreSQL TEXT columns reject 0x00 and abort the INSERT."""
+    if not text:
+        return text
+    return text.replace("\x00", "")
+
+
+def _extract_doc_via_libreoffice(file_bytes: bytes) -> str:
+    """Convert legacy .doc (binary OLE) to text using `soffice --headless`.
+
+    Uses an isolated user profile so concurrent calls don't contend on the
+    default LibreOffice lock. Raises RuntimeError on any conversion failure.
+    """
+    with tempfile.TemporaryDirectory(prefix="ione_doc_") as workdir:
+        input_path = Path(workdir) / "input.doc"
+        input_path.write_bytes(file_bytes)
+
+        try:
+            subprocess.run(
+                [
+                    "soffice",
+                    f"-env:UserInstallation=file://{workdir}/profile",
+                    "--headless",
+                    "--convert-to", "txt:Text",
+                    "--outdir", workdir,
+                    str(input_path),
+                ],
+                check=True,
+                capture_output=True,
+                timeout=_SOFFICE_TIMEOUT_S,
+            )
+        except subprocess.TimeoutExpired:
+            raise RuntimeError(f"LibreOffice timed out after {_SOFFICE_TIMEOUT_S}s")
+        except subprocess.CalledProcessError as exc:
+            stderr = exc.stderr.decode("utf-8", errors="replace")[:300]
+            raise RuntimeError(f"LibreOffice failed (rc={exc.returncode}): {stderr}")
+
+        output_path = Path(workdir) / "input.txt"
+        if not output_path.exists():
+            raise RuntimeError("LibreOffice produced no .txt output")
+
+        return output_path.read_text(encoding="utf-8", errors="replace")
 
 
 def extract_pdf(file_bytes: bytes) -> Tuple[str, str]:
@@ -97,26 +147,26 @@ def extract_file(
         if lower.endswith(".pdf"):
             text, method = extract_pdf(file_bytes)
             status = "success" if text.strip() else "partial"
-            return text, method, status
+            return _sanitize_text(text), method, status
 
         if lower.endswith(".docx"):
             text, method = extract_docx(file_bytes)
             status = "success" if text.strip() else "partial"
-            return text, method, status
+            return _sanitize_text(text), method, status
 
         if lower.endswith((".txt", ".text")):
             encoding = _detect_encoding(file_bytes)
             text = file_bytes.decode(encoding, errors="replace")
-            return text, None, "success"
+            return _sanitize_text(text), None, "success"
 
         if lower.endswith(".doc"):
-            # .doc is binary; attempt naive decode as a best-effort fallback
-            encoding = _detect_encoding(file_bytes)
             try:
-                text = file_bytes.decode(encoding, errors="replace")
-                return text, "fallback_libreoffice", "partial"
-            except Exception:
+                text = _extract_doc_via_libreoffice(file_bytes)
+            except Exception as exc:
+                logger.error("LibreOffice failed for %s: %s", filename, exc)
                 return "", "fallback_libreoffice", "failed"
+            status = "success" if text.strip() else "partial"
+            return _sanitize_text(text), "fallback_libreoffice", status
 
         # Extension unknown or missing — try to detect via magic bytes
         kind = filetype.guess(file_bytes)

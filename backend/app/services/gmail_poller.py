@@ -286,6 +286,9 @@ async def _ingest_message(
     extracted_text = assemble(body, attachment_texts)
     header_context = f"Assunto: {subject}\nRemetente: {sender_email}"
     extracted_text = f"{header_context}\n\n{extracted_text}" if extracted_text else header_context
+    if "\x00" in extracted_text:
+        logger.warning("Gmail poller: NUL bytes em extracted_text (msg %s), removendo", message_id)
+        extracted_text = extracted_text.replace("\x00", "")
 
     parecer = ParecerRequest(
         id=uuid.uuid4(),
