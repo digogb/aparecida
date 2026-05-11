@@ -58,13 +58,16 @@ async def classify(parecer_request_id: str, db: AsyncSession) -> tuple[ParecerRe
     if not pr.extracted_text:
         raise ValueError("ParecerRequest sem texto extraido para classificar")
 
-    # Coleta textos dos anexos já extraídos
-    attachment_texts = [
-        a.extracted_text for a in pr.attachments if a.extracted_text
+    # Coleta (filename, texto) dos anexos já extraídos — P1 usa o filename
+    # para distinguir a consulta dos documentos de referência.
+    attachments = [
+        (a.filename or "anexo_sem_nome", a.extracted_text)
+        for a in pr.attachments
+        if a.extracted_text
     ]
     email_body = pr.extracted_text
 
-    data = await classify_email(email_body, attachment_texts)
+    data = await classify_email(email_body, attachments, subject=pr.subject or "")
     logger.warning("P1 classificacao: %s", data)
 
     if data.get("is_consulta_juridica") is False:

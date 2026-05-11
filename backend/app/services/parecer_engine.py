@@ -335,8 +335,12 @@ async def generate(parecer_request_id: str, db: AsyncSession) -> ParecerVersion:
     # Usa classificação P1 existente ou classifica agora
     classification = pr.classificacao
     if not classification:
-        attachment_texts = [a.extracted_text for a in pr.attachments if a.extracted_text]
-        classification = await classify_email(pr.extracted_text, attachment_texts)
+        attachments = [
+            (a.filename or "anexo_sem_nome", a.extracted_text)
+            for a in pr.attachments
+            if a.extracted_text
+        ]
+        classification = await classify_email(pr.extracted_text, attachments, subject=pr.subject or "")
         pr.classificacao = classification
 
     # Coleta textos dos anexos

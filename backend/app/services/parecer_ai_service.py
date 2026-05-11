@@ -119,19 +119,95 @@ async def _call_api(
     raise last_error  # type: ignore[misc]
 
 
+# ─── P0: PRÉ-FILTRO DE ANEXOS ───
+
+_PREFILTER_SYSTEM = (
+    "Você triagem anexos de emails para um escritório jurídico municipal. "
+    "Receberá filenames + prévia curta de cada anexo. "
+    "Sua tarefa: identificar a ORDEM DE RELEVÂNCIA — qual anexo contém a "
+    "CONSULTA JURÍDICA (a pergunta ou pedido que o município está fazendo) "
+    "vs. quais são DOCUMENTOS DE REFERÊNCIA (editais antigos, fichas funcionais, "
+    "contratos, leis, ofícios já respondidos).\n\n"
+    "Retorne EXCLUSIVAMENTE um JSON sem markdown:\n"
+    '{"order": [idx_mais_relevante, ..., idx_menos_relevante]}\n\n'
+    "A lista DEVE conter todos os índices recebidos, exatamente uma vez."
+)
+
+
+async def prefilter_attachments(
+    subject: str,
+    email_body: str,
+    attachments: list[tuple[str, str]],
+) -> list[tuple[str, str]]:
+    """Reordena anexos pondo a consulta primeiro e referências por último.
+
+    Usa Haiku com prévia curta (filename + 400 chars) para decidir.
+    Falha silenciosa: qualquer erro mantém a ordem original.
+    """
+    if len(attachments) <= 1:
+        return attachments
+
+    lines = [
+        f"Assunto: {subject or '(sem assunto)'}",
+        f"Corpo do email (até 500 chars): {(email_body or '').replace(chr(10), ' ')[:500] or '(vazio)'}",
+        "",
+        "Anexos:",
+    ]
+    for i, (fn, text) in enumerate(attachments):
+        snippet = (text or "").replace("\n", " ")[:400]
+        lines.append(f"[{i}] {fn} ({len(text or '')} chars) — {snippet}")
+    user_message = "\n".join(lines)
+
+    try:
+        raw = await _call_api(
+            model=MODEL_P1,
+            system=_PREFILTER_SYSTEM,
+            user_message=user_message,
+            max_tokens=300,
+            stage="P0-prefilter",
+        )
+    except Exception as exc:
+        logger.warning("P0 prefilter API falhou (%s), mantendo ordem original", exc)
+        return attachments
+
+    raw = re.sub(r"^```(?:json)?\s*", "", raw.strip())
+    raw = re.sub(r"\s*```$", "", raw)
+
+    try:
+        data = json.loads(raw)
+        order = data["order"]
+    except (json.JSONDecodeError, KeyError, TypeError):
+        logger.warning("P0 prefilter JSON inválido: %r — mantendo ordem original", raw[:200])
+        return attachments
+
+    n = len(attachments)
+    if not isinstance(order, list) or sorted(order) != list(range(n)):
+        logger.warning("P0 prefilter ordem inválida %s (n=%d) — mantendo ordem original", order, n)
+        return attachments
+
+    logger.info("P0 prefilter reordenou anexos: %s", order)
+    return [attachments[i] for i in order]
+
+
 # ─── P1: CLASSIFICAÇÃO ───
 
 async def classify_email(
     email_body: str,
-    attachments_text: list[str],
+    attachments: list[tuple[str, str]],
+    subject: str = "",
 ) -> dict:
+    """Chama P1 (Haiku) para classificar o email.
+
+    `attachments` é uma lista de (filename, texto_extraído). Quando há 2+ anexos,
+    chama P0-prefilter antes para reordenar (consulta primeiro, referências depois).
+    Cada anexo é rotulado com seu filename no user_message para o P1 distinguir.
     """
-    Chama P1 (Haiku) para classificar o email.
-    Haiku tem TPM separado — não precisa do semáforo.
-    """
+    ordered = await prefilter_attachments(subject, email_body, attachments)
+
     user_message = email_body
-    if attachments_text:
-        user_message += "\n\n---\n\n" + "\n\n---\n\n".join(attachments_text)
+    if ordered:
+        labeled_parts = [f"## Anexo: {fn}\n{text}" for fn, text in ordered]
+        user_message += "\n\n---\n\n" + "\n\n---\n\n".join(labeled_parts)
     user_message = _truncate(user_message, MAX_USER_CONTENT_CHARS)
 
     raw = await _call_api(
