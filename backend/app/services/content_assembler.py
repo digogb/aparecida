@@ -54,22 +54,25 @@ def _clean(text: str) -> str:
 def assemble(corpo_email: str, attachments_texts: List[str]) -> str:
     """Combine email body and attachment texts into a single clean string.
 
-    Sections are separated by a horizontal rule.  Empty sections are skipped.
+    Sections are separated by SECTION_SEPARATOR. O corpo é SEMPRE a primeira
+    seção (mesmo se vazio) quando há anexos — assim `extract_body_section`
+    consegue separar corpo de anexos pelo primeiro separador, independente
+    de o corpo estar preenchido. Sem anexos, retorna apenas o corpo limpo.
     """
-    sections: list[str] = []
-
+    body_cleaned = ""
     if corpo_email and corpo_email.strip():
-        cleaned = _clean(corpo_email)
-        if cleaned:
-            sections.append(cleaned)
+        body_cleaned = _clean(corpo_email)
 
+    attachment_sections: list[str] = []
     for att_text in attachments_texts:
         if att_text and att_text.strip():
             cleaned = _clean(att_text)
             if cleaned:
-                sections.append(cleaned)
+                attachment_sections.append(cleaned)
 
-    return SECTION_SEPARATOR.join(sections)
+    if not attachment_sections:
+        return body_cleaned
+    return SECTION_SEPARATOR.join([body_cleaned, *attachment_sections])
 
 
 def extract_body_section(assembled: str | None) -> str:
