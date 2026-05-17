@@ -15,12 +15,23 @@ from app.models.parecer import (
     ParecerVersion,
     VersionSource,
 )
+from app.services.auditor_mecanico import (
+    AuditorResult,
+    affected_sections,
+    audit_sections,
+    format_revision_instructions,
+)
 from app.services.content_assembler import extract_body_section
 from app.services.parecer_ai_service import classify_email, generate_parecer, revise_parecer
 from app.services.parecer_html_service import render_parecer_html, parse_parecer_xml
 from app.services.prompt_service import get_prompt_version
 
 logger = logging.getLogger(__name__)
+
+# Gate mecânico (Camada 4) — quantas tentativas de revisão automática antes de desistir
+# e gravar a versão como gate_failed. O P3 (Sonnet) é caro; 3 tentativas é o limite usado
+# pelas skills.
+_GATE_MAX_RETRIES = 3
 
 
 # ─── TipTap JSON builder com formatação rica ───
@@ -320,6 +331,57 @@ async def _next_numero_sequencial(db: AsyncSession) -> str:
     return f"{prefix}{max_num + 1:04d}"
 
 
+async def _enforce_mechanical_gate(
+    sections: dict,
+    classification: dict | None = None,
+) -> tuple[dict, AuditorResult, int]:
+    """Aplica o gate mecânico e, em caso de reprovação, aciona o P3 para reescrever
+    as seções afetadas. Retry até `_GATE_MAX_RETRIES` vezes.
+
+    Retorna (sections_finais, último_resultado_do_auditor, número_de_retries_executados).
+    Quando o gate continua falhando após todos os retries, o parecer ainda é entregue —
+    mas com `passed=False` no log, e o advogado revisor vê a sinalização no editor.
+    """
+    result = audit_sections(sections)
+    retries = 0
+
+    while not result.passed and retries < _GATE_MAX_RETRIES:
+        retries += 1
+        logger.warning(
+            "Gate mecânico reprovou (tentativa %d/%d). %d parágrafo(s) longo(s); ementa_ok=%s",
+            retries, _GATE_MAX_RETRIES, len(result.paragrafos_longos), result.ementa_ok,
+        )
+
+        observacoes = format_revision_instructions(result)
+        secoes_alvo = affected_sections(result)
+
+        try:
+            revised = await revise_parecer(
+                sections, observacoes, secoes_alvo, classification=classification,
+            )
+        except Exception as exc:
+            logger.exception("Falha ao chamar P3 para correção mecânica: %s", exc)
+            break
+
+        # Mescla apenas as seções devolvidas pelo P3 (P3 retorna só as alteradas).
+        for secao in ("ementa", "relatorio", "fundamentos", "conclusao"):
+            if revised.get(secao):
+                sections[secao] = revised[secao]
+
+        result = audit_sections(sections)
+
+    if result.passed:
+        logger.info("Gate mecânico aprovado após %d retry(s).", retries)
+    else:
+        logger.error(
+            "Gate mecânico REPROVADO após %d retries. %d parágrafo(s) longo(s) persistente(s); ementa_ok=%s. "
+            "Versão será salva com gate_mecanico_passed=False para revisão manual.",
+            retries, len(result.paragrafos_longos), result.ementa_ok,
+        )
+
+    return sections, result, retries
+
+
 async def generate(parecer_request_id: str, db: AsyncSession) -> ParecerVersion:
     result = await db.execute(
         select(ParecerRequest)
@@ -355,6 +417,11 @@ async def generate(parecer_request_id: str, db: AsyncSession) -> ParecerVersion:
     # P2 — Gerar parecer
     sections = await generate_parecer(classification, attachment_texts, body_section)
 
+    # Gate mecânico (Camada 4) — IRR-1 ementa em CAPS, IRR-2 parágrafos ≤ 7 linhas.
+    # Se reprovar, dispara revisão automática pelo P3 com a lista de parágrafos longos
+    # como observação. Persiste o resultado final (passed/failed) na versão.
+    sections, gate_result, retries = await _enforce_mechanical_gate(sections, classification)
+
     # Renderizar HTML profissional (P4)
     metadata = _build_metadata(pr, classification)
     parecer_dict = {**sections, "metadata": metadata}
@@ -378,6 +445,8 @@ async def generate(parecer_request_id: str, db: AsyncSession) -> ParecerVersion:
         citacoes_verificar=sections.get("citacoes_verificar") or [],
         ressalvas=sections.get("ressalvas") or [],
         notas_revisor=[],
+        gate_mecanico_passed=gate_result.passed,
+        gate_mecanico_log=gate_result.as_log_dict(),
     )
     db.add(version)
 
@@ -387,12 +456,16 @@ async def generate(parecer_request_id: str, db: AsyncSession) -> ParecerVersion:
     old_status = pr.status
     pr.status = ParecerStatus.gerado
 
+    gate_suffix = (
+        f" — GATE PASSED" if gate_result.passed
+        else f" — GATE FAILED após {retries} tentativa(s) de auto-revisão"
+    )
     db.add(
         ParecerStatusHistory(
             request_id=pr.id,
             from_status=old_status,
             to_status=ParecerStatus.gerado,
-            notes=f"Minuta v{next_version} gerada por IA (pipeline v{get_prompt_version()})",
+            notes=f"Minuta v{next_version} gerada por IA (pipeline v{get_prompt_version()}){gate_suffix}",
         )
     )
 
@@ -510,7 +583,9 @@ async def preview_correction(
         "notas_revisor": last_version.notas_revisor or [],
     })
 
-    revisao = await revise_parecer(parecer_atual, observacoes, _MAIN_SECTIONS)
+    revisao = await revise_parecer(
+        parecer_atual, observacoes, _MAIN_SECTIONS, classification=pr.classificacao,
+    )
 
     secoes_alteradas = revisao.get("secoes_alteradas", [])
     if isinstance(secoes_alteradas, str):

@@ -24,6 +24,9 @@ export interface ParecerRequest {
   sent_to_email: string | null
   status: ParecerStatus
   tema: ParecerTema | null
+  /** Última nota do status_history quando status é 'devolvido' ou 'erro'.
+   *  Explica por que a IA não conseguiu gerar o parecer. */
+  motivo?: string | null
   created_at: string
   updated_at: string
 }

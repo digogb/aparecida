@@ -1,34 +1,34 @@
 """
-Export service: converts parecer content to DOCX and PDF formats.
+Export service: converte conteúdo do parecer em DOCX e PDF.
 
-Formato baseado no template profissional do escritório:
-- Advocacia & Assessoria — Dr. Francisco Ione Pereira Lima
-- Font: Times New Roman (serif), 12pt
-- Seções: EMENTA, I — RELATÓRIO, II — FUNDAMENTOS, III — CONCLUSÃO
-- Assinaturas: 2×2 grid com OAB
-- Rodapé: endereço do escritório
+DOCX (Camada 5):
+- delega para `docx_generator.gerar_parecer_bytes`, que renderiza no padrão
+  byte-calibrado do escritório (Consolas/Garamond, ementa em CAPS com
+  figure-dash, marcadores [REVISAR—] e [!VERIFICAR:!] em vermelho, bloco
+  de assinaturas com espaços manuais calibrados).
+- `template_parecer.docx` em `backend/app/templates/` deixa de ser fonte
+  de formatação; é apenas documentação histórica.
+
+PDF:
+- HTML + WeasyPrint preservado da implementação anterior (usado para envio
+  por e-mail e visualização rápida).
 """
 from __future__ import annotations
 
-import io
 import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from docx import Document
-from docx.enum.table import WD_TABLE_ALIGNMENT
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml import OxmlElement
-from docx.oxml.ns import qn
-from docx.shared import Cm, Emu, Pt, RGBColor
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.parecer import ParecerRequest, ParecerVersion
+from app.services import docx_generator
 
 logger = logging.getLogger(__name__)
 
+
 # ---------------------------------------------------------------------------
-# Escritório info (fixo — dados do template de referência)
+# Constantes institucionais (compartilhadas pelo HTML/PDF)
 # ---------------------------------------------------------------------------
 ESCRITORIO_LINHA1 = "Advocacia & Assessoria"
 ESCRITORIO_LINHA2 = "Dr. Francisco Ione Pereira Lima"
@@ -52,42 +52,68 @@ MESES = [
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Helpers compartilhados
 # ---------------------------------------------------------------------------
 
-def _formatar_data_extenso(municipio_uf: str = "Fortaleza/CE") -> str:
-    now = datetime.now(timezone.utc)
-    return f"{municipio_uf}, {now.day} de {MESES[now.month]} de {now.year}."
+def _formatar_data_extenso(
+    municipio_uf: str = "Fortaleza/CE",
+    com_ponto: bool = True,
+) -> str:
+    """Formata a data atual no padrão 'Município/UF, DD de mês de AAAA[.]'.
 
+    `com_ponto=False` é usado pelo docx_generator (que adiciona seu próprio
+    ponto final). O HTML/PDF usa `com_ponto=True`.
+    """
+    now = datetime.now(timezone.utc)
+    sep = "." if com_ponto else ""
+    return f"{municipio_uf}, {now.day} de {MESES[now.month]} de {now.year}{sep}"
+
+
+def _get_metadata(req: ParecerRequest) -> dict:
+    classification = req.classificacao or {}
+    municipio = classification.get("municipio", "")
+    uf = classification.get("uf", "CE")
+    municipio_uf = f"{municipio}/{uf}" if municipio else "[Município/UF]"
+    return {
+        "orgao_consulente": classification.get(
+            "orgao_consulente", req.sender_email or "[Órgão não informado]"
+        ),
+        "municipio_uf": municipio_uf,
+        "assunto": classification.get("assunto_resumido", req.subject or "[Assunto]"),
+        "referencia": req.numero_parecer or "N/A",
+        "subtipo": classification.get("subtipo", ""),
+        "vertente": classification.get("vertente", ""),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Decoração / filtro para o PDF (HTML)
+# ---------------------------------------------------------------------------
 
 _ADVOGADO_NOMES = {n for n, _ in ADVOGADOS}
-_SKIP_TEXTS = {
-    ESCRITORIO_LINHA1, ESCRITORIO_LINHA2, "PARECER JURÍDICO",
-}
+_SKIP_TEXTS = {ESCRITORIO_LINHA1, ESCRITORIO_LINHA2, "PARECER JURÍDICO"}
+
+
+def _extract_text(content: list[dict[str, Any]]) -> str:
+    return "".join(item.get("text", "") for item in content if item.get("type") == "text")
 
 
 def _is_decoration_node(node: dict[str, Any]) -> bool:
-    """Detect nodes that are 'decoration' (header, signatures, footer) — skip in export."""
+    """Marca nodes do TipTap que são decoração — pulados na renderização HTML/PDF."""
     text = _extract_text(node.get("content", []))
     if not text:
         return False
-    # Header lines
     if text.strip() in _SKIP_TEXTS:
         return True
-    # Identification fields (added by builder)
     if text.startswith("Órgão Consulente:") or text.startswith("Referência:") or text.startswith("Assunto:"):
         return True
-    # Signature block: contains multiple OAB references
     if text.count("OAB/") >= 2:
         return True
-    # Individual advogado name or OAB line
     stripped = text.strip()
     if stripped in _ADVOGADO_NOMES or stripped.startswith("OAB/"):
         return True
-    # Footer (endereço)
     if "Rua Gen. Caiado de Castro" in text:
         return True
-    # Date line (added by builder)
     for m in MESES[1:]:
         if f" de {m} de " in text and text.strip().endswith("."):
             return True
@@ -95,384 +121,114 @@ def _is_decoration_node(node: dict[str, Any]) -> bool:
 
 
 def _filter_tiptap_content(content: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Remove decoration nodes from TipTap content — header, signatures, footer."""
     return [node for node in content if not _is_decoration_node(node)]
 
 
-def _get_metadata(req: ParecerRequest) -> dict:
-    """Extract metadata from classificacao or fallback to request fields."""
-    classification = req.classificacao or {}
-    municipio = classification.get("municipio", "")
-    uf = classification.get("uf", "CE")
-    municipio_uf = f"{municipio}/{uf}" if municipio else "[Município/UF]"
-    return {
-        "orgao_consulente": classification.get("orgao_consulente", req.sender_email or "[Órgão não informado]"),
-        "municipio_uf": municipio_uf,
-        "assunto": classification.get("assunto_resumido", req.subject or "[Assunto]"),
-        "referencia": req.numero_parecer or "N/A",
-    }
-
-
-def _add_paragraph_border_bottom(paragraph) -> None:
-    """Add a bottom border to a paragraph via XML."""
-    pPr = paragraph._p.get_or_add_pPr()
-    pBdr = OxmlElement("w:pBdr")
-    bottom = OxmlElement("w:bottom")
-    bottom.set(qn("w:val"), "single")
-    bottom.set(qn("w:sz"), "6")
-    bottom.set(qn("w:space"), "1")
-    bottom.set(qn("w:color"), "000000")
-    pBdr.append(bottom)
-    pPr.append(pBdr)
-
-
-def _set_cell_border(cell, **kwargs):
-    """Set borders on a table cell. kwargs: top, bottom, start, end with val, sz, color."""
-    tc = cell._tc
-    tcPr = tc.get_or_add_tcPr()
-    tcBorders = OxmlElement("w:tcBorders")
-    for edge, attrs in kwargs.items():
-        element = OxmlElement(f"w:{edge}")
-        for attr_name, attr_val in attrs.items():
-            element.set(qn(f"w:{attr_name}"), str(attr_val))
-        tcBorders.append(element)
-    tcPr.append(tcBorders)
-
-
-def _remove_table_borders(table):
-    """Remove all borders from a table."""
-    tbl = table._tbl
-    tblPr = tbl.tblPr if tbl.tblPr is not None else OxmlElement("w:tblPr")
-    borders = OxmlElement("w:tblBorders")
-    for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
-        el = OxmlElement(f"w:{edge}")
-        el.set(qn("w:val"), "none")
-        el.set(qn("w:sz"), "0")
-        el.set(qn("w:space"), "0")
-        el.set(qn("w:color"), "auto")
-        borders.append(el)
-    tblPr.append(borders)
-
-
 # ---------------------------------------------------------------------------
-# DOCX: Header
+# DOCX — delega para docx_generator (Camada 5)
 # ---------------------------------------------------------------------------
 
-def _build_header(doc: Document) -> None:
-    """Cabeçalho: Advocacia & Assessoria / Dr. Francisco Ione Pereira Lima."""
-    # Linha 1
-    p1 = doc.add_paragraph()
-    p1.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p1.paragraph_format.space_after = Pt(0)
-    p1.paragraph_format.space_before = Pt(0)
-    run1 = p1.add_run(ESCRITORIO_LINHA1)
-    run1.font.name = "Times New Roman"
-    run1.font.size = Pt(13)
-    run1.font.small_caps = True
+def _consulente_text(req: ParecerRequest, meta: dict) -> str:
+    """Monta o texto do consulente para o bloco 'CONSULENTE:' do parecer."""
+    orgao = meta["orgao_consulente"]
+    municipio_uf = meta["municipio_uf"]
+    if municipio_uf and municipio_uf != "[Município/UF]" and municipio_uf not in orgao:
+        return f"{orgao} — {municipio_uf}"
+    return orgao
 
-    # Linha 2
-    p2 = doc.add_paragraph()
-    p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p2.paragraph_format.space_after = Pt(6)
-    p2.paragraph_format.space_before = Pt(2)
-    run2 = p2.add_run(ESCRITORIO_LINHA2)
-    run2.font.name = "Times New Roman"
-    run2.font.size = Pt(11)
-    run2.bold = True
-    run2.font.small_caps = True
-
-    # Bottom border on last header paragraph
-    _add_paragraph_border_bottom(p2)
-
-
-# ---------------------------------------------------------------------------
-# DOCX: Title + Identification
-# ---------------------------------------------------------------------------
-
-def _build_title_and_meta(doc: Document, req: ParecerRequest) -> None:
-    meta = _get_metadata(req)
-
-    # Título
-    title_p = doc.add_paragraph()
-    title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    title_p.paragraph_format.space_before = Pt(14)
-    title_p.paragraph_format.space_after = Pt(14)
-    run = title_p.add_run("PARECER JURÍDICO")
-    run.bold = True
-    run.font.name = "Times New Roman"
-    run.font.size = Pt(13)
-
-    # Identification fields
-    fields = [
-        ("Órgão Consulente:", meta["orgao_consulente"]),
-        ("Referência:", meta["referencia"]),
-        ("Assunto:", meta["assunto"]),
-    ]
-    for label, value in fields:
-        p = doc.add_paragraph()
-        p.paragraph_format.space_after = Pt(2)
-        p.paragraph_format.space_before = Pt(0)
-        run_label = p.add_run(label + " ")
-        run_label.bold = True
-        run_label.font.name = "Times New Roman"
-        run_label.font.size = Pt(11.5)
-        run_value = p.add_run(value)
-        run_value.font.name = "Times New Roman"
-        run_value.font.size = Pt(11.5)
-
-
-# ---------------------------------------------------------------------------
-# DOCX: TipTap JSON → python-docx mapping
-# ---------------------------------------------------------------------------
-
-def _add_tiptap_content(doc: Document, content: list[dict[str, Any]]) -> None:
-    """Map TipTap JSON nodes to python-docx elements with professional formatting."""
-    for node in content:
-        node_type = node.get("type", "")
-
-        if node_type == "paragraph":
-            para = doc.add_paragraph()
-            para.paragraph_format.space_after = Pt(6)
-            para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-            # Text indent for normal paragraphs
-            para.paragraph_format.first_line_indent = Cm(1.25)
-            _add_inline_content(para, node.get("content", []))
-
-        elif node_type == "heading":
-            level = node.get("attrs", {}).get("level", 2)
-            text = _extract_text(node.get("content", []))
-
-            if level == 2:
-                # Section heading (EMENTA, I — RELATÓRIO, etc.)
-                para = doc.add_paragraph()
-                para.paragraph_format.space_before = Pt(18)
-                para.paragraph_format.space_after = Pt(8)
-                run = para.add_run(text)
-                run.bold = True
-                run.font.name = "Times New Roman"
-                run.font.size = Pt(12)
-            elif level == 3:
-                # Numbered subtitle (1. Da Legislação, etc.)
-                para = doc.add_paragraph()
-                para.paragraph_format.space_before = Pt(12)
-                para.paragraph_format.space_after = Pt(4)
-                run = para.add_run(text)
-                run.bold = True
-                run.font.name = "Times New Roman"
-                run.font.size = Pt(12)
-            else:
-                para = doc.add_paragraph()
-                _add_inline_content(para, node.get("content", []))
-
-        elif node_type == "blockquote":
-            # Blockquote: italic, indented left
-            for child in node.get("content", []):
-                para = doc.add_paragraph()
-                para.paragraph_format.left_indent = Cm(2)
-                para.paragraph_format.right_indent = Cm(1)
-                para.paragraph_format.space_after = Pt(4)
-                para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-                _add_inline_content(para, child.get("content", []), italic=True)
-
-        elif node_type == "bulletList":
-            for item in node.get("content", []):
-                if item.get("type") == "listItem":
-                    for child in item.get("content", []):
-                        para = doc.add_paragraph(style="List Bullet")
-                        _add_inline_content(para, child.get("content", []))
-
-        elif node_type == "orderedList":
-            for item in node.get("content", []):
-                if item.get("type") == "listItem":
-                    for child in item.get("content", []):
-                        para = doc.add_paragraph(style="List Number")
-                        _add_inline_content(para, child.get("content", []))
-
-        else:
-            children = node.get("content", [])
-            if children:
-                _add_tiptap_content(doc, children)
-
-
-def _add_inline_content(
-    paragraph, content: list[dict[str, Any]], italic: bool = False
-) -> None:
-    """Add inline text nodes (with marks) to a paragraph."""
-    for item in content:
-        if item.get("type") == "text":
-            text = item.get("text", "")
-            run = paragraph.add_run(text)
-            run.font.name = "Times New Roman"
-            run.font.size = Pt(12)
-
-            if italic:
-                run.italic = True
-
-            for mark in item.get("marks", []):
-                mark_type = mark.get("type", "")
-                if mark_type == "bold":
-                    run.bold = True
-                elif mark_type == "italic":
-                    run.italic = True
-                elif mark_type == "underline":
-                    run.underline = True
-                elif mark_type == "strike":
-                    run.font.strike = True
-        elif item.get("type") == "hardBreak":
-            paragraph.add_run("\n")
-
-
-def _extract_text(content: list[dict[str, Any]]) -> str:
-    """Extract plain text from TipTap inline content."""
-    return "".join(item.get("text", "") for item in content if item.get("type") == "text")
-
-
-# ---------------------------------------------------------------------------
-# DOCX: Local/Data + Assinaturas + Rodapé
-# ---------------------------------------------------------------------------
-
-def _build_closing(doc: Document, req: ParecerRequest) -> None:
-    """Local, data e bloco de assinaturas."""
-    meta = _get_metadata(req)
-
-    # Local e data (right-aligned)
-    data_p = doc.add_paragraph()
-    data_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    data_p.paragraph_format.space_before = Pt(24)
-    data_p.paragraph_format.space_after = Pt(6)
-    run = data_p.add_run(_formatar_data_extenso(meta["municipio_uf"]))
-    run.font.name = "Times New Roman"
-    run.font.size = Pt(12)
-
-    # Assinaturas: 2×2 table sem bordas
-    table = doc.add_table(rows=2, cols=2)
-    table.alignment = WD_TABLE_ALIGNMENT.CENTER
-    _remove_table_borders(table)
-
-    for idx, (nome, oab) in enumerate(ADVOGADOS):
-        row = idx // 2
-        col = idx % 2
-        cell = table.cell(row, col)
-
-        # Clear default paragraph
-        cell.paragraphs[0].clear()
-
-        # Spacing before signature line
-        spacer = cell.paragraphs[0]
-        spacer.paragraph_format.space_before = Pt(36)
-        spacer.paragraph_format.space_after = Pt(0)
-
-        # Add top border to simulate signature line
-        _set_cell_border(cell, top={"val": "single", "sz": "4", "color": "000000"})
-
-        # Name (small caps, bold, centered)
-        name_run = spacer.add_run(nome)
-        name_run.bold = True
-        name_run.font.name = "Times New Roman"
-        name_run.font.size = Pt(11)
-        name_run.font.small_caps = True
-        spacer.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-        # OAB
-        oab_p = cell.add_paragraph()
-        oab_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        oab_p.paragraph_format.space_before = Pt(2)
-        oab_p.paragraph_format.space_after = Pt(20)
-        oab_run = oab_p.add_run(oab)
-        oab_run.font.name = "Times New Roman"
-        oab_run.font.size = Pt(10)
-
-
-def _build_footer(doc: Document) -> None:
-    """Rodapé: endereço do escritório com borda superior."""
-    doc.add_paragraph()  # spacing
-
-    footer_p = doc.add_paragraph()
-    footer_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    footer_p.paragraph_format.space_before = Pt(10)
-
-    # Top border
-    pPr = footer_p._p.get_or_add_pPr()
-    pBdr = OxmlElement("w:pBdr")
-    top = OxmlElement("w:top")
-    top.set(qn("w:val"), "single")
-    top.set(qn("w:sz"), "4")
-    top.set(qn("w:space"), "1")
-    top.set(qn("w:color"), "000000")
-    pBdr.append(top)
-    pPr.append(pBdr)
-
-    run = footer_p.add_run(ESCRITORIO_ENDERECO)
-    run.font.name = "Times New Roman"
-    run.font.size = Pt(9)
-    run.font.color.rgb = RGBColor(0x33, 0x33, 0x33)
-
-
-# ---------------------------------------------------------------------------
-# DOCX generation (public)
-# ---------------------------------------------------------------------------
 
 async def to_docx(
     parecer_request: ParecerRequest,
     version: ParecerVersion,
     db: AsyncSession,
 ) -> bytes:
-    """Generate DOCX bytes from a parecer version's TipTap content."""
-    doc = Document()
+    """Gera o .docx no padrão byte-calibrado do escritório (Camada 5).
 
-    # Page setup (A4)
-    section = doc.sections[0]
-    section.top_margin = Cm(2)
-    section.bottom_margin = Cm(2)
-    section.left_margin = Cm(2)
-    section.right_margin = Cm(2)
+    Caminho:
+        version.content_tiptap → minuta_from_tiptap → gerar_parecer_bytes → bytes
+    """
+    meta = _get_metadata(parecer_request)
 
-    # Default font
-    style = doc.styles["Normal"]
-    style.font.name = "Times New Roman"
-    style.font.size = Pt(12)
-    style.paragraph_format.space_after = Pt(6)
-    style.paragraph_format.line_spacing = 1.6
+    tiptap = version.content_tiptap or {}
+    if not isinstance(tiptap, dict):
+        tiptap = {}
 
-    # Build document
-    _build_header(doc)
-    _build_title_and_meta(doc, parecer_request)
+    minuta = docx_generator.minuta_from_tiptap(
+        tiptap=tiptap,
+        consulente=_consulente_text(parecer_request, meta),
+        data_extenso=_formatar_data_extenso(meta["municipio_uf"], com_ponto=False),
+        subtipo=meta["subtipo"],
+        vertente=meta["vertente"],
+    )
 
-    # Body from TipTap JSON (filter out decoration: header, sigs, footer)
-    tiptap = version.content_tiptap
-    if tiptap and isinstance(tiptap, dict):
-        content = _filter_tiptap_content(tiptap.get("content", []))
-        _add_tiptap_content(doc, content)
-    elif version.content_html:
-        doc.add_paragraph(version.content_html)
+    # Salvaguardas: se a IA produziu um parecer com campos vazios, garante
+    # que o gerador receba placeholders compreensíveis em vez de quebrar com KeyError.
+    if not minuta["ementa_palavras_chave"]:
+        minuta["ementa_palavras_chave"] = ["PARECER JURÍDICO"]
+    if not minuta["relatorio_paragrafos"]:
+        minuta["relatorio_paragrafos"] = ["É o breve relatório. Passa-se à fundamentação."]
+    if not minuta["fundamentos_paragrafos"]:
+        minuta["fundamentos_paragrafos"] = ["[Fundamentos pendentes de revisão.]"]
+    if not minuta["conclusao_dispositivo"]:
+        minuta["conclusao_dispositivo"] = "Diante do exposto, o parecer é submetido à superior consideração."
+    if not minuta["recomendacoes_alineas"]:
+        # Conclusão sem alíneas: minuta válida, gerador apenas pula o bloco.
+        minuta["recomendacoes_alineas"] = []
 
-    # Closing: local/date + signatures
-    _build_closing(doc, parecer_request)
+    logger.info(
+        "DOCX export: parecer=%s versao=%s vertente=%s subtipo=%s alineas=%d marcadores=%d",
+        parecer_request.id,
+        version.version_number,
+        meta["vertente"] or "?",
+        meta["subtipo"] or "?",
+        len(minuta["recomendacoes_alineas"]),
+        sum(
+            docx_generator.contar_marcadores(t)
+            for t in [
+                *minuta["relatorio_paragrafos"],
+                *minuta["fundamentos_paragrafos"],
+                minuta["conclusao_dispositivo"],
+                *[a[1] for a in minuta["recomendacoes_alineas"]],
+                minuta.get("advertencia_protetiva") or "",
+            ]
+        ),
+    )
 
-    # Footer
-    _build_footer(doc)
-
-    # Serialize
-    buffer = io.BytesIO()
-    doc.save(buffer)
-    buffer.seek(0)
-    return buffer.read()
+    return docx_generator.gerar_parecer_bytes(minuta)
 
 
 # ---------------------------------------------------------------------------
-# PDF generation (public)
-# ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
-# PDF: TipTap JSON → HTML (mesma estrutura do DOCX)
+# PDF — HTML + WeasyPrint (preservado)
 # ---------------------------------------------------------------------------
 
 def _escape_html(text: str) -> str:
-    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
+# Regex compartilhada com o docx_generator para destacar marcadores em vermelho
+# também no HTML/PDF.
+import re as _re
+
+_PADRAO_MARCADOR_HTML = _re.compile(
+    r"\[REVISAR\s*[\-–—]\s*[^\]]+\]|\[!VERIFICAR:[^!]+!\]",
+    _re.IGNORECASE,
+)
+
+
+def _highlight_markers(html: str) -> str:
+    """Envolve marcadores de revisão humana em <span> vermelho/negrito no HTML."""
+    def _wrap(m):
+        return f'<span style="color:#C00000; font-weight:bold;">{m.group(0)}</span>'
+
+    return _PADRAO_MARCADOR_HTML.sub(_wrap, html)
 
 
 def _tiptap_inline_to_html(content: list[dict[str, Any]], force_italic: bool = False) -> str:
-    """Convert TipTap inline content (text nodes with marks) to HTML."""
     parts: list[str] = []
     for item in content:
         if item.get("type") == "text":
@@ -493,11 +249,10 @@ def _tiptap_inline_to_html(content: list[dict[str, Any]], force_italic: bool = F
             parts.append(text)
         elif item.get("type") == "hardBreak":
             parts.append("<br>")
-    return "".join(parts)
+    return _highlight_markers("".join(parts))
 
 
 def _tiptap_body_to_html(content: list[dict[str, Any]]) -> str:
-    """Convert TipTap JSON body nodes to styled HTML, matching DOCX formatting."""
     html_parts: list[str] = []
     for node in content:
         nt = node.get("type", "")
@@ -522,7 +277,7 @@ def _tiptap_body_to_html(content: list[dict[str, Any]]) -> str:
                     f'margin-bottom:6px;">{inline}</h3>'
                 )
             else:
-                html_parts.append(f'<p>{inline}</p>')
+                html_parts.append(f"<p>{inline}</p>")
 
         elif nt == "blockquote":
             bq_parts = []
@@ -543,7 +298,9 @@ def _tiptap_body_to_html(content: list[dict[str, Any]]) -> str:
                     for child in item.get("content", []):
                         inline = _tiptap_inline_to_html(child.get("content", []))
                         items.append(f"<li>{inline}</li>")
-            html_parts.append(f'<{tag} style="margin-left:2em; margin-bottom:10px;">{"".join(items)}</{tag}>')
+            html_parts.append(
+                f'<{tag} style="margin-left:2em; margin-bottom:10px;">{"".join(items)}</{tag}>'
+            )
 
         elif nt == "horizontalRule":
             html_parts.append("<hr>")
@@ -557,10 +314,8 @@ def _tiptap_body_to_html(content: list[dict[str, Any]]) -> str:
 
 
 def _build_pdf_html(req: ParecerRequest, version: ParecerVersion) -> str:
-    """Build complete styled HTML from TipTap JSON, matching DOCX structure exactly."""
     meta = _get_metadata(req)
 
-    # Body content from TipTap JSON (filter out decoration: header, sigs, footer)
     body_html = ""
     tiptap = version.content_tiptap
     if tiptap and isinstance(tiptap, dict):
@@ -568,7 +323,6 @@ def _build_pdf_html(req: ParecerRequest, version: ParecerVersion) -> str:
     elif version.content_html:
         body_html = version.content_html
 
-    # Assinaturas
     sigs = ""
     for nome, oab in ADVOGADOS:
         sigs += f"""
@@ -620,38 +374,31 @@ blockquote {{ break-inside: avoid; }}
 </head>
 <body>
 
-<!-- CABEÇALHO -->
 <div class="cabecalho">
     <div class="linha1">{_escape_html(ESCRITORIO_LINHA1)}</div>
     <div class="linha2">{_escape_html(ESCRITORIO_LINHA2)}</div>
 </div>
 
-<!-- TÍTULO -->
 <h1 class="titulo">PARECER JURÍDICO</h1>
 
-<!-- IDENTIFICAÇÃO -->
 <div class="identificacao">
     <p><strong>Órgão Consulente:</strong> {_escape_html(meta["orgao_consulente"])}</p>
     <p><strong>Referência:</strong> {_escape_html(meta["referencia"])}</p>
     <p><strong>Assunto:</strong> {_escape_html(meta["assunto"])}</p>
 </div>
 
-<!-- CORPO -->
 <div class="conteudo">
 {body_html}
 </div>
 
-<!-- LOCAL E DATA -->
 <div class="local-data">
     {_escape_html(_formatar_data_extenso(meta["municipio_uf"]))}
 </div>
 
-<!-- ASSINATURAS -->
 <div class="assinaturas">
 {sigs}
 </div>
 
-<!-- RODAPÉ -->
 <div class="rodape">
     {_escape_html(ESCRITORIO_ENDERECO)}
 </div>
@@ -665,7 +412,7 @@ async def to_pdf(
     version: ParecerVersion,
     db: AsyncSession,
 ) -> bytes:
-    """Generate PDF from TipTap JSON — same structure as DOCX."""
+    """Gera PDF via HTML + WeasyPrint — mesma estrutura visual do DOCX."""
     from weasyprint import HTML
 
     html_str = _build_pdf_html(parecer_request, version)

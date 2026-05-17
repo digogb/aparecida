@@ -30,6 +30,8 @@ services:
     volumes:
       - ./backend/app:/app/app
       - ./backend/alembic:/app/alembic
+      - ./backend/prompts:/app/prompts
+      - ./backend/skills:/app/skills
       - ./uploads:/app/uploads
     environment:
       DATABASE_URL: postgresql+asyncpg://ione:${DB_PASSWORD}@db:5432/ione

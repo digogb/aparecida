@@ -4,6 +4,7 @@ import type { ReviewFlowStep } from '../../types/editor'
 import { restoreVersion, fetchPeerReviews } from '../../services/editorApi'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import PeerReviewPanel from './PeerReviewPanel'
+import RevisaoMarkersPanel from './RevisaoMarkersPanel'
 import { MobileDrawer } from '../layout/MobileDrawer'
 import { colorForInitials } from '../../utils/authorColors'
 
@@ -346,6 +347,11 @@ export default function EditorSidebar({
             ))}
           </ul>
         </div>
+      )}
+
+      {/* Marcadores de revisão humana (Camada 6) */}
+      {activeVersion && (
+        <RevisaoMarkersPanel tiptap={activeVersion.content_tiptap} />
       )}
 
       {/* Peer Reviews */}

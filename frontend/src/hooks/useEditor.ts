@@ -10,6 +10,7 @@ import AIContent from '../components/editor/extensions/AIContent'
 import CorrectionMark from '../components/editor/extensions/CorrectionMark'
 import SearchHighlight from '../components/editor/extensions/SearchHighlight'
 import DiffHighlight from '../components/editor/extensions/DiffHighlight'
+import RevisaoMarkerHighlight from '../components/editor/extensions/RevisaoMarkerHighlight'
 import type { DiffAnnotation } from '../components/editor/extensions/DiffHighlight'
 import {
   saveVersionSnapshot,
@@ -24,6 +25,7 @@ import {
 } from '../services/editorApi'
 import type { CorrectionPreview, PeerReviewCreatePayload, PeerReviewRespondPayload } from '../services/editorApi'
 import type { ParecerRequestDetail, ParecerVersion, PeerReviewListItem } from '../types/parecer'
+import { contarMarcadoresRevisao, extrairMarcadoresRevisao, type MarcadorRevisao } from '../utils/revisaoMarkers'
 
 function getCurrentUserId(): string {
   try {
@@ -399,6 +401,11 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
   const [activeCompletedReview, setActiveCompletedReview] = useState<PeerReviewListItem | null>(null)
   const [showCompletedReviewModal, setShowCompletedReviewModal] = useState(false)
   const [diffAnnotation, setDiffAnnotation] = useState<DiffAnnotation | null>(null)
+  // Modal de aviso ao exportar com marcadores de revisão humana pendentes.
+  const [exportMarkersState, setExportMarkersState] = useState<{
+    format: 'docx' | 'pdf'
+    marcadores: MarcadorRevisao[]
+  } | null>(null)
   const saveRef = useRef<() => void>(() => {})
   const queryClient = useQueryClient()
 
@@ -422,6 +429,7 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
       CorrectionMark,
       SearchHighlight,
       DiffHighlight,
+      RevisaoMarkerHighlight,
     ],
     content: activeVersion?.content_tiptap || activeVersion?.content_html || '',
     onUpdate: () => {
@@ -869,7 +877,7 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     [parecer, handleSave, queryClient]
   )
 
-  const handleExport = useCallback(
+  const performExport = useCallback(
     async (format: 'docx' | 'pdf') => {
       if (!parecer) return
       try {
@@ -886,6 +894,34 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     },
     [parecer]
   )
+
+  const handleExport = useCallback(
+    async (format: 'docx' | 'pdf') => {
+      if (!parecer) return
+      // Sem marcadores: exporta direto.
+      // Com marcadores: abre o modal (ExportWithMarkersModal) listando os
+      // pontos pendentes — no DOCX/PDF eles saem em vermelho/negrito.
+      const tiptap = editor?.getJSON() ?? activeVersion?.content_tiptap ?? null
+      if (contarMarcadoresRevisao(tiptap) === 0) {
+        await performExport(format)
+        return
+      }
+      setExportMarkersState({
+        format,
+        marcadores: extrairMarcadoresRevisao(tiptap),
+      })
+    },
+    [parecer, editor, activeVersion, performExport]
+  )
+
+  const confirmExportWithMarkers = useCallback(async () => {
+    if (!exportMarkersState) return
+    const fmt = exportMarkersState.format
+    setExportMarkersState(null)
+    await performExport(fmt)
+  }, [exportMarkersState, performExport])
+
+  const closeExportModal = useCallback(() => setExportMarkersState(null), [])
 
   const handleGenerate = useCallback(async () => {
     if (!parecer) return
@@ -925,6 +961,9 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     correctionPreview,
     handleApprove,
     handleExport,
+    exportMarkersState,
+    confirmExportWithMarkers,
+    closeExportModal,
     getMarkedTexts,
     correctionCount,
     showPeerReviewModal,

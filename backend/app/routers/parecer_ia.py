@@ -58,9 +58,13 @@ async def classify_request(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+    # subtipo (v5.0) substitui o antigo areas_conexas[0]; fallback para schema legacy
+    subtema = data.get("subtipo") or (
+        data.get("areas_conexas", [None])[0] if data.get("areas_conexas") else None
+    )
     return ClassifyOut(
         tema=pr.tema,
-        subtema=data.get("areas_conexas", [None])[0] if data.get("areas_conexas") else None,
+        subtema=subtema,
         modelo_parecer=pr.modelo,
         municipio_detectado=data.get("municipio"),
         confianca=1.0 if data.get("confianca_classificacao") == "alta" else 0.5,

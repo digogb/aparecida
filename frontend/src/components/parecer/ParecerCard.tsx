@@ -98,6 +98,34 @@ export default function ParecerCard({ parecer }: { parecer: ParecerRequest }) {
           )}
         </div>
       </div>
+      {parecer.motivo && (parecer.status === 'devolvido' || parecer.status === 'erro') && (
+        <div
+          className="mt-3 px-3 py-2 rounded-lg text-sm flex items-start gap-2"
+          style={{ background: '#8B233210', color: '#8B2332', border: '1px solid #8B233233' }}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="mt-0.5 shrink-0"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span className="leading-snug">
+            <span className="font-semibold">
+              {parecer.status === 'devolvido' ? 'Não gerado: ' : 'Erro: '}
+            </span>
+            {parecer.motivo}
+          </span>
+        </div>
+      )}
     </div>
   )
 }

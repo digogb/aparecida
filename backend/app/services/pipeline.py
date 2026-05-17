@@ -63,7 +63,8 @@ async def _mark_devolvido(parecer_request_id: str, motivo: str) -> None:
                     request_id=pr.id,
                     from_status=old_status,
                     to_status=ParecerStatus.devolvido,
-                    notes=f"Email não é uma consulta jurídica: {motivo}",
+                    # Sem prefixo — o card já exibe "Não gerado:" e a label do status.
+                    notes=motivo,
                 )
             )
             await db.commit()

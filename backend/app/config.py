@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     DJE_NUMERO_OAB: str = ""
     DJE_SIGLA_TRIBUNAL: str = ""
 
+    # Camada 6 — verificação web via tool use (web_search server tool da Anthropic).
+    # Quando True, o P2 pode chamar web_search para verificar normas, julgados e valores
+    # antes de gerar um marcador [REVISAR—] ou [!VERIFICAR:!]. Custo extra de 0,01 USD por busca.
+    WEB_SEARCH_ENABLED: bool = True
+    WEB_SEARCH_MAX_USES_CONSULTIVO: int = 8       # parecer comum
+    WEB_SEARCH_MAX_USES_QUASE_PROCESSUAL: int = 20  # impugnação/recurso/defesa em TCE
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 

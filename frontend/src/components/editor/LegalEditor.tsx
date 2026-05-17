@@ -10,6 +10,7 @@ import EditorSidebar from './EditorSidebar'
 import SplitView from './SplitView'
 import PeerReviewModal from './PeerReviewModal'
 import CompletedReviewModal from './CompletedReviewModal'
+import ExportWithMarkersModal from './ExportWithMarkersModal'
 import DiffGutter from './DiffGutter'
 
 const SECTION_LABELS: Record<string, string> = {
@@ -469,6 +470,9 @@ export default function LegalEditor() {
     correctionPreview,
     handleApprove,
     handleExport,
+    exportMarkersState,
+    confirmExportWithMarkers,
+    closeExportModal,
     getMarkedTexts,
     correctionCount,
     showPeerReviewModal,
@@ -772,6 +776,16 @@ export default function LegalEditor() {
           isLoading={isReprocessing}
           isApplying={isApplying}
           preview={correctionPreview}
+        />
+      )}
+
+      {/* Aviso de marcadores [REVISAR—]/[!VERIFICAR:!] antes de exportar (Camada 5) */}
+      {exportMarkersState && (
+        <ExportWithMarkersModal
+          format={exportMarkersState.format}
+          marcadores={exportMarkersState.marcadores}
+          onConfirm={confirmExportWithMarkers}
+          onClose={closeExportModal}
         />
       )}
 

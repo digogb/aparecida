@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -106,6 +106,10 @@ class ParecerVersion(Base):
     citacoes_verificar: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     ressalvas: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     notas_revisor: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    # Gate mecânico (Camada 4 — IRR-1 ementa em CAPS, IRR-2 parágrafos ≤ 7 linhas).
+    # NULL = versão pré-gate (anterior ao pipeline v5.0).
+    gate_mecanico_passed: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    gate_mecanico_log: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

@@ -75,11 +75,13 @@ class TestClassifyEndpoint:
         p.tema = "licitacao"
         p.modelo = "licitacao"
         p.classificacao = {
-            "area_principal": "licitacoes_contratos",
+            "vertente": "licitacao_14133",
+            "subtipo": "dispensa",
+            "modo": "consultivo_puro",
             "municipio": "São Paulo",
             "uf": "SP",
             "confianca_classificacao": "alta",
-            "areas_conexas": [],
+            "caso_integrado": [],
         }
         app.dependency_overrides[get_db] = override_db(db)
 

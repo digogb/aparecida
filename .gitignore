@@ -1,5 +1,6 @@
 # Env
 .env
+.env.*
 *.env
 
 # Python
@@ -43,3 +44,8 @@ pgdata/
 
 # Uploads (arquivos de clientes — não versionar)
 uploads/
+
+# Plano interno / artefatos de teste
+.tasks/
+frontend/playwright-report/
+frontend/test-results/

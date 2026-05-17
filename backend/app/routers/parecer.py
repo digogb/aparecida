@@ -76,6 +76,10 @@ class ParecerRequestOut(BaseModel):
     numero_parecer: Optional[str] = None
     extraction_status: Optional[ExtractionStatus] = None
     municipio_nome: Optional[str] = None
+    # Última nota do parecer_status_history para os status terminais negativos
+    # (`devolvido`, `erro`). Permite ao advogado ver no card por que a IA
+    # não conseguiu gerar o parecer, sem precisar abrir a timeline.
+    motivo: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -86,7 +90,21 @@ class ParecerRequestOut(BaseModel):
         data = cls.model_validate(pr).model_dump()
         classificacao = pr.classificacao or {}
         data["municipio_nome"] = classificacao.get("municipio") or None
+        data["motivo"] = _latest_motivo(pr) if pr.status in _STATUS_COM_MOTIVO else None
         return cls(**data)
+
+
+_STATUS_COM_MOTIVO = {ParecerStatus.devolvido, ParecerStatus.erro}
+
+
+def _latest_motivo(pr: ParecerRequest) -> Optional[str]:
+    """Última nota do status_history — explica o motivo de devolvido/erro."""
+    history = pr.status_history or []
+    if not history:
+        return None
+    # status_history vem ordenado por created_at asc; o último é o mais recente.
+    latest = history[-1]
+    return (latest.notes or None) if latest.to_status == pr.status else None
 
 
 class ParecerRequestDetail(ParecerRequestOut):
@@ -134,6 +152,7 @@ async def list_parecer_requests(
     query = (
         select(ParecerRequest)
         .where(*base_filters)
+        .options(selectinload(ParecerRequest.status_history))
         .order_by(ParecerRequest.created_at.asc())
         .limit(limit)
         .offset(offset)
@@ -161,6 +180,7 @@ async def get_parecer_request(
         .options(
             selectinload(ParecerRequest.attachments),
             selectinload(ParecerRequest.versions),
+            selectinload(ParecerRequest.status_history),
         )
         .where(ParecerRequest.id == id)
     )
@@ -179,6 +199,9 @@ async def get_parecer_request(
         v.model_copy(update={"created_by_name": user_names.get(v.created_by)})
         for v in detail.versions
     ]
+    detail.motivo = _latest_motivo(item) if item.status in _STATUS_COM_MOTIVO else None
+    classificacao = item.classificacao or {}
+    detail.municipio_nome = classificacao.get("municipio") or None
     return detail
 
 

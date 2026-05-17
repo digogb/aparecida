@@ -57,6 +57,8 @@ class ParecerVersionDetail(BaseModel):
     citacoes_verificar: Optional[list[Any]] = None
     ressalvas: Optional[list[Any]] = None
     notas_revisor: Optional[list[Any]] = None
+    gate_mecanico_passed: Optional[bool] = None
+    gate_mecanico_log: Optional[dict[str, Any]] = None
     created_by: Optional[uuid.UUID] = None
     created_at: datetime
     updated_at: datetime
