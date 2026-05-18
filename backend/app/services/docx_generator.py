@@ -190,12 +190,13 @@ def _adicionar_paragrafo_corpo(
     negrito: bool = False,
     fonte_size=TAMANHO_CORPO,
 ):
-    """Parágrafo de corpo com formatação padrão e detecção automática de marcadores."""
+    """Parágrafo de corpo com formatação padrão e detecção automática de marcadores.
+    space_after = 6pt — alinhado ao gabarito do escritório (cliente)."""
     p = doc.add_paragraph()
     p.alignment = alinhamento
     pf = p.paragraph_format
     pf.space_before = Pt(0)
-    pf.space_after = Pt(12)
+    pf.space_after = Pt(6)
     pf.line_spacing = ESPACAMENTO_LINHA_15
     if recuar_primeira_linha:
         pf.first_line_indent = RECUO_PRIMEIRA_LINHA
@@ -340,14 +341,15 @@ def _adicionar_paragrafos_corpo(doc, paragrafos: List[str]) -> None:
 
 
 def _adicionar_recomendacoes(doc, alineas: List[Tuple[str, str]]) -> None:
-    """Alíneas (a), (b), (c), (d) das recomendações em prosa, com detecção de marcadores."""
+    """Alíneas (a), (b), (c), (d) das recomendações — formatadas como corpo normal
+    (align=both, fli=4cm, space_after=6pt), conforme gabarito do escritório."""
     for letra, texto in alineas:
         p = doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         pf = p.paragraph_format
         pf.first_line_indent = RECUO_PRIMEIRA_LINHA
         pf.space_before = Pt(0)
-        pf.space_after = Pt(12)
+        pf.space_after = Pt(6)
         pf.line_spacing = ESPACAMENTO_LINHA_15
 
         run_letra = p.add_run(f"({letra}) ")
@@ -360,11 +362,13 @@ def _adicionar_recomendacoes(doc, alineas: List[Tuple[str, str]]) -> None:
 # =============================================================================
 
 def _adicionar_fortaleza_data(doc, data_extenso: str) -> None:
-    """Linha 'Fortaleza/CE, [data].' alinhada à esquerda, sem recuo de primeira linha."""
+    """Linha 'Fortaleza/CE, [data].' — formatada como parágrafo de corpo (align=both,
+    fli=4cm), com espaço extra antes e depois para separar do bloco de assinaturas.
+    Alinhado ao gabarito do escritório."""
     p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     pf = p.paragraph_format
-    pf.first_line_indent = Cm(0)
+    pf.first_line_indent = RECUO_PRIMEIRA_LINHA
     pf.space_before = Pt(24)
     pf.space_after = Pt(24)
     pf.line_spacing = ESPACAMENTO_LINHA_15
@@ -449,13 +453,14 @@ def _adicionar_bloco_assinaturas(doc) -> None:
 
 
 def _adicionar_fecho(doc) -> None:
-    """'É o parecer, submetido à superior consideração.'"""
+    """'É o parecer, submetido à superior consideração.' — space_after = 6pt
+    para alinhar com o restante dos parágrafos de corpo (gabarito do escritório)."""
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     pf = p.paragraph_format
     pf.first_line_indent = RECUO_PRIMEIRA_LINHA
     pf.space_before = Pt(12)
-    pf.space_after = Pt(12)
+    pf.space_after = Pt(6)
     pf.line_spacing = ESPACAMENTO_LINHA_15
     run = p.add_run("É o parecer, submetido à superior consideração.")
     _set_font(run)

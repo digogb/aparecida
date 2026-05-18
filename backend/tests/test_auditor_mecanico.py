@@ -1,4 +1,4 @@
-"""Testes do auditor mecânico (Camada 4 — gate IRR-1 + IRR-2)."""
+"""Testes do auditor mecânico (Camada 4 — gate IRR-1 + IRR-2 + IRR-3)."""
 from __future__ import annotations
 
 import pytest
@@ -6,6 +6,7 @@ import pytest
 from app.services.auditor_mecanico import (
     CHARS_PER_LINE,
     AuditorResult,
+    MarcadorResidual,
     affected_sections,
     audit_sections,
     estimar_linhas,
@@ -247,3 +248,114 @@ class TestResultHelpers:
         assert "IRR-1" in instructions
         assert "IRR-2" in instructions
         assert "TRECHOS MARCADOS PARA CORREÇÃO" in instructions
+
+
+# ─── IRR-3 — marcadores residuais sobre norma da parte adversa ─────────────────
+
+
+class TestIRR3MarcadoresResiduais:
+    """Em modo quase-processual, [VERIFICAR] e [REVISAR — ... parte adversa ...]
+    em texto final reprovam o gate. Em modo consultivo, IRR-3 não se aplica."""
+
+    def test_consultivo_default_ignores_markers(self):
+        sections = {
+            "ementa": _EMENTA_OK,
+            "relatorio": _REL_OK,
+            "fundamentos": "Texto com [VERIFICAR — algo] residual.",
+            "conclusao": _CONC_OK,
+        }
+        result = audit_sections(sections)  # modo=None → consultivo default
+        assert result.marcadores_residuais == []
+        assert result.passed is True
+
+    def test_consultivo_explicit_ignores_markers(self):
+        sections = {
+            "ementa": _EMENTA_OK,
+            "relatorio": _REL_OK,
+            "fundamentos": "Texto com [VERIFICAR — algo] e [REVISAR — NORMA INVOCADA PELA PARTE ADVERSA].",
+            "conclusao": _CONC_OK,
+        }
+        result = audit_sections(sections, modo="consultivo_puro")
+        assert result.marcadores_residuais == []
+        assert result.passed is True
+
+    def test_quase_processual_flags_verificar_marker(self):
+        sections = {
+            "ementa": _EMENTA_OK,
+            "relatorio": _REL_OK,
+            "fundamentos": "A Lei [VERIFICAR — NORMA 9999/2000 INVOCADA PELO RECORRENTE] não procede.",
+            "conclusao": _CONC_OK,
+        }
+        result = audit_sections(sections, modo="quase_processual")
+        assert result.passed is False
+        assert len(result.marcadores_residuais) == 1
+        assert result.marcadores_residuais[0].tipo == "verificar"
+        assert result.marcadores_residuais[0].secao == "fundamentos"
+
+    def test_quase_processual_flags_revisar_parte_adversa(self):
+        sections = {
+            "ementa": _EMENTA_OK,
+            "relatorio": _REL_OK,
+            "fundamentos": (
+                "O recorrente invoca a Lei nº 9.999/2000 "
+                "[REVISAR — NORMA 9.999/2000 INVOCADA PELA PARTE ADVERSA — CONFIRMAR VIGÊNCIA]."
+            ),
+            "conclusao": _CONC_OK,
+        }
+        result = audit_sections(sections, modo="quase_processual")
+        assert result.passed is False
+        assert len(result.marcadores_residuais) == 1
+        assert result.marcadores_residuais[0].tipo == "revisar_adversa"
+
+    def test_quase_processual_accepts_neutral_revisar_marker(self):
+        sections = {
+            "ementa": _EMENTA_OK,
+            "relatorio": _REL_OK,
+            "fundamentos": (
+                "Aplica-se o entendimento "
+                "[REVISAR — ACÓRDÃO TCU Nº 1234/2025 NÃO CONFIRMADO. VERIFICAR NÚMERO E RELATOR.]."
+            ),
+            "conclusao": _CONC_OK,
+        }
+        result = audit_sections(sections, modo="quase_processual")
+        # Marcador [REVISAR — ...] sobre acórdão a confirmar é admissível em texto final.
+        assert result.marcadores_residuais == []
+        assert result.passed is True
+
+    def test_affected_sections_includes_marker_section(self):
+        sections = {
+            "ementa": _EMENTA_OK,
+            "relatorio": _REL_OK,
+            "fundamentos": _FUND_OK,
+            "conclusao": (
+                "Diante do exposto, [VERIFICAR — ALGO PENDENTE] o parecer é PERTINENTE."
+            ),
+        }
+        result = audit_sections(sections, modo="quase_processual")
+        assert "conclusao" in affected_sections(result)
+
+    def test_format_revision_instructions_mentions_irr3(self):
+        sections = {
+            "ementa": _EMENTA_OK,
+            "relatorio": _REL_OK,
+            "fundamentos": "Texto com [VERIFICAR — NORMA 9999/2000 INVOCADA PELA PARTE ADVERSA].",
+            "conclusao": _CONC_OK,
+        }
+        result = audit_sections(sections, modo="quase_processual")
+        instructions = format_revision_instructions(result)
+        assert "IRR-3" in instructions
+        assert "MARCADORES A RESOLVER" in instructions
+
+    def test_log_dict_serializes_marcadores(self):
+        sections = {
+            "ementa": _EMENTA_OK,
+            "relatorio": _REL_OK,
+            "fundamentos": "[VERIFICAR — algo da parte adversa]",
+            "conclusao": _CONC_OK,
+        }
+        result = audit_sections(sections, modo="quase_processual")
+        log = result.as_log_dict()
+        assert "marcadores_residuais" in log
+        assert len(log["marcadores_residuais"]) == 1
+        assert log["marcadores_residuais"][0]["tipo"] == "verificar"
+        assert log["marcadores_residuais"][0]["secao"] == "fundamentos"

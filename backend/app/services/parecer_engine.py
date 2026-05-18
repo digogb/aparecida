@@ -338,18 +338,24 @@ async def _enforce_mechanical_gate(
     """Aplica o gate mecânico e, em caso de reprovação, aciona o P3 para reescrever
     as seções afetadas. Retry até `_GATE_MAX_RETRIES` vezes.
 
+    Em modo quase-processual, o gate inclui IRR-3 (sem marcadores residuais sobre
+    norma da parte adversa).
+
     Retorna (sections_finais, último_resultado_do_auditor, número_de_retries_executados).
     Quando o gate continua falhando após todos os retries, o parecer ainda é entregue —
     mas com `passed=False` no log, e o advogado revisor vê a sinalização no editor.
     """
-    result = audit_sections(sections)
+    modo = (classification or {}).get("modo")
+    result = audit_sections(sections, modo=modo)
     retries = 0
 
     while not result.passed and retries < _GATE_MAX_RETRIES:
         retries += 1
         logger.warning(
-            "Gate mecânico reprovou (tentativa %d/%d). %d parágrafo(s) longo(s); ementa_ok=%s",
-            retries, _GATE_MAX_RETRIES, len(result.paragrafos_longos), result.ementa_ok,
+            "Gate mecânico reprovou (tentativa %d/%d). %d parágrafo(s) longo(s); "
+            "ementa_ok=%s; %d marcador(es) residual(is); modo=%s",
+            retries, _GATE_MAX_RETRIES, len(result.paragrafos_longos),
+            result.ementa_ok, len(result.marcadores_residuais), modo,
         )
 
         observacoes = format_revision_instructions(result)
@@ -368,15 +374,17 @@ async def _enforce_mechanical_gate(
             if revised.get(secao):
                 sections[secao] = revised[secao]
 
-        result = audit_sections(sections)
+        result = audit_sections(sections, modo=modo)
 
     if result.passed:
         logger.info("Gate mecânico aprovado após %d retry(s).", retries)
     else:
         logger.error(
-            "Gate mecânico REPROVADO após %d retries. %d parágrafo(s) longo(s) persistente(s); ementa_ok=%s. "
+            "Gate mecânico REPROVADO após %d retries. %d parágrafo(s) longo(s) persistente(s); "
+            "ementa_ok=%s; %d marcador(es) residual(is). "
             "Versão será salva com gate_mecanico_passed=False para revisão manual.",
             retries, len(result.paragrafos_longos), result.ementa_ok,
+            len(result.marcadores_residuais),
         )
 
     return sections, result, retries

@@ -28,7 +28,7 @@ EMENTA: DIREITO ADMINISTRATIVO ― CONTRATOS ADMINISTRATIVOS ― TRANSPORTE ESCO
 </ementa>
 
 <relatorio>
-Trata-se de consulta formulada pela Secretaria Municipal de Educação do Município de Araripe/CE, no bojo do Processo Administrativo nº 047/2026-SME, a respeito da viabilidade jurídica de aditivo quantitativo ao Contrato Administrativo nº 012/2025, celebrado para a prestação de serviços de transporte escolar.
+A Secretaria Municipal de Educação do Município de Araripe/CE, por sua titular e Ordenadora de Despesas, Sra. Ana Lúcia Ferreira Bastos, encaminhou a esta Assessoria Jurídica, em 10 de maio de 2026, no bojo do Processo Administrativo nº 047/2026-SME, consulta a respeito da viabilidade jurídica de aditivo quantitativo ao Contrato Administrativo nº 012/2025, celebrado para a prestação de serviços de transporte escolar.
 
 A consulente informa que, em razão da abertura de duas novas turmas de educação infantil na zona rural do Município e da redefinição de itinerário em razão de obra em rodovia estadual, será necessário acrescer 18% (dezoito por cento) ao quantitativo de quilômetros rodados originalmente pactuado. Acompanham a consulta o contrato original, a minuta do termo aditivo proposto, a justificativa técnica firmada pela Diretoria de Transporte Escolar e a memória de cálculo do percentual.
 
@@ -109,7 +109,7 @@ EMENTA: DIREITO ADMINISTRATIVO ― LICITAÇÕES E CONTRATOS ― DISPENSA POR VAL
 </ementa>
 
 <relatorio>
-Trata-se de consulta formulada pela Procuradoria Geral do Município de Potengi/CE acerca da regularidade de procedimento de dispensa de licitação, com fundamento no art. 75, inciso II, da Lei nº 14.133/2021, para aquisição de material de escritório no valor total estimado de R$ 48.500,00 (quarenta e oito mil e quinhentos reais).
+A Procuradoria Geral do Município de Potengi/CE, por seu titular, Dr. Roberto Pessoa Albuquerque, encaminhou a esta Assessoria Jurídica, em 14 de maio de 2026, consulta acerca da regularidade de procedimento de dispensa de licitação, com fundamento no art. 75, inciso II, da Lei nº 14.133/2021, para aquisição de material de escritório no valor total estimado de R$ 48.500,00 (quarenta e oito mil e quinhentos reais).
 
 A consulente informa que o objeto não compõe item de licitação em andamento, que não há contrato de fornecimento vigente que abranja a aquisição e que a despesa será atendida por dotação orçamentária consignada na LOA do exercício corrente.
 
@@ -162,6 +162,156 @@ Cumpre, ainda, advertir formalmente o gestor sobre o risco de responsabilizaçã
     "trecho_no_parecer": "fundamentos — segundo parágrafo",
     "confianca": "media",
     "nota": "Valor monetário sujeito a atualização anual por IPCA-E (art. 182). Marcador [REVISAR — ...] inserido inline. Conferir último decreto atualizador antes da assinatura."
+  }
+]
+</citacoes_verificar>
+
+<ressalvas>
+[]
+</ressalvas>
+</parecer>
+
+---
+
+## EXEMPLO 3 — Parecer jurídico prévio do art. 53 (análise de edital)
+
+<parecer>
+<metadata>
+{
+  "orgao_consulente": "Fundo Municipal de Saúde de Saboeiro/CE",
+  "municipio_uf": "Saboeiro/CE",
+  "assunto": "Parecer prévio sobre minuta de edital de Pregão Eletrônico nº 12/2026 — aquisição de medicamentos básicos",
+  "referencia": "Processo Administrativo nº 089/2026-FMS",
+  "tipo": "preventivo",
+  "data_elaboracao": "2026-05-16"
+}
+</metadata>
+
+<ementa>
+EMENTA: DIREITO ADMINISTRATIVO ― LICITAÇÕES ― PARECER JURÍDICO PRÉVIO ― art. 53 DA Lei nº 14.133/2021 ― CINCO VETORES DO § 1º ― PREGÃO ELETRÔNICO ― AQUISIÇÃO DE MEDICAMENTOS ― ATESTADO DE CAPACIDADE TÉCNICA ACIMA DO LIMITE DA SÚMULA TCU 263 ― VÍCIO SANÁVEL ― PARECER FAVORÁVEL COM RESSALVAS.
+</ementa>
+
+<relatorio>
+O Fundo Municipal de Saúde do Município de Saboeiro/CE, por seu gestor e Ordenador de Despesas, Sr. Carlos Henrique Tavares, encaminhou a esta Assessoria Jurídica, em 15 de maio de 2026, no bojo do Processo Administrativo nº 089/2026-FMS, consulta para emissão do parecer jurídico prévio do art. 53 da Lei nº 14.133/2021 sobre a minuta de edital do Pregão Eletrônico nº 12/2026, destinado à aquisição de medicamentos básicos da farmácia básica.
+
+Acompanharam a consulta o Estudo Técnico Preliminar, o Termo de Referência, a pesquisa de preços com três fontes, a minuta de edital, a minuta de contrato e a planilha orçamentária da contratação.
+
+É o breve relatório. Passa-se à fundamentação.
+</relatorio>
+
+<fundamentos>
+A análise dos cinco vetores do § 1º do art. 53 da Lei nº 14.133/2021 segue em prosa contínua, sem subdivisão numerada, percorrendo na ordem em que o caso pede a regularidade processual, a modalidade e o critério de julgamento, os pressupostos materiais, a habilitação e a minuta de edital com seus anexos.
+
+Examinemos, em primeiro lugar, a regularidade processual do feito. O Estudo Técnico Preliminar consta dos autos, mas em formato genérico, sem dados específicos do município consulente — não há histórico de consumo, mapa de fornecedores regionais, nem sazonalidade da demanda. O conteúdo se aproxima do padrão "copia-cola" que tem sido objeto de sinalizativo do TCE-CE em fiscalizações sistêmicas a municípios cearenses. A pesquisa de preços, por sua vez, foi anexada com três fontes, todas atualizadas em prazo inferior a noventa dias — o vetor de pesquisa de preços, portanto, está atendido em sua dimensão formal.
+
+Quanto à modalidade eleita e ao critério de julgamento, o pregão eletrônico, com critério de menor preço e modo de disputa aberto, é adequado ao objeto. Medicamentos básicos enquadram-se como bens de especificação objetiva e padronizada — bem comum, na dicção do art. 6º, XIII, da Lei nº 14.133/2021 — o que abre cabimento ao pregão na forma do art. 29 do mesmo diploma. Não há, neste plano, alternativa interpretativa.
+
+No tocante aos pressupostos materiais do procedimento, a regularidade é manifesta: trata-se de licitação ordinária, sem hipótese de contratação direta, e a competência do Fundo Municipal de Saúde para a aquisição de medicamentos está expressa em sua lei instituidora.
+
+Examinada a habilitação proposta no edital, identifica-se, no entanto, um ponto que demanda atenção. O item 7.3.4 da minuta exige, como atestado de capacidade técnico-operacional, fornecimento prévio de medicamentos em quantitativo equivalente a setenta por cento do quantitativo licitado — exigência que ultrapassa o limite consolidado pela Súmula nº 263 do TCU, segundo a qual o atestado para a parcela de maior relevância não deve ultrapassar cinquenta por cento do licitado, salvo justificativa técnica robusta no Estudo Técnico Preliminar. A justificativa do quantitativo majorado não consta do ETP. O ponto é simples: ou se ajusta o item 7.3.4 ao patamar de cinquenta por cento, ou se documenta no ETP a razão técnica que justifica o excesso. Caso contrário, o vício é alegável em impugnação por qualquer licitante potencial, e o Tribunal de Contas tem sido severo com restrições editalícias dessa natureza.
+
+Resta a apreciação da minuta de contrato anexa. As cláusulas necessárias do art. 92 da Lei nº 14.133/2021 estão todas contempladas: objeto, vinculação ao edital e à proposta, prazo de início e de conclusão, preço, condições de pagamento, garantia, sanções e foro. A cláusula de reajuste, em particular, prevê o IPCA como índice e periodicidade anual — parâmetros adequados ao objeto e ao prazo contratual previsto.
+</fundamentos>
+
+<conclusao>
+Diante do exposto, e em resposta à consulta formulada, o parecer é FAVORÁVEL COM RESSALVAS à publicação do edital do Pregão Eletrônico nº 12/2026, condicionada à correção do vício de habilitação identificado.
+
+a) Recomenda-se a alteração do item 7.3.4 da minuta de edital, reduzindo a exigência de quantitativo de atestado de capacidade técnico-operacional ao patamar máximo de cinquenta por cento do quantitativo licitado, em alinhamento com a Súmula nº 263 do TCU.
+
+b) Alternativamente, caso a Administração opte por manter o quantitativo majorado, recomenda-se a inclusão, no Estudo Técnico Preliminar, de justificativa técnica robusta que ampare a exigência, sob pena de impugnação procedente do edital.
+
+c) Recomenda-se o aprofundamento do Estudo Técnico Preliminar com dados específicos do município consulente — histórico de consumo da farmácia básica, mapa de fornecedores regionais e sazonalidade da demanda —, em prevenção a sinalizativo do TCE-CE em fiscalização sistêmica.
+
+d) Após o saneamento, recomenda-se a publicação do edital no PNCP e nos demais canais previstos no art. 94 da Lei nº 14.133/2021.
+
+Cumpre, ainda, advertir formalmente o gestor sobre o risco de responsabilização pessoal perante o controle externo na hipótese de publicação do edital na forma originalmente proposta, com possível determinação de anulação do certame e responsabilização do ordenador de despesas.
+
+É o parecer, submetido à superior consideração.
+</conclusao>
+
+<citacoes_verificar>
+[
+  {
+    "tipo": "jurisprudencia",
+    "referencia": "Súmula nº 263 do TCU",
+    "trecho_no_parecer": "fundamentos — quinto parágrafo",
+    "confianca": "alta",
+    "nota": "Súmula consolidada do TCU sobre limite de atestado de capacidade técnico-operacional."
+  }
+]
+</citacoes_verificar>
+
+<ressalvas>
+[]
+</ressalvas>
+</parecer>
+
+---
+
+## EXEMPLO 4 — Recurso administrativo (modo quase-processual, IRR-3 ativa)
+
+<parecer>
+<metadata>
+{
+  "orgao_consulente": "Pregoeiro Oficial do Município de Potengi/CE",
+  "municipio_uf": "Potengi/CE",
+  "assunto": "Recurso administrativo contra decisão de inabilitação no Pregão Eletrônico nº 2026.06.06.1",
+  "referencia": "Pregão Eletrônico nº 2026.06.06.1",
+  "tipo": "contencioso",
+  "data_elaboracao": "2026-05-16"
+}
+</metadata>
+
+<ementa>
+EMENTA: DIREITO ADMINISTRATIVO ― LICITAÇÕES ― PREGÃO ELETRÔNICO ― RECURSO ADMINISTRATIVO CONTRA INABILITAÇÃO ― ATESTADO DE CAPACIDADE TÉCNICA ― EXIGÊNCIA EDITALÍCIA QUE EXTRAPOLA A SÚMULA TCU 263 ― NORMA INVOCADA PELO RECORRENTE VERIFICADA ― RECURSO PERTINENTE ― PROVIMENTO RECOMENDADO.
+</ementa>
+
+<relatorio>
+O Pregoeiro Oficial do Município de Potengi/CE, Sr. Eduardo Gonçalves Amorim, encaminhou a esta Assessoria Jurídica, em 15 de maio de 2026, consulta para análise do recurso administrativo interposto pela empresa POPLAB Laboratórios Ltda. contra a decisão de inabilitação no Pregão Eletrônico nº 2026.06.06.1, que tinha por objeto o registro de preços para aquisição de reagentes laboratoriais.
+
+A recorrente sustenta que a exigência do item 8.4.2 do edital — atestado de capacidade técnica em quantitativo equivalente a sessenta por cento do licitado — extrapola o limite consolidado pela jurisprudência do TCU e invoca, em apoio à sua tese, a "Lei nº 14.133/2021, art. 67, § 4º", dispositivo segundo o qual, em sua leitura, seria vedado exigir comprovação superior a cinquenta por cento do quantitativo da licitação.
+
+Acompanham a consulta o edital, a ata da sessão pública, a documentação de habilitação apresentada pela recorrente, a decisão de inabilitação e a petição recursal.
+
+É o breve relatório. Passa-se à fundamentação.
+</relatorio>
+
+<fundamentos>
+A questão submetida à análise jurídica desta assessoria comporta resposta direta, embora exija o registro prévio de um achado quanto à fundamentação invocada pela recorrente.
+
+Convém registrar, antes do exame de mérito, que a norma invocada pela recorrente — "Lei nº 14.133/2021, art. 67, § 4º" — não corresponde, em sua numeração, ao dispositivo efetivamente aplicável à matéria. A Lei nº 14.133/2021 disciplina os atestados de capacidade técnica em seu art. 67, que trata da habilitação técnico-profissional e técnico-operacional, sem que o § 4º contenha a regra de limite de cinquenta por cento que a peça recursal lhe atribui. O parâmetro de cinquenta por cento do quantitativo de maior relevância decorre, na verdade, da **Súmula nº 263 do TCU**, consolidada na vigência da Lei nº 8.666/1993 e reafirmada sob o regime da Lei nº 14.133/2021 pela jurisprudência do controle externo. Registra-se o equívoco da numeração para a precisão técnica do parecer, sem que o erro de citação prejudique o exame da tese de fundo — que se apoia em parâmetro juridicamente existente, ainda que mal indicado.
+
+Compreendido esse aspecto, é preciso examinar o mérito da pretensão recursal. O item 8.4.2 do edital exige, como atestado de capacidade técnico-operacional, fornecimento prévio em quantitativo equivalente a sessenta por cento do licitado — patamar que ultrapassa o limite de cinquenta por cento consolidado pela Súmula nº 263 do TCU. A justificativa técnica para o quantitativo majorado não consta do Estudo Técnico Preliminar, conforme se verifica nos autos.
+
+Em outras palavras, a exigência editalícia que serviu de fundamento à decisão de inabilitação carrega, em sua origem, vício alegável pela via recursal. O Tribunal de Contas tem sido severo com restrições editalícias dessa natureza, especialmente quando desprovidas de justificativa técnica no ETP. Manter a decisão de inabilitação significaria, na prática, dar prosseguimento ao certame com fundamento em cláusula viciada — o que potencializa o risco de anulação do feito em sede de controle externo.
+
+A constatação não conduz, contudo, à conclusão de que o Município esteja impedido de exigir capacidade técnica compatível com o objeto. Pelo contrário. Existe rota legítima para a Administração: ajustar a exigência editalícia ao patamar de cinquenta por cento ou, alternativamente, documentar no ETP a razão técnica do excesso. No caso concreto, contudo, o vício já se consumou no edital publicado, e a forma adequada de saneamento, neste momento, é o provimento do recurso e a habilitação da recorrente, sem prejuízo de aprofundamento técnico em certames futuros.
+</fundamentos>
+
+<conclusao>
+Diante do exposto, e em resposta à consulta formulada, o parecer é no sentido de que o Recurso Administrativo interposto pela POPLAB Laboratórios Ltda. é PERTINENTE e merece PROVIMENTO.
+
+a) Recomenda-se o conhecimento do recurso, presentes seus pressupostos de admissibilidade.
+
+b) No mérito, recomenda-se o provimento do recurso, com reforma da decisão de inabilitação, em razão do vício do item 8.4.2 do edital — exigência de quantitativo de atestado superior ao limite da Súmula nº 263 do TCU, sem justificativa técnica no Estudo Técnico Preliminar.
+
+c) Recomenda-se a declaração de nulidade dos atos praticados a partir da decisão de inabilitação e a retomada do certame com a habilitação da recorrente, prosseguindo-se aos atos subsequentes.
+
+d) Para futuros certames, recomenda-se à Administração a observância estrita do parâmetro de cinquenta por cento da Súmula nº 263 do TCU ou, alternativamente, a documentação prévia, no Estudo Técnico Preliminar, da razão técnica que justifique exigência de quantitativo majorado.
+
+Cumpre, ainda, advertir formalmente o gestor sobre o risco de responsabilização pessoal perante o controle externo na hipótese de manutenção da decisão de inabilitação, com possível determinação de anulação do certame e devolução de valores eventualmente pagos a contratado posteriormente declarado vencedor.
+
+É o parecer, submetido à superior consideração.
+</conclusao>
+
+<citacoes_verificar>
+[
+  {
+    "tipo": "jurisprudencia",
+    "referencia": "Súmula nº 263 do TCU",
+    "trecho_no_parecer": "fundamentos — terceiro parágrafo",
+    "confianca": "alta",
+    "nota": "Súmula consolidada do TCU sobre limite de cinquenta por cento do quantitativo da licitação para atestado de capacidade técnico-operacional."
   }
 ]
 </citacoes_verificar>

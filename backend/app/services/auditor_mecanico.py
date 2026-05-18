@@ -17,6 +17,12 @@ REGRA IRR-1 — ementa em MAIÚSCULAS, exceto:
 
 REGRA IRR-2 — parágrafos da fundamentação não podem ter 8+ linhas estimadas.
   Parâmetros: CHARS_PER_LINE = 78 (Consolas 12pt, margens 2,5/3,0/3,0/3,0 cm em A4).
+
+REGRA IRR-3 — em modo quase-processual (impugnação, recurso, contrarrazões), nenhum
+  marcador residual sobre norma da parte adversa pode permanecer no texto final. A
+  IA recebe a IRR-3 no P2 para confirmar normas via web_search e converter achados
+  em parágrafo dedicado. Marcador residual reprova o gate (override Dr. Ione, checklist
+  v2.4 — Dimensão E.7).
 """
 from __future__ import annotations
 
@@ -77,6 +83,23 @@ _TITULOS_PULAR = (
 # como fórmulas de fechamento.
 _MIN_PARAGRAFO_CHARS = 100
 
+# IRR-3 — marcadores residuais sobre norma da parte adversa. Em modo quase-processual,
+# o P2 deve confirmar a norma adversa via web_search e converter o achado em parágrafo
+# dedicado. Marcador remanescente no texto final reprova o gate.
+#
+# Dois padrões: (a) qualquer [VERIFICAR ...] ou [!VERIFICAR: ... !] cru; (b) [REVISAR — ...]
+# que mencione explicitamente a parte adversa (recorrente, impugnante, contrarrazões,
+# notificação adversa, parte adversa, "INVOCADA PELA PARTE").
+_VERIFICAR_PATTERN = re.compile(r"\[\s*!?\s*VERIFICAR\b[^\]]*\]?", re.IGNORECASE)
+_REVISAR_ADVERSA_PATTERN = re.compile(
+    r"\[\s*REVISAR\s+[—\-–][^\]]*?"
+    r"(?:PARTE\s+ADVERSA|INVOCADA\s+PELA\s+PARTE|RECORRENTE|IMPUGNANTE|"
+    r"CONTRARRAZ[ÕOÕÕ]ES|NOTIFICA[ÇCÇ][AÃÃ]O\s+ADVERSA|"
+    r"INVOCADA\s+(?:POR|PELO|PELA)\s+(?:RECORRENTE|IMPUGNANTE|LICITANTE))"
+    r"[^\]]*\]",
+    re.IGNORECASE,
+)
+
 
 @dataclass
 class ParagrafoLongo:
@@ -88,11 +111,19 @@ class ParagrafoLongo:
 
 
 @dataclass
+class MarcadorResidual:
+    secao: str          # "ementa" | "relatorio" | "fundamentos" | "conclusao"
+    marcador: str        # texto completo do marcador encontrado
+    tipo: str            # "verificar" | "revisar_adversa"
+
+
+@dataclass
 class AuditorResult:
     passed: bool
     violacoes: list[str] = field(default_factory=list)
     paragrafos_longos: list[ParagrafoLongo] = field(default_factory=list)
     ementa_ok: bool | None = None
+    marcadores_residuais: list[MarcadorResidual] = field(default_factory=list)
 
     def as_log_dict(self) -> dict[str, Any]:
         """Serializa para gravação em ParecerVersion.gate_mecanico_log (JSONB)."""
@@ -109,6 +140,10 @@ class AuditorResult:
                     "preview": p.preview,
                 }
                 for p in self.paragrafos_longos
+            ],
+            "marcadores_residuais": [
+                {"secao": m.secao, "marcador": m.marcador, "tipo": m.tipo}
+                for m in self.marcadores_residuais
             ],
         }
 
@@ -217,18 +252,54 @@ def _auditar_secao_paragrafos(secao_nome: str, texto: str) -> list[ParagrafoLong
     return longos
 
 
-def audit_sections(sections: dict) -> AuditorResult:
-    """Aplica IRR-1 e IRR-2 sobre o dict de seções do parecer.
+def _detectar_marcadores_residuais(
+    secao_nome: str, texto: str
+) -> list[MarcadorResidual]:
+    """IRR-3 — marcadores residuais sobre norma da parte adversa.
+
+    Detecta:
+      - [VERIFICAR ...] ou [!VERIFICAR: ... !] — sempre proibidos em texto final
+        (o P2 deve resolvê-los antes do fechamento).
+      - [REVISAR — ...] que mencione recorrente, impugnante, contrarrazões,
+        parte adversa, "INVOCADA PELA PARTE", etc.
+
+    Marcadores `[REVISAR — ...]` neutros (acórdão a confirmar, valor de dispensa,
+    decreto a publicar) NÃO entram aqui — eles continuam admissíveis e são tratados
+    pelo painel de revisão humana do editor.
+    """
+    if not texto:
+        return []
+
+    achados: list[MarcadorResidual] = []
+    for match in _VERIFICAR_PATTERN.finditer(texto):
+        achados.append(
+            MarcadorResidual(secao=secao_nome, marcador=match.group(0), tipo="verificar")
+        )
+    for match in _REVISAR_ADVERSA_PATTERN.finditer(texto):
+        achados.append(
+            MarcadorResidual(
+                secao=secao_nome, marcador=match.group(0), tipo="revisar_adversa",
+            )
+        )
+    return achados
+
+
+def audit_sections(sections: dict, modo: str | None = None) -> AuditorResult:
+    """Aplica IRR-1, IRR-2 e (em modo quase-processual) IRR-3 sobre o dict de seções.
 
     `sections` é o resultado de `parse_parecer_xml` ou estrutura equivalente, com chaves
     `ementa`, `relatorio`, `fundamentos`, `conclusao` (strings).
 
-    O gate aprova quando ambas as regras passam. Em caso de reprovação, o
-    `AuditorResult.paragrafos_longos` lista exatamente quais parágrafos precisam ser
-    quebrados (insumo para `revise_parecer`).
+    `modo` vem da classificação P1 (`consultivo_puro` ou `quase_processual`). Em modo
+    quase-processual, marcadores residuais sobre norma da parte adversa reprovam o gate.
+
+    O gate aprova quando todas as regras aplicáveis passam. Em caso de reprovação, os
+    campos `paragrafos_longos` e `marcadores_residuais` listam o que precisa ser
+    corrigido pelo P3.
     """
     violacoes: list[str] = []
     paragrafos_longos: list[ParagrafoLongo] = []
+    marcadores_residuais: list[MarcadorResidual] = []
 
     # IRR-1 — Ementa em maiúsculas
     ementa_ok, v_ementa = _auditar_ementa(sections.get("ementa", "") or "")
@@ -245,13 +316,30 @@ def audit_sections(sections: dict) -> AuditorResult:
             f"REGRA IRR-2 VIOLADA: {len(paragrafos_longos)} parágrafo(s) com 8+ linhas (limite: 7)"
         )
 
-    passed = ementa_ok is True and not paragrafos_longos
+    # IRR-3 — Marcadores residuais sobre norma da parte adversa (só em quase-processual)
+    if modo == "quase_processual":
+        for secao in ("ementa", "relatorio", "fundamentos", "conclusao"):
+            marcadores_residuais.extend(
+                _detectar_marcadores_residuais(secao, sections.get(secao, "") or "")
+            )
+        if marcadores_residuais:
+            violacoes.append(
+                f"REGRA IRR-3 VIOLADA: {len(marcadores_residuais)} marcador(es) residual(is) "
+                "sobre norma da parte adversa em texto final (modo quase-processual)"
+            )
+
+    passed = (
+        ementa_ok is True
+        and not paragrafos_longos
+        and not marcadores_residuais
+    )
 
     return AuditorResult(
         passed=passed,
         violacoes=violacoes,
         paragrafos_longos=paragrafos_longos,
         ementa_ok=ementa_ok,
+        marcadores_residuais=marcadores_residuais,
     )
 
 
@@ -286,6 +374,26 @@ def format_revision_instructions(result: AuditorResult) -> str:
         if len(result.paragrafos_longos) > 10:
             linhas.append(f"... e mais {len(result.paragrafos_longos) - 10} parágrafo(s) longo(s).")
 
+    if result.marcadores_residuais:
+        linhas.append("")
+        linhas.append(
+            f"- IRR-3 — {len(result.marcadores_residuais)} marcador(es) residual(is) sobre norma da "
+            "parte adversa. Em modo quase-processual, toda norma invocada pela parte adversa "
+            "deve ter sido confirmada (existência, vigência, teor) antes do fechamento. "
+            "Substitua cada marcador por parágrafo dedicado de 1 a 2 parágrafos, registrando "
+            "(a) o achado quanto à norma adversa, (b) a norma efetivamente vigente sobre a matéria, "
+            "(c) o impacto sobre o argumento da parte adversa. Nenhum [VERIFICAR] ou [REVISAR — ...PARTE ADVERSA...] "
+            "pode permanecer no texto final."
+        )
+        linhas.append("")
+        linhas.append("## MARCADORES A RESOLVER")
+        for i, m in enumerate(result.marcadores_residuais[:10], start=1):
+            linhas.append(f'{i}. (seção {m.secao}, tipo {m.tipo}) {m.marcador}')
+        if len(result.marcadores_residuais) > 10:
+            linhas.append(
+                f"... e mais {len(result.marcadores_residuais) - 10} marcador(es)."
+            )
+
     return "\n".join(linhas)
 
 
@@ -298,4 +406,6 @@ def affected_sections(result: AuditorResult) -> list[str]:
         secoes.add("ementa")
     for p in result.paragrafos_longos:
         secoes.add(p.secao)
+    for m in result.marcadores_residuais:
+        secoes.add(m.secao)
     return sorted(secoes) or ["fundamentos"]  # fallback defensivo

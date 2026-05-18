@@ -29,7 +29,7 @@ EMENTA: DIREITO ADMINISTRATIVO ― SERVIDOR PÚBLICO ― CARGO COMISSIONADO ― 
 </ementa>
 
 <relatorio>
-Trata-se de consulta formulada pela Procuradoria Geral do Município de Potengi/CE, consubstanciada no expediente nº 02/2026-PGM, datado de 6 de janeiro de 2026, acerca da legalidade da nomeação do Sr. Pedrosa, cônjuge da Vice-Prefeita do Município, para o cargo comissionado de Secretário de Governo, instituído pela Lei Municipal nº 559/2025.
+A Procuradoria Geral do Município de Potengi/CE, por seu titular, Dr. Roberto Pessoa Albuquerque, encaminhou a esta Assessoria Jurídica, em 6 de janeiro de 2026, por meio do expediente nº 02/2026-PGM, consulta acerca da legalidade da nomeação do Sr. Pedrosa, cônjuge da Vice-Prefeita do Município, para o cargo comissionado de Secretário de Governo, instituído pela Lei Municipal nº 559/2025.
 
 A consulente informa que o cargo de Secretário de Governo (SEGOV) integra o primeiro escalão do governo municipal, tendo sido criado por lei aprovada pela Câmara Municipal e sancionada pelo Prefeito. Relata, ainda, que o Sr. Pedrosa possui formação em Administração Pública e experiência prévia em gestão municipal.
 
@@ -121,7 +121,7 @@ EMENTA: DIREITO ADMINISTRATIVO ― TERCEIRO SETOR ― MROSC ― LEI Nº 13.019/2
 </ementa>
 
 <relatorio>
-Trata-se de consulta formulada pela Secretaria Municipal de Cultura, Turismo, Esporte e Juventude do Município de Potengi/CE acerca da possibilidade de celebração de Termo de Colaboração com a Associação ALIPE para execução de projeto cultural no exercício de 2026.
+A Secretaria Municipal de Cultura, Turismo, Esporte e Juventude do Município de Potengi/CE, por sua titular e Ordenadora de Despesas, Sra. Lúcia Helena Vieira Rocha, encaminhou a esta Assessoria Jurídica, em 12 de fevereiro de 2026, consulta acerca da possibilidade de celebração de Termo de Colaboração com a Associação ALIPE para execução de projeto cultural no exercício de 2026.
 
 A consulente informa que o dirigente da entidade é cônjuge de vereadora do Município de Potengi/CE e questiona se tal circunstância configura impedimento legal à celebração da parceria. Acompanham a consulta o estatuto social da entidade, a ata de eleição da diretoria e o plano de trabalho proposto.
 
