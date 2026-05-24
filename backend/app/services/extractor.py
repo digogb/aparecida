@@ -95,6 +95,79 @@ def _consertar_numeros_rachados(texto: str) -> str:
     return _RE_MONEY_BR.sub(_strip_spaces, texto)
 
 
+# Linha totalizadora do rodapé das planilhas de aditivo. É a fonte canônica do
+# valor do contrato (e dos acréscimos/supressões), mas costuma ficar na última
+# página — longe do início e, portanto, vulnerável a truncamento por limite de
+# tokens. Detectamos e içamos ao topo do texto.
+_RE_TOTALIZADOR = re.compile(r"VALOR\s+TOTAL\s+GERAL", re.IGNORECASE)
+
+
+def resumo_financeiro_canonico(texto: str) -> str:
+    """Extrai a(s) linha(s) totalizadora(s) ('VALOR TOTAL GERAL ...') e devolve
+    um bloco rotulado para ser colocado no TOPO do texto.
+
+    Retorna "" quando não há totalizador. O bloco resultante começa com o marcador
+    `[RESUMO FINANCEIRO` para poder ser reidentificado e reordenado adiante no
+    pipeline (antes de truncamentos por limite de tokens).
+    """
+    linhas: list[str] = []
+    for raw in texto.splitlines():
+        linha = raw.strip()
+        if linha and _RE_TOTALIZADOR.search(linha) and linha not in linhas:
+            linhas.append(linha)
+    if not linhas:
+        return ""
+    return (
+        "[RESUMO FINANCEIRO — totalizador do rodapé da planilha. "
+        "Estes são os valores CANÔNICOS do contrato; preferir a qualquer valor "
+        "solto no cabeçalho das páginas.]\n" + "\n".join(linhas)
+    )
+
+
+def _separar_cabecalho_repetido(
+    page_texts: list[str], *, min_fraction: float = 0.4, min_pages: int = 3
+) -> Tuple[list[str], list[str]]:
+    """Remove linhas de cabeçalho/rodapé que se repetem em várias páginas.
+
+    Em planilhas multipágina o mesmo cabeçalho-resumo aparece em toda página,
+    inflando o texto e fazendo valores soltos (ex.: o teto de 25%) ocorrerem
+    dezenas de vezes — o que enviesa o LLM. Linhas presentes em pelo menos
+    `min_fraction` das páginas (e ao menos `min_pages`) são consideradas
+    boilerplate: removidas do corpo e devolvidas UMA vez à parte.
+
+    Returns (page_texts_limpos, linhas_boilerplate_em_ordem).
+    """
+    from collections import Counter
+
+    n = len(page_texts)
+    if n < min_pages:
+        return page_texts, []
+
+    threshold = max(min_pages, int(n * min_fraction))
+    freq: Counter[str] = Counter()
+    for pt in page_texts:
+        for linha in {l.strip() for l in pt.splitlines() if l.strip()}:
+            freq[linha] += 1
+    boiler = {linha for linha, c in freq.items() if c >= threshold}
+    if not boiler:
+        return page_texts, []
+
+    ordenadas: list[str] = []
+    vistas: set[str] = set()
+    limpos: list[str] = []
+    for pt in page_texts:
+        mantidas: list[str] = []
+        for raw in pt.splitlines():
+            if raw.strip() in boiler:
+                if raw.strip() not in vistas:
+                    vistas.add(raw.strip())
+                    ordenadas.append(raw.strip())
+                continue
+            mantidas.append(raw)
+        limpos.append("\n".join(mantidas))
+    return limpos, ordenadas
+
+
 def _tabela_para_markdown(tabela: list[list[Optional[str]]]) -> str:
     """Converte uma tabela (lista de linhas × células) em markdown GFM.
 
@@ -141,7 +214,8 @@ def extract_pdf(file_bytes: bytes) -> Tuple[str, str]:
     Falls back to Tesseract quando a página é escassa de texto e provavelmente
     é imagem escaneada.
     """
-    blocos: list[str] = []
+    page_texts: list[str] = []
+    table_blocos: list[str] = []
     total_chars = 0
 
     with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
@@ -157,20 +231,33 @@ def extract_pdf(file_bytes: bytes) -> Tuple[str, str]:
                 logger.debug("extract_tables falhou em pág %d: %s", pidx + 1, exc)
 
             if tabelas:
-                blocos.append(f"\n[Página {pidx + 1}]")
+                partes = [f"\n[Página {pidx + 1}]"]
                 for tidx, tab in enumerate(tabelas):
                     md = _tabela_para_markdown(tab)
                     if md:
-                        blocos.append(f"\n**Tabela {tidx + 1}:**\n{md}")
+                        partes.append(f"\n**Tabela {tidx + 1}:**\n{md}")
+                table_blocos.append("\n".join(partes))
 
             texto = page.extract_text() or ""
             if texto.strip():
                 texto = _consertar_numeros_rachados(texto)
-                blocos.append(texto)
+                page_texts.append(texto)
                 total_chars += len(texto)
 
         avg_chars = total_chars / len(pages)
         if avg_chars >= _OCR_THRESHOLD:
+            resumo = resumo_financeiro_canonico("\n".join(page_texts))
+            corpo_texts, boilerplate = _separar_cabecalho_repetido(page_texts)
+
+            blocos: list[str] = []
+            if resumo:
+                blocos.append(resumo)
+            if boilerplate:
+                blocos.append(
+                    "[CABEÇALHO/RODAPÉ REPETIDO DA PLANILHA]\n" + "\n".join(boilerplate)
+                )
+            blocos.extend(table_blocos)
+            blocos.extend(corpo_texts)
             return "\n".join(blocos), "pdfplumber"
 
     logger.info(

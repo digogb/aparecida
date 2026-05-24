@@ -21,6 +21,7 @@ from pathlib import Path
 from anthropic import AsyncAnthropic, RateLimitError
 
 from app.config import settings
+from app.services.extractor import resumo_financeiro_canonico
 from app.services.prompt_service import (
     assemble_p2_context,
     assemble_p3_context,
@@ -401,6 +402,102 @@ _SUBTIPOS_COM_VALOR = (
 )
 
 
+# Tolerância (pontos percentuais) entre o % de acréscimo declarado na planilha
+# e o % implícito por uma base candidata. Acima disso, a base não "fecha".
+_PCT_TOL = 0.5
+
+
+def _num(valor) -> float | None:
+    """Converte string monetária/percentual em float. Aceita '939166.94',
+    '939.166,94', '22,04%', '22.04%'. Retorna None quando não numérico."""
+    if valor is None:
+        return None
+    if isinstance(valor, (int, float)):
+        return float(valor)
+    s = str(valor).strip().replace("R$", "").replace("%", "").strip()
+    if not s:
+        return None
+    if "," in s and "." in s:        # pt-BR: ponto = milhar, vírgula = decimal
+        s = s.replace(".", "").replace(",", ".")
+    elif "," in s:
+        s = s.replace(",", ".")
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+def _fmt_brl(v: float) -> str:
+    """Formata float como moeda pt-BR: 939166.94 -> '939.166,94'."""
+    return f"{v:,.2f}".translate(str.maketrans({",": ".", ".": ","}))
+
+
+def _reconciliar_valores(data: dict) -> dict:
+    """Rede de segurança determinística para o P1.5.
+
+    Confere se `acréscimo ÷ valor_inicial` reproduz o percentual declarado na
+    planilha. Escolhe, entre os candidatos (campo principal + lista), a base que
+    melhor reproduz o percentual. Se alguma fecha dentro de `_PCT_TOL`, corrige
+    `valor_inicial_contrato` e recalcula percentual/extrapolação. Se nenhuma
+    fecha, rebaixa a confiança para 'ambiguo' e registra alerta — para o P2
+    inserir `[REVISAR]` em vez de concluir com base errada.
+    """
+    acr = _num((data.get("valor_acrescimos") or {}).get("valor"))
+    declarado = _num(data.get("percentual_declarado_no_documento"))
+    vic = data.get("valor_inicial_contrato") or {}
+    base_atual = _num(vic.get("valor"))
+
+    if not acr or acr <= 0 or declarado is None:
+        return data  # sem dados suficientes para conferir
+
+    bases: list[float] = []
+    for c in (data.get("valores_candidatos_inicial") or []):
+        v = _num(c.get("valor"))
+        if v and v > 0:
+            bases.append(round(v, 2))
+    if base_atual and base_atual > 0:
+        bases.append(round(base_atual, 2))
+    bases = list(dict.fromkeys(bases))  # únicos, preservando ordem
+    if not bases:
+        return data
+
+    incons = data.get("inconsistencias_detectadas")
+    if not isinstance(incons, list):
+        incons = data["inconsistencias_detectadas"] = []
+
+    implicado = lambda b: acr / b * 100.0
+    melhor = min(bases, key=lambda b: abs(implicado(b) - declarado))
+    erro = abs(implicado(melhor) - declarado)
+
+    if erro <= _PCT_TOL:
+        pct = implicado(melhor)
+        if base_atual is None or abs(round(base_atual, 2) - melhor) > 0.01:
+            incons.append(
+                f"Reconciliação aritmética: valor inicial ajustado para "
+                f"R$ {_fmt_brl(melhor)} — é a única base que reproduz o percentual "
+                f"declarado ({declarado:.2f}%). Valor antes indicado "
+                f"({vic.get('valor')}) não fechava com o percentual."
+            )
+        vic["valor"] = f"{melhor:.2f}"
+        vic["confianca"] = "alta"
+        data["valor_inicial_contrato"] = vic
+        data["percentual_acrescimo_calculado_canonico"] = f"{pct:.2f}%"
+        data["discrepancia_percentual"] = False
+        data["extrapola_limite"] = pct > 25.0 + 1e-9
+    else:
+        vic["confianca"] = "ambiguo"
+        data["valor_inicial_contrato"] = vic
+        data["discrepancia_percentual"] = True
+        incons.append(
+            "ALERTA: nenhum valor candidato a 'valor inicial' reproduz o "
+            f"percentual de acréscimo declarado ({declarado:.2f}%). A base do "
+            "art. 125 NÃO foi confirmada — conferir o contrato/planilha original "
+            "antes de concluir sobre extrapolação do limite."
+        )
+
+    return data
+
+
 async def extract_valores_financeiros(
     classification: dict,
     documents_text: list[str],
@@ -428,6 +525,14 @@ async def extract_valores_financeiros(
         return None
 
     docs_joined = "\n\n---\n\n".join(documents_text)
+
+    # Iça o(s) totalizador(es) canônico(s) ao topo. Sem isso, em planilhas longas
+    # (300k+ chars) o 'VALOR TOTAL GERAL' fica na última página e é cortado pelo
+    # truncamento — sobrando só o cabeçalho repetido com valores enganosos.
+    resumo = resumo_financeiro_canonico(docs_joined)
+    if resumo:
+        docs_joined = resumo + "\n\n---\n\n" + docs_joined
+
     user_message = (
         "## DADOS DA CLASSIFICAÇÃO\n"
         f"vertente: {vertente}\n"
@@ -461,6 +566,8 @@ async def extract_valores_financeiros(
     if not data.get("aplicavel", True):
         logger.info("P1.5 marcou consulta como não-financeira: %s", data.get("motivo"))
         return None
+
+    data = _reconciliar_valores(data)
 
     logger.info(
         "P1.5 valores: inicial=%s acrescimos=%s extrapola=%s confianca_inicial=%s",
