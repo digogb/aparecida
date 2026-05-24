@@ -118,26 +118,36 @@ class TestP15Robustez:
 class TestP15Ambiguidade:
 
     @pytest.mark.asyncio
-    async def test_dois_candidatos_marca_ambiguo(self):
-        """Cenário real: planilha com 'CONTRATADA: R$ 234.791,74' no topo e
-        'VALOR TOTAL GERAL: R$ 939.166,94' no rodapé. O P1.5 deve listar
-        ambos como candidatos e NÃO escolher silenciosamente."""
+    async def test_dois_candidatos_marca_ambiguo_com_canonico(self):
+        """Cenário real (CONSULTA 3 — CRECHE PRÓ-INFÂNCIA): planilha com
+        'CONTRATADA: R$ 234.791,74' no cabeçalho e 'VALOR TOTAL GERAL
+        (BDI: 27,35%): R$ 939.166,94' no rodapé. O canônico é o do rodapé
+        (rotulado explicitamente como total com BDI); o valor do cabeçalho
+        é parcela (1/4 do canônico) ou referência. O P1.5 marca ambiguidade,
+        sinaliza R$ 939.166,94 como `provavel_canonico=true`, e o
+        percentual canônico resulta em 22,04% — dentro do limite legal."""
         cls = {"subtipo": "aditivo", "vertente": "licitacao_14133"}
         payload = {
             "aplicavel": True,
-            "valor_inicial_contrato": {"valor": "234791.74", "confianca": "ambiguo"},
+            "valor_inicial_contrato": {"valor": "939166.94", "confianca": "ambiguo"},
             "valores_candidatos_inicial": [
-                {"valor": "234791.74", "rotulo_no_documento": "CONTRATADA: ... R$ 234.791,74"},
-                {"valor": "939166.94", "rotulo_no_documento": "VALOR TOTAL GERAL (BDI: 27,35%)"},
+                {"valor": "939166.94", "rotulo_no_documento": "VALOR TOTAL GERAL (BDI: 27,35%)", "provavel_canonico": True},
+                {"valor": "234791.74", "rotulo_no_documento": "CONTRATADA: ... R$ 234.791,74", "provavel_canonico": False},
             ],
             "valor_acrescimos": {"valor": "206997.62", "confianca": "alta"},
-            "percentual_acrescimo_calculado": "88.16%",
-            "extrapola_limite": True,
-            "inconsistencias_detectadas": ["Percentual declarado 22,04% bate só com base 939.166,94"],
+            "percentual_acrescimo_calculado_canonico": "22.04%",
+            "percentual_declarado_no_documento": "22.04%",
+            "discrepancia_percentual": False,
+            "extrapola_limite": False,
+            "nota_ambiguidade": "Canônico é o do rodapé totalizador; 234.791,74 é 1/4 do canônico, provavelmente parcela.",
         }
         with patch.object(parecer_ai_service, "_call_api", return_value=json.dumps(payload)):
             result = await parecer_ai_service.extract_valores_financeiros(cls, ["doc"])
             assert result is not None
+            assert result["valor_inicial_contrato"]["valor"] == "939166.94"
             assert result["valor_inicial_contrato"]["confianca"] == "ambiguo"
             assert len(result["valores_candidatos_inicial"]) == 2
-            assert result["extrapola_limite"] is True
+            # Provável canônico é o do rodapé com BDI
+            canonico = next(c for c in result["valores_candidatos_inicial"] if c.get("provavel_canonico"))
+            assert canonico["valor"] == "939166.94"
+            assert result["extrapola_limite"] is False
