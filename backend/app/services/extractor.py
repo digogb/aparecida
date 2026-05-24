@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import io
 import logging
+import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -73,25 +74,105 @@ def _extract_doc_via_libreoffice(file_bytes: bytes) -> str:
         return output_path.read_text(encoding="utf-8", errors="replace")
 
 
+# Número monetário em pt-BR após "R$": dígitos e pontos possivelmente entrecortados
+# por espaços, seguidos de vírgula e 2 dígitos. Captura o miolo para limpar o
+# whitespace que pdfplumber insere quando rachado entre células estreitas.
+_RE_MONEY_BR = re.compile(r"R\$\s*([\d\.\s]+,\d{2})")
+
+
+def _consertar_numeros_rachados(texto: str) -> str:
+    """Une dígitos rachados por whitespace dentro de números monetários
+    formatados em pt-BR (`R$ 9 39.166,94` → `R$ 939.166,94`,
+    `R$ 1 .146.164,56` → `R$ 1.146.164,56`).
+
+    pdfplumber às vezes insere espaço entre dígitos quando uma célula é
+    estreita ou rendered em duas linhas. Sem isso o LLM lê o número
+    errado e a conta do art. 125 vira fanfarra.
+    """
+    def _strip_spaces(m):
+        miolo = re.sub(r"\s+", "", m.group(1))
+        return f"R$ {miolo}"
+    return _RE_MONEY_BR.sub(_strip_spaces, texto)
+
+
+def _tabela_para_markdown(tabela: list[list[Optional[str]]]) -> str:
+    """Converte uma tabela (lista de linhas × células) em markdown GFM.
+
+    Preserva a relação coluna↔valor que `extract_text()` perde quando
+    achata a tabela em texto corrido. Células vazias viram `-`.
+    Primeira linha vira cabeçalho (independente de ser ou não cabeçalho
+    real — dá ao LLM um eixo para identificar colunas).
+    """
+    if not tabela or not tabela[0]:
+        return ""
+
+    n_cols = max(len(row) for row in tabela)
+
+    def _normaliza(row: list[Optional[str]]) -> list[str]:
+        cells = [
+            _consertar_numeros_rachados((c or "").strip().replace("\n", " ").replace("|", "/"))
+            for c in row
+        ]
+        cells += ["-"] * (n_cols - len(cells))
+        return [c if c else "-" for c in cells]
+
+    linhas = [_normaliza(row) for row in tabela]
+    header = linhas[0]
+    sep = ["---"] * n_cols
+    corpo = linhas[1:]
+
+    out = ["| " + " | ".join(header) + " |",
+           "| " + " | ".join(sep) + " |"]
+    for row in corpo:
+        out.append("| " + " | ".join(row) + " |")
+    return "\n".join(out)
+
+
 def extract_pdf(file_bytes: bytes) -> Tuple[str, str]:
-    """Extract text from a PDF.
+    """Extract text from a PDF, preservando estrutura de tabelas.
+
+    Para cada página: tenta `extract_tables()` primeiro. Quando há tabela,
+    renderiza como markdown (preserva colunas semânticas — crítico para
+    planilhas de aditivo onde "VALOR CONTRATO" vs "VALOR REPLANILHADO"
+    ficam em colunas distintas). Texto não-tabular da mesma página é
+    capturado por `extract_text()` em complemento.
 
     Returns (text, method) where method is 'pdfplumber' or 'tesseract_ocr'.
-    Falls back to Tesseract when average characters per page < _OCR_THRESHOLD.
+    Falls back to Tesseract quando a página é escassa de texto e provavelmente
+    é imagem escaneada.
     """
+    blocos: list[str] = []
+    total_chars = 0
+
     with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
         pages = pdf.pages
         if not pages:
             return "", "pdfplumber"
 
-        page_texts = [page.extract_text() or "" for page in pages]
-        total_chars = sum(len(t) for t in page_texts)
+        for pidx, page in enumerate(pages):
+            tabelas = []
+            try:
+                tabelas = page.extract_tables() or []
+            except Exception as exc:
+                logger.debug("extract_tables falhou em pág %d: %s", pidx + 1, exc)
+
+            if tabelas:
+                blocos.append(f"\n[Página {pidx + 1}]")
+                for tidx, tab in enumerate(tabelas):
+                    md = _tabela_para_markdown(tab)
+                    if md:
+                        blocos.append(f"\n**Tabela {tidx + 1}:**\n{md}")
+
+            texto = page.extract_text() or ""
+            if texto.strip():
+                texto = _consertar_numeros_rachados(texto)
+                blocos.append(texto)
+                total_chars += len(texto)
+
         avg_chars = total_chars / len(pages)
-
         if avg_chars >= _OCR_THRESHOLD:
-            return "\n".join(page_texts), "pdfplumber"
+            return "\n".join(blocos), "pdfplumber"
 
-    # Fallback: render each page as image and OCR
     logger.info(
         "PDF sparse (avg %.1f chars/page), switching to Tesseract OCR", avg_chars
     )

@@ -388,6 +388,90 @@ async def classify_email(
     return classification
 
 
+# ─── P1.5: EXTRAÇÃO E DESAMBIGUAÇÃO FINANCEIRA ───
+
+# Subtipos / vertentes onde o valor é base do parecer — disparam P1.5.
+# Mantenha enxuto: subtipos onde a IA já demonstrou alucinar valor inicial.
+_SUBTIPOS_COM_VALOR = (
+    "aditivo",       # art. 125 — base de cálculo dos 25%
+    "dispensa",      # art. 75 — valor decide qual inciso aplica
+    "inexigibilidade",  # art. 74 — justificativa do preço
+    "pesquisa_precos",
+    "carona",        # adesão a ata — comprovação de vantajosidade
+)
+
+
+async def extract_valores_financeiros(
+    classification: dict,
+    documents_text: list[str],
+) -> dict | None:
+    """P1.5 — Haiku desambigua valores financeiros antes do P2.
+
+    Roda APENAS quando a consulta tem dimensão financeira central
+    (subtipos em `_SUBTIPOS_COM_VALOR` ou vertente tributário-financeiro).
+    Para os demais, retorna None — o P2 gera sem essa âncora.
+
+    Retorna o dict do JSON (com aplicavel/valor_inicial_contrato/...) ou
+    None quando não aplicável. Falha silenciosa: erro vira None e o P2
+    segue sem o auxílio.
+    """
+    subtipo = (classification.get("subtipo") or "").lower()
+    vertente = (classification.get("vertente") or "").lower()
+    aplicavel = (
+        any(s in subtipo for s in _SUBTIPOS_COM_VALOR)
+        or vertente == "tributario_financeiro"
+    )
+    if not aplicavel:
+        return None
+
+    if not documents_text:
+        return None
+
+    docs_joined = "\n\n---\n\n".join(documents_text)
+    user_message = (
+        "## DADOS DA CLASSIFICAÇÃO\n"
+        f"vertente: {vertente}\n"
+        f"subtipo: {subtipo}\n\n"
+        "## DOCUMENTOS ANEXOS\n"
+        f"{docs_joined}"
+    )
+    user_message = _truncate(user_message, MAX_USER_CONTENT_CHARS)
+
+    try:
+        raw = await _call_api(
+            model=MODEL_P1,
+            system=load_prompt("p1_5_valores_financeiros"),
+            user_message=user_message,
+            max_tokens=2000,
+            stage="P1.5-valores",
+        )
+    except Exception as exc:
+        logger.warning("P1.5 falhou (%s) — P2 prosseguirá sem âncora financeira", exc)
+        return None
+
+    raw = re.sub(r"^```(?:json)?\s*", "", raw.strip())
+    raw = re.sub(r"\s*```$", "", raw)
+
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        logger.warning("P1.5 JSON inválido: %r", raw[:300])
+        return None
+
+    if not data.get("aplicavel", True):
+        logger.info("P1.5 marcou consulta como não-financeira: %s", data.get("motivo"))
+        return None
+
+    logger.info(
+        "P1.5 valores: inicial=%s acrescimos=%s extrapola=%s confianca_inicial=%s",
+        (data.get("valor_inicial_contrato") or {}).get("valor"),
+        (data.get("valor_acrescimos") or {}).get("valor"),
+        data.get("extrapola_limite"),
+        (data.get("valor_inicial_contrato") or {}).get("confianca"),
+    )
+    return data
+
+
 # ─── P2: GERAÇÃO DO PARECER ───
 
 async def generate_parecer(
@@ -398,12 +482,31 @@ async def generate_parecer(
     """
     Chama P2 (Sonnet) para gerar o parecer completo.
     Serializado pelo semáforo — apenas 1 geração por vez.
+
+    Quando a consulta envolve cálculo de valor (aditivo, dispensa,
+    pesquisa de preços, etc.), executa P1.5 antes — uma chamada Haiku
+    dedicada a desambiguar e ancorar os valores. O resultado é injetado
+    no user_message do P2 como bloco "VALORES FINANCEIROS IDENTIFICADOS",
+    para o Sonnet usar como fato dado em vez de inferir do texto bruto.
     """
     docs_joined = "\n\n---\n\n".join(documents_text) if documents_text else "(sem anexos)"
 
+    valores = await extract_valores_financeiros(classification, documents_text)
+    valores_block = ""
+    if valores is not None:
+        valores_block = (
+            "\n\n## VALORES FINANCEIROS IDENTIFICADOS (P1.5)\n"
+            "Estes valores foram extraídos e desambiguados por etapa especializada.\n"
+            "USE-OS como fato dado. Se a confiança for 'ambiguo' ou houver\n"
+            "`inconsistencias_detectadas`, insira `[REVISAR — ...]` no parecer\n"
+            "explicando ao advogado humano o que conferir.\n\n"
+            f"{json.dumps(valores, ensure_ascii=False, indent=2)}\n"
+        )
+
     user_message = (
         "## DADOS DA CONSULTA (classificação automática)\n"
-        f"{json.dumps(classification, ensure_ascii=False, indent=2)}\n\n"
+        f"{json.dumps(classification, ensure_ascii=False, indent=2)}"
+        f"{valores_block}\n\n"
         "## EMAIL ORIGINAL\n"
         f"{email_body}\n\n"
         "## DOCUMENTOS ANEXOS\n"

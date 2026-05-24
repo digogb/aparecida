@@ -8,7 +8,13 @@ import io
 import pytest
 
 from app.services.content_assembler import assemble
-from app.services.extractor import extract_docx, extract_file, extract_pdf
+from app.services.extractor import (
+    _consertar_numeros_rachados,
+    _tabela_para_markdown,
+    extract_docx,
+    extract_file,
+    extract_pdf,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -87,6 +93,75 @@ class TestExtractPdf:
         # extract_file (dispatcher) handles the exception; extract_pdf may raise
         _, _, status = extract_file("doc.pdf", b"not a pdf")
         assert status == "failed"
+
+
+# ---------------------------------------------------------------------------
+# Conserto de números monetários rachados (pdfplumber bug)
+# ---------------------------------------------------------------------------
+
+class TestConsertarNumerosRachados:
+    """pdfplumber às vezes insere whitespace dentro de números pt-BR quando
+    a célula é estreita. Sem conserto, a IA lê o valor errado e o cálculo
+    do art. 125 quebra (caso real: 'R$ 9 39.166,94' lido como dois tokens)."""
+
+    def test_digito_isolado_com_espaco(self):
+        assert _consertar_numeros_rachados("R$ 9 39.166,94") == "R$ 939.166,94"
+
+    def test_quebra_antes_do_ponto(self):
+        assert _consertar_numeros_rachados("R$ 1 .146.164,56") == "R$ 1.146.164,56"
+
+    def test_valor_ja_correto_permanece(self):
+        assert _consertar_numeros_rachados("R$ 234.791,74") == "R$ 234.791,74"
+
+    def test_multiplos_valores_na_mesma_string(self):
+        entrada = "Total A: R$ 2 06.997,62 | Total B: R$ 939.166,94"
+        esperado = "Total A: R$ 206.997,62 | Total B: R$ 939.166,94"
+        assert _consertar_numeros_rachados(entrada) == esperado
+
+    def test_celulas_vazias_preserva_traco(self):
+        assert _consertar_numeros_rachados("R$ - R$ 4.965,01 R$ -") == "R$ - R$ 4.965,01 R$ -"
+
+    def test_nao_afeta_texto_sem_moeda(self):
+        texto = "art. 125 da Lei nº 14.133/2021"
+        assert _consertar_numeros_rachados(texto) == texto
+
+
+# ---------------------------------------------------------------------------
+# Render de tabela como markdown (preserva relação coluna↔valor)
+# ---------------------------------------------------------------------------
+
+class TestTabelaParaMarkdown:
+
+    def test_tabela_simples(self):
+        tab = [["A", "B"], ["1", "2"], ["3", "4"]]
+        md = _tabela_para_markdown(tab)
+        # GFM: header | sep | corpo
+        assert "| A | B |" in md
+        assert "| --- | --- |" in md
+        assert "| 1 | 2 |" in md
+        assert "| 3 | 4 |" in md
+
+    def test_celula_vazia_vira_traco(self):
+        tab = [["A", "B"], ["1", None]]
+        md = _tabela_para_markdown(tab)
+        assert "| 1 | - |" in md
+
+    def test_normaliza_pipe_em_celula(self):
+        # '|' dentro da célula quebraria o markdown
+        tab = [["X"], ["a|b"]]
+        md = _tabela_para_markdown(tab)
+        assert "a/b" in md
+        assert "a|b" not in md.replace("| a", "")  # só os delimitadores têm |
+
+    def test_aplica_conserto_de_numero_rachado_nas_celulas(self):
+        # Caso real: célula vinda do pdfplumber com número quebrado
+        tab = [["VALOR"], ["R$ 9 39.166,94"]]
+        md = _tabela_para_markdown(tab)
+        assert "R$ 939.166,94" in md
+        assert "R$ 9 39.166,94" not in md
+
+    def test_tabela_vazia(self):
+        assert _tabela_para_markdown([]) == ""
 
 
 # ---------------------------------------------------------------------------

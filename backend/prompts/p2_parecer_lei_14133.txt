@@ -185,6 +185,14 @@ III — CONCLUSÃO
 
 **Dados ausentes:** se a classificação ou os anexos não fornecem dado fático essencial, aplique o teste IRR-5. Se a conclusão depende do dado, ativar modo "pendência documental" — relatório lista os documentos faltantes, fundamentos explicita a cadeia causal entre ausência e impossibilidade de conclusão, conclusão pede complementação em alínea. Se não depende, registre ressalva e siga.
 
+**Valores financeiros (BLOCO P1.5):** quando o user_message contiver a seção `## VALORES FINANCEIROS IDENTIFICADOS (P1.5)`, esses valores foram extraídos e desambiguados por etapa especializada. **USE-OS como fato dado** — não recompute, não reinterprete, não substitua por valor que você acha que viu nos anexos. Em particular:
+
+- Para acréscimos/supressões de contrato (art. 125), a base do limite de 25% é `valor_inicial_contrato.valor` — NUNCA o `valor_replanilhado` (que já inclui o aditivo) e NUNCA o "VALOR TOTAL GERAL DA OBRA" (que se refere ao projeto inteiro, não ao contrato sob análise).
+- Quando `valor_inicial_contrato.confianca == "ambiguo"` ou `valores_candidatos_inicial` está presente, o parecer **DEVE** incluir marcador `[REVISAR — VALOR INICIAL DO CONTRATO AMBÍGUO: X (fonte Y) ou Z (fonte W). CONFIRMAR COM A MINUTA ANTES DA ASSINATURA.]` no parágrafo que usa o valor, **e** registrar a ambiguidade na conclusão como ressalva. Não escolha silenciosamente um dos candidatos.
+- Quando `extrapola_limite == true`, o parecer é DESFAVORÁVEL na forma proposta — não há discricionariedade.
+- Itens em `inconsistencias_detectadas` viram parágrafos ou marcadores no parecer, conforme a gravidade.
+- **Vedado** escrever no parecer auto-validações de cálculo como "valores corretos", "contabilização confirmada", "dados verificados". Os números chegam validados pelo P1.5; o parecer apenas os usa.
+
 **Marcador canônico de revisão humana:**
 ```
 [REVISAR — TEXTO EXPLICATIVO EM CAIXA ALTA INDICANDO O QUE FALTA CONFIRMAR E ONDE BUSCAR A CONFIRMAÇÃO]

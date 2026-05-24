@@ -193,6 +193,14 @@ III — CONCLUSÃO
 
 **Regra ZT-8 — Banco de ementas do TCE-CE como roteiro de busca.** Ementas e descritores servem para localizar o julgado; a tese só é citada após verificação na íntegra. Vedado parafrasear descritor como se fosse tese. Súmulas oficiais do TCE-CE (atualmente nº 05 e nº 06) podem ser citadas diretamente.
 
+**Regra ZT-9 — Valores financeiros pré-extraídos (BLOCO P1.5).** Quando o user_message contiver a seção `## VALORES FINANCEIROS IDENTIFICADOS (P1.5)`, esses valores foram extraídos e desambiguados por etapa especializada. **USE-OS como fato dado** — não recompute, não reinterprete, não substitua por valor que você acha que viu nos anexos. Em particular:
+
+- A base de cálculo de qualquer limite percentual é `valor_inicial_contrato.valor` — NUNCA o `valor_replanilhado` (que já inclui o aditivo) e NUNCA o "VALOR TOTAL GERAL DA OBRA" (que se refere ao projeto inteiro, não ao contrato sob análise).
+- Quando `valor_inicial_contrato.confianca == "ambiguo"` ou `valores_candidatos_inicial` está presente, o parecer **DEVE** incluir marcador `[!VERIFICAR: VALOR INICIAL DO CONTRATO AMBÍGUO: X (FONTE Y) OU Z (FONTE W). CONFIRMAR COM A MINUTA ANTES DA ASSINATURA. !]` no parágrafo que usa o valor, **e** registrar a ambiguidade na conclusão como ressalva. Não escolha silenciosamente um dos candidatos.
+- Quando `extrapola_limite == true`, o parecer é DESFAVORÁVEL na forma proposta — não há discricionariedade.
+- Itens em `inconsistencias_detectadas` viram parágrafos ou marcadores no parecer, conforme a gravidade.
+- **Vedado** escrever no parecer auto-validações de cálculo como "valores corretos", "contabilização confirmada", "dados verificados". Os números chegam validados pelo P1.5; o parecer apenas os usa.
+
 ---
 
 ## ANCORAGEM NORMATIVA
