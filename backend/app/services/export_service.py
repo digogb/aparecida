@@ -6,18 +6,20 @@ DOCX (Camada 5):
   byte-calibrado do escritório (Consolas/Garamond, ementa em CAPS com
   figure-dash, marcadores [REVISAR—] e [!VERIFICAR:!] em vermelho, bloco
   de assinaturas com espaços manuais calibrados).
-- `template_parecer.docx` em `backend/app/templates/` deixa de ser fonte
-  de formatação; é apenas documentação histórica.
 
 PDF:
-- HTML + WeasyPrint preservado da implementação anterior (usado para envio
-  por e-mail e visualização rápida).
+- gera o `.docx` pelo mesmo caminho acima e converte com `soffice --headless`.
+  Garante que o PDF tenha layout, fontes e quebras idênticos ao .docx aberto
+  no Word — sem renderizador HTML/CSS paralelo para manter em sincronia.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
+import subprocess
+import tempfile
 from datetime import datetime, timezone
-from typing import Any
+from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,23 +29,10 @@ from app.services import docx_generator
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Constantes institucionais (compartilhadas pelo HTML/PDF)
-# ---------------------------------------------------------------------------
-ESCRITORIO_LINHA1 = "Advocacia & Assessoria"
-ESCRITORIO_LINHA2 = "Dr. Francisco Ione Pereira Lima"
-ESCRITORIO_ENDERECO = (
-    "Rua Gen. Caiado de Castro 462, Luciano Cavalcante, Fortaleza-CE  |  "
-    "Fone: (85) 3021-7701 / (85) 99981-4392 / (85) 99223-6716  |  "
-    "E-mail: dr.ione@uol.com.br"
-)
+# Timeout do soffice na conversão .docx → .pdf. Pareceres maiores (40+ páginas)
+# ficam abaixo de 10s; 60s é folga generosa antes de declarar travamento.
+_SOFFICE_PDF_TIMEOUT_S = 60
 
-ADVOGADOS = [
-    ("Francisco Ione Pereira Lima", "OAB/CE 4.585"),
-    ("Matheus Nogueira Pereira Lima", "OAB/CE 31.251"),
-    ("Flavio Henrique Luna Silva", "OAB/CE 31.252"),
-    ("Valéria Matias de Alencar", "OAB/CE 36.666"),
-]
 
 MESES = [
     "", "janeiro", "fevereiro", "março", "abril", "maio", "junho",
@@ -52,21 +41,16 @@ MESES = [
 
 
 # ---------------------------------------------------------------------------
-# Helpers compartilhados
+# Helpers compartilhados (DOCX)
 # ---------------------------------------------------------------------------
 
-def _formatar_data_extenso(
-    municipio_uf: str = "Fortaleza/CE",
-    com_ponto: bool = True,
-) -> str:
-    """Formata a data atual no padrão 'Município/UF, DD de mês de AAAA[.]'.
+def _formatar_data_extenso(municipio_uf: str = "Fortaleza/CE") -> str:
+    """Formata a data atual no padrão 'Município/UF, DD de mês de AAAA'.
 
-    `com_ponto=False` é usado pelo docx_generator (que adiciona seu próprio
-    ponto final). O HTML/PDF usa `com_ponto=True`.
+    Sem ponto final — o `docx_generator` adiciona ao montar o parágrafo.
     """
     now = datetime.now(timezone.utc)
-    sep = "." if com_ponto else ""
-    return f"{municipio_uf}, {now.day} de {MESES[now.month]} de {now.year}{sep}"
+    return f"{municipio_uf}, {now.day} de {MESES[now.month]} de {now.year}"
 
 
 def _get_metadata(req: ParecerRequest) -> dict:
@@ -86,48 +70,6 @@ def _get_metadata(req: ParecerRequest) -> dict:
     }
 
 
-# ---------------------------------------------------------------------------
-# Decoração / filtro para o PDF (HTML)
-# ---------------------------------------------------------------------------
-
-_ADVOGADO_NOMES = {n for n, _ in ADVOGADOS}
-_SKIP_TEXTS = {ESCRITORIO_LINHA1, ESCRITORIO_LINHA2, "PARECER JURÍDICO"}
-
-
-def _extract_text(content: list[dict[str, Any]]) -> str:
-    return "".join(item.get("text", "") for item in content if item.get("type") == "text")
-
-
-def _is_decoration_node(node: dict[str, Any]) -> bool:
-    """Marca nodes do TipTap que são decoração — pulados na renderização HTML/PDF."""
-    text = _extract_text(node.get("content", []))
-    if not text:
-        return False
-    if text.strip() in _SKIP_TEXTS:
-        return True
-    if text.startswith("Órgão Consulente:") or text.startswith("Referência:") or text.startswith("Assunto:"):
-        return True
-    if text.count("OAB/") >= 2:
-        return True
-    stripped = text.strip()
-    if stripped in _ADVOGADO_NOMES or stripped.startswith("OAB/"):
-        return True
-    if "Rua Gen. Caiado de Castro" in text:
-        return True
-    for m in MESES[1:]:
-        if f" de {m} de " in text and text.strip().endswith("."):
-            return True
-    return False
-
-
-def _filter_tiptap_content(content: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [node for node in content if not _is_decoration_node(node)]
-
-
-# ---------------------------------------------------------------------------
-# DOCX — delega para docx_generator (Camada 5)
-# ---------------------------------------------------------------------------
-
 def _consulente_text(req: ParecerRequest, meta: dict) -> str:
     """Monta o texto do consulente para o bloco 'CONSULENTE:' do parecer."""
     orgao = meta["orgao_consulente"]
@@ -136,6 +78,10 @@ def _consulente_text(req: ParecerRequest, meta: dict) -> str:
         return f"{orgao} — {municipio_uf}"
     return orgao
 
+
+# ---------------------------------------------------------------------------
+# DOCX — delega para docx_generator (Camada 5)
+# ---------------------------------------------------------------------------
 
 async def to_docx(
     parecer_request: ParecerRequest,
@@ -156,7 +102,7 @@ async def to_docx(
     minuta = docx_generator.minuta_from_tiptap(
         tiptap=tiptap,
         consulente=_consulente_text(parecer_request, meta),
-        data_extenso=_formatar_data_extenso(meta["municipio_uf"], com_ponto=False),
+        data_extenso=_formatar_data_extenso(meta["municipio_uf"]),
         subtipo=meta["subtipo"],
         vertente=meta["vertente"],
     )
@@ -172,7 +118,6 @@ async def to_docx(
     if not minuta["conclusao_dispositivo"]:
         minuta["conclusao_dispositivo"] = "Diante do exposto, o parecer é submetido à superior consideração."
     if not minuta["recomendacoes_alineas"]:
-        # Conclusão sem alíneas: minuta válida, gerador apenas pula o bloco.
         minuta["recomendacoes_alineas"] = []
 
     logger.info(
@@ -198,213 +143,52 @@ async def to_docx(
 
 
 # ---------------------------------------------------------------------------
-# PDF — HTML + WeasyPrint (preservado)
+# PDF — converte o .docx via LibreOffice headless
 # ---------------------------------------------------------------------------
 
-def _escape_html(text: str) -> str:
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-    )
+def _convert_docx_to_pdf(docx_bytes: bytes) -> bytes:
+    """Converte bytes de .docx em bytes de PDF via `soffice --headless`.
 
+    Usa um perfil de usuário isolado em tempdir para não disputar o lock
+    padrão do LibreOffice quando duas exportações rodam concorrentemente
+    (mesmo padrão de `extractor._extract_doc_via_libreoffice`).
 
-# Regex compartilhada com o docx_generator para destacar marcadores em vermelho
-# também no HTML/PDF.
-import re as _re
+    Bloqueia ~1-3s por chamada — o caller deve envolver em `asyncio.to_thread`
+    para não travar o event loop do FastAPI.
+    """
+    with tempfile.TemporaryDirectory(prefix="ione_pdf_") as workdir:
+        input_path = Path(workdir) / "parecer.docx"
+        input_path.write_bytes(docx_bytes)
 
-_PADRAO_MARCADOR_HTML = _re.compile(
-    r"\[REVISAR\s*[\-–—]\s*[^\]]+\]|\[!VERIFICAR:[^!]+!\]",
-    _re.IGNORECASE,
-)
-
-
-def _highlight_markers(html: str) -> str:
-    """Envolve marcadores de revisão humana em <span> vermelho/negrito no HTML."""
-    def _wrap(m):
-        return f'<span style="color:#C00000; font-weight:bold;">{m.group(0)}</span>'
-
-    return _PADRAO_MARCADOR_HTML.sub(_wrap, html)
-
-
-def _tiptap_inline_to_html(content: list[dict[str, Any]], force_italic: bool = False) -> str:
-    parts: list[str] = []
-    for item in content:
-        if item.get("type") == "text":
-            text = _escape_html(item.get("text", ""))
-            marks = item.get("marks", [])
-            for mark in marks:
-                mt = mark.get("type", "")
-                if mt == "bold":
-                    text = f"<strong>{text}</strong>"
-                elif mt == "italic":
-                    text = f"<em>{text}</em>"
-                elif mt == "underline":
-                    text = f"<u>{text}</u>"
-                elif mt == "strike":
-                    text = f"<s>{text}</s>"
-            if force_italic and not any(m.get("type") == "italic" for m in marks):
-                text = f"<em>{text}</em>"
-            parts.append(text)
-        elif item.get("type") == "hardBreak":
-            parts.append("<br>")
-    return _highlight_markers("".join(parts))
-
-
-def _tiptap_body_to_html(content: list[dict[str, Any]]) -> str:
-    html_parts: list[str] = []
-    for node in content:
-        nt = node.get("type", "")
-
-        if nt == "paragraph":
-            inline = _tiptap_inline_to_html(node.get("content", []))
-            html_parts.append(
-                f'<p style="text-indent:1.25cm; margin-bottom:6px; text-align:justify;">{inline}</p>'
+        try:
+            subprocess.run(
+                [
+                    "soffice",
+                    f"-env:UserInstallation=file://{workdir}/profile",
+                    "--headless",
+                    "--convert-to", "pdf",
+                    "--outdir", workdir,
+                    str(input_path),
+                ],
+                check=True,
+                capture_output=True,
+                timeout=_SOFFICE_PDF_TIMEOUT_S,
+            )
+        except subprocess.TimeoutExpired:
+            raise RuntimeError(
+                f"LibreOffice PDF conversion timed out after {_SOFFICE_PDF_TIMEOUT_S}s"
+            )
+        except subprocess.CalledProcessError as exc:
+            stderr = exc.stderr.decode("utf-8", errors="replace")[:300]
+            raise RuntimeError(
+                f"LibreOffice PDF conversion failed (rc={exc.returncode}): {stderr}"
             )
 
-        elif nt == "heading":
-            level = node.get("attrs", {}).get("level", 2)
-            inline = _tiptap_inline_to_html(node.get("content", []))
-            if level == 2:
-                html_parts.append(
-                    f'<h2 style="font-size:12pt; font-weight:bold; text-transform:uppercase; '
-                    f'letter-spacing:0.5px; margin-top:20px; margin-bottom:8px;">{inline}</h2>'
-                )
-            elif level == 3:
-                html_parts.append(
-                    f'<h3 style="font-size:12pt; font-weight:bold; margin-top:14px; '
-                    f'margin-bottom:6px;">{inline}</h3>'
-                )
-            else:
-                html_parts.append(f"<p>{inline}</p>")
+        output_path = Path(workdir) / "parecer.pdf"
+        if not output_path.exists():
+            raise RuntimeError("LibreOffice produced no .pdf output")
 
-        elif nt == "blockquote":
-            bq_parts = []
-            for child in node.get("content", []):
-                inline = _tiptap_inline_to_html(child.get("content", []), force_italic=True)
-                bq_parts.append(f"<p>{inline}</p>")
-            html_parts.append(
-                f'<blockquote style="margin:10px 2cm 10px 1.2cm; padding:8px 12px; '
-                f'border-left:3px solid #666; background:#f5f5f5; font-size:11pt; '
-                f'text-align:justify; font-style:italic;">{"".join(bq_parts)}</blockquote>'
-            )
-
-        elif nt in ("bulletList", "orderedList"):
-            tag = "ul" if nt == "bulletList" else "ol"
-            items = []
-            for item in node.get("content", []):
-                if item.get("type") == "listItem":
-                    for child in item.get("content", []):
-                        inline = _tiptap_inline_to_html(child.get("content", []))
-                        items.append(f"<li>{inline}</li>")
-            html_parts.append(
-                f'<{tag} style="margin-left:2em; margin-bottom:10px;">{"".join(items)}</{tag}>'
-            )
-
-        elif nt == "horizontalRule":
-            html_parts.append("<hr>")
-
-        else:
-            children = node.get("content", [])
-            if children:
-                html_parts.append(_tiptap_body_to_html(children))
-
-    return "\n".join(html_parts)
-
-
-def _build_pdf_html(req: ParecerRequest, version: ParecerVersion) -> str:
-    meta = _get_metadata(req)
-
-    body_html = ""
-    tiptap = version.content_tiptap
-    if tiptap and isinstance(tiptap, dict):
-        body_html = _tiptap_body_to_html(_filter_tiptap_content(tiptap.get("content", [])))
-    elif version.content_html:
-        body_html = version.content_html
-
-    sigs = ""
-    for nome, oab in ADVOGADOS:
-        sigs += f"""
-        <div class="assinatura">
-            <div class="linha-assinatura">
-                <div class="nome">{_escape_html(nome)}</div>
-                <div class="oab">{oab}</div>
-            </div>
-        </div>"""
-
-    return f"""<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<style>
-@page {{ size: A4; margin: 2.5cm 2cm 2cm 2cm; }}
-* {{ box-sizing: border-box; margin: 0; padding: 0; }}
-body {{ font-family: 'Times New Roman', 'Noto Serif', serif; font-size: 12pt;
-        line-height: 1.6; color: #000; background: none; }}
-
-.cabecalho {{ border-bottom: 1.5pt solid #000; padding-bottom: 0.35cm; margin-bottom: 0.7cm; }}
-.cabecalho .linha1 {{ text-align: center; font-variant: small-caps; font-size: 13pt; letter-spacing: 2px; }}
-.cabecalho .linha2 {{ text-align: center; font-weight: bold; font-variant: small-caps; font-size: 11pt;
-                      letter-spacing: 1px; padding-top: 3px; }}
-
-h1.titulo {{ text-align: center; font-size: 13pt; font-weight: bold; margin: 14px 0 16px;
-             letter-spacing: 1px; }}
-
-.identificacao {{ margin-bottom: 16px; }}
-.identificacao p {{ margin: 3px 0; font-size: 11.5pt; }}
-
-.conteudo {{ text-align: justify; }}
-.conteudo p {{ font-size: 12pt; margin-bottom: 6px; }}
-
-blockquote {{ break-inside: avoid; }}
-
-.local-data {{ margin-top: 30px; text-align: right; font-size: 12pt; }}
-
-.assinaturas {{ display: flex; flex-wrap: wrap; justify-content: space-between;
-                margin-top: 50px; break-inside: avoid; }}
-.assinatura {{ width: 46%; text-align: center; margin-bottom: 38px; }}
-.assinatura .linha-assinatura {{ border-top: 1px solid #000; margin-top: 42px; padding-top: 5px; }}
-.assinatura .nome {{ font-weight: bold; font-variant: small-caps; font-size: 11pt; }}
-.assinatura .oab {{ font-size: 10pt; margin-top: 2px; }}
-
-.rodape {{ border-top: 1pt solid #000; padding-top: 0.25cm; margin-top: 1cm;
-           font-size: 9pt; text-align: center; color: #333; line-height: 1.4; }}
-</style>
-</head>
-<body>
-
-<div class="cabecalho">
-    <div class="linha1">{_escape_html(ESCRITORIO_LINHA1)}</div>
-    <div class="linha2">{_escape_html(ESCRITORIO_LINHA2)}</div>
-</div>
-
-<h1 class="titulo">PARECER JURÍDICO</h1>
-
-<div class="identificacao">
-    <p><strong>Órgão Consulente:</strong> {_escape_html(meta["orgao_consulente"])}</p>
-    <p><strong>Referência:</strong> {_escape_html(meta["referencia"])}</p>
-    <p><strong>Assunto:</strong> {_escape_html(meta["assunto"])}</p>
-</div>
-
-<div class="conteudo">
-{body_html}
-</div>
-
-<div class="local-data">
-    {_escape_html(_formatar_data_extenso(meta["municipio_uf"]))}
-</div>
-
-<div class="assinaturas">
-{sigs}
-</div>
-
-<div class="rodape">
-    {_escape_html(ESCRITORIO_ENDERECO)}
-</div>
-
-</body>
-</html>"""
+        return output_path.read_bytes()
 
 
 async def to_pdf(
@@ -412,8 +196,6 @@ async def to_pdf(
     version: ParecerVersion,
     db: AsyncSession,
 ) -> bytes:
-    """Gera PDF via HTML + WeasyPrint — mesma estrutura visual do DOCX."""
-    from weasyprint import HTML
-
-    html_str = _build_pdf_html(parecer_request, version)
-    return HTML(string=html_str).write_pdf()
+    """Gera PDF a partir do .docx — garante paridade visual com o Word."""
+    docx_bytes = await to_docx(parecer_request, version, db)
+    return await asyncio.to_thread(_convert_docx_to_pdf, docx_bytes)

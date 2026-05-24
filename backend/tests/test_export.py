@@ -2,6 +2,7 @@
 Tests for export router, export_service, and email_sender.
 Run with: pytest backend/tests/test_export.py -v
 """
+import shutil
 import uuid
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -15,10 +16,12 @@ from app.database import get_db
 from app.main import app
 from app.models.parecer import ParecerStatus, ParecerTema, VersionSource
 from app.models.user import UserRole
-from app.services.export_service import (
-    _escape_html,
-    _tiptap_inline_to_html as _inline_to_html,
-    _tiptap_body_to_html as _tiptap_to_html,
+
+# Testes de PDF dependem do binário `soffice` (LibreOffice). Em ambientes de
+# dev/CI sem LibreOffice instalado, são automaticamente pulados.
+requires_soffice = pytest.mark.skipif(
+    shutil.which("soffice") is None,
+    reason="LibreOffice (soffice) not installed — PDF export tests skipped",
 )
 
 
@@ -132,159 +135,6 @@ def _override_db(db: AsyncMock):
 
 
 # ---------------------------------------------------------------------------
-# Unit tests — TipTap conversion helpers
-# ---------------------------------------------------------------------------
-
-class TestTipTapToHtml:
-
-    def test_paragraph_conversion(self):
-        content = [
-            {
-                "type": "paragraph",
-                "content": [{"type": "text", "text": "Hello world"}],
-            }
-        ]
-        html = _tiptap_to_html(content)
-        assert "<p" in html
-        assert "Hello world</p>" in html
-
-    def test_heading_conversion(self):
-        content = [
-            {
-                "type": "heading",
-                "attrs": {"level": 2},
-                "content": [{"type": "text", "text": "Title"}],
-            }
-        ]
-        html = _tiptap_to_html(content)
-        assert "<h2" in html
-        assert "Title</h2>" in html
-
-    def test_bold_mark(self):
-        content = [
-            {
-                "type": "paragraph",
-                "content": [
-                    {
-                        "type": "text",
-                        "marks": [{"type": "bold"}],
-                        "text": "strong",
-                    }
-                ],
-            }
-        ]
-        html = _tiptap_to_html(content)
-        assert "<strong>strong</strong>" in html
-
-    def test_italic_mark(self):
-        content = [
-            {
-                "type": "paragraph",
-                "content": [
-                    {
-                        "type": "text",
-                        "marks": [{"type": "italic"}],
-                        "text": "em",
-                    }
-                ],
-            }
-        ]
-        html = _tiptap_to_html(content)
-        assert "<em>em</em>" in html
-
-    def test_bullet_list(self):
-        content = [
-            {
-                "type": "bulletList",
-                "content": [
-                    {
-                        "type": "listItem",
-                        "content": [
-                            {
-                                "type": "paragraph",
-                                "content": [{"type": "text", "text": "item 1"}],
-                            }
-                        ],
-                    }
-                ],
-            }
-        ]
-        html = _tiptap_to_html(content)
-        assert "<ul" in html
-        assert "<li>" in html
-
-    def test_ordered_list(self):
-        content = [
-            {
-                "type": "orderedList",
-                "content": [
-                    {
-                        "type": "listItem",
-                        "content": [
-                            {
-                                "type": "paragraph",
-                                "content": [{"type": "text", "text": "item 1"}],
-                            }
-                        ],
-                    }
-                ],
-            }
-        ]
-        html = _tiptap_to_html(content)
-        assert "<ol" in html
-
-    def test_blockquote(self):
-        content = [
-            {
-                "type": "blockquote",
-                "content": [
-                    {
-                        "type": "paragraph",
-                        "content": [{"type": "text", "text": "quoted"}],
-                    }
-                ],
-            }
-        ]
-        html = _tiptap_to_html(content)
-        assert "<blockquote" in html
-
-    def test_horizontal_rule(self):
-        content = [{"type": "horizontalRule"}]
-        html = _tiptap_to_html(content)
-        assert "<hr>" in html
-
-    def test_escape_html(self):
-        assert _escape_html("<script>") == "&lt;script&gt;"
-        assert _escape_html('"hello"') == "&quot;hello&quot;"
-        assert _escape_html("a & b") == "a &amp; b"
-
-    def test_hard_break_inline(self):
-        html = _inline_to_html([
-            {"type": "text", "text": "line1"},
-            {"type": "hardBreak"},
-            {"type": "text", "text": "line2"},
-        ])
-        assert "<br>" in html
-
-    def test_multiple_marks(self):
-        content = [
-            {
-                "type": "paragraph",
-                "content": [
-                    {
-                        "type": "text",
-                        "marks": [{"type": "bold"}, {"type": "italic"}],
-                        "text": "both",
-                    }
-                ],
-            }
-        ]
-        html = _tiptap_to_html(content)
-        assert "<strong>" in html
-        assert "<em>" in html
-
-
-# ---------------------------------------------------------------------------
 # Unit tests — DOCX generation
 # ---------------------------------------------------------------------------
 
@@ -335,6 +185,7 @@ class TestToDocx:
 
 class TestToPdf:
 
+    @requires_soffice
     @pytest.mark.asyncio
     async def test_generates_pdf_bytes(self):
         req = _mock_parecer()
@@ -354,20 +205,6 @@ class TestToPdf:
         assert len(pdf_bytes) > 0
         # PDF magic bytes
         assert pdf_bytes[:4] == b"%PDF"
-
-    @pytest.mark.asyncio
-    async def test_pdf_html_builder(self):
-        from app.services.export_service import _build_pdf_html
-
-        req = _mock_parecer()
-        version = req.versions[0]
-
-        html = _build_pdf_html(req, version)
-        assert "Francisco Ione" in html
-        assert "2026/001" in html
-        assert "Parecer Juridico" in html
-        assert "Matheus Nogueira" in html
-
 
 # ---------------------------------------------------------------------------
 # Unit tests — email_sender
@@ -619,6 +456,7 @@ class TestExportDocxEndpoint:
 
 class TestExportPdfEndpoint:
 
+    @requires_soffice
     def test_export_pdf_returns_file(self):
         db = _mock_db()
         p = _mock_parecer()
