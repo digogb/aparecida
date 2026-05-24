@@ -5,8 +5,9 @@ Cobre:
 - gerar_parecer_bytes: produz .docx válido, valida campos obrigatórios.
 - IRR-1: ementa em CAPS com figure-dash.
 - Marcadores [REVISAR — ...] e [!VERIFICAR: ... !]: vermelho/negrito inline.
+- Blockquote (citação legal): left_indent=4cm, bold, sem prefixo '>' nem itálico markdown.
 - Assinaturas com espaços manuais calibrados (Ione 25, Matheus/Flávio 13/26, Valéria 26).
-- Parser minuta_from_tiptap: extrai dispositivo, alíneas, advertência.
+- Parser minuta_from_tiptap: extrai dispositivo e alíneas.
 
 Run: pytest backend/tests/test_docx_generator.py -v
 """
@@ -16,7 +17,7 @@ import io
 
 import pytest
 from docx import Document
-from docx.shared import RGBColor
+from docx.shared import Cm, RGBColor
 
 from app.services.docx_generator import (
     COR_MARCADOR_REVISAO,
@@ -25,6 +26,7 @@ from app.services.docx_generator import (
     PADRAO_MARCADOR_VERIFICAR,
     _ensure_relatorio_termina_com_passa_se,
     _identify_section,
+    _normalizar_blockquote,
     _parse_conclusao,
     _parse_ementa_palavras_chave,
     contar_marcadores,
@@ -60,7 +62,6 @@ MINUTA_VALIDA = {
         ("a", "o conhecimento do recurso"),
         ("b", "no mérito, o provimento do recurso"),
     ],
-    "advertencia_protetiva": "Cumpre advertir o gestor sobre o risco de responsabilização pessoal perante o TCE-CE.",
     "data_extenso": "Fortaleza/CE, 15 de maio de 2026",
     "subtipo": "recurso",
     "vertente": "licitacao_14133",
@@ -100,13 +101,6 @@ class TestGerarParecerBytes:
         del minuta["fundamentos_paragrafos"]
         with pytest.raises(KeyError, match="fundamentos_paragrafos"):
             gerar_parecer_bytes(minuta)
-
-    def test_advertencia_protetiva_opcional(self):
-        minuta = dict(MINUTA_VALIDA)
-        minuta["advertencia_protetiva"] = None
-        bytes_docx = gerar_parecer_bytes(minuta)
-        assert bytes_docx[:2] == b"PK"
-
 
 # ---------------------------------------------------------------------------
 # IRR-1 — Ementa em CAPS com figure-dash
@@ -192,6 +186,42 @@ class TestMarcadoresVerificar:
             and run.font.color.rgb == COR_MARCADOR_REVISAO
         ]
         assert any("VERIFICAR" in t for t in vermelhos)
+
+
+class TestBlockquote:
+
+    def test_normalizar_remove_prefixo_e_italico(self):
+        # `>` (markdown blockquote) e `*..*` (itálico) são strippados; aspas
+        # eventualmente presentes na citação são preservadas (decisão editorial).
+        bruto = '> *"Art. 168. O recurso terá efeito suspensivo."*'
+        assert _normalizar_blockquote(bruto) == '"Art. 168. O recurso terá efeito suspensivo."'
+
+    def test_normalizar_multilinha(self):
+        bruto = "> linha 1\n> linha 2\n> linha 3"
+        assert _normalizar_blockquote(bruto) == "linha 1 linha 2 linha 3"
+
+    def test_normalizar_sem_italico(self):
+        assert _normalizar_blockquote("> texto direto") == "texto direto"
+
+    def test_blockquote_no_render_tem_left_indent_4cm(self):
+        minuta = dict(MINUTA_VALIDA)
+        minuta["fundamentos_paragrafos"] = [
+            "Parágrafo normal de fundamentos.",
+            "> Art. 168. O recurso terá efeito suspensivo.",
+            "Após a citação, retoma-se o raciocínio.",
+        ]
+        bytes_docx = gerar_parecer_bytes(minuta)
+        doc = Document(io.BytesIO(bytes_docx))
+
+        bq = next(p for p in doc.paragraphs if "Art. 168" in p.text)
+        # Sem prefixo '>' literal no .docx final
+        assert not bq.text.startswith(">")
+        # left_indent=4cm (parágrafo inteiro recuado, não só 1ª linha).
+        # Tolerância para arredondamento twips↔EMU do python-docx.
+        assert abs(bq.paragraph_format.left_indent.cm - 4.0) < 0.01
+        assert bq.paragraph_format.first_line_indent in (None, Cm(0))
+        # Bold
+        assert all(r.font.bold for r in bq.runs if r.text.strip())
 
 
 class TestContarMarcadores:
@@ -295,43 +325,36 @@ class TestParseEmenta:
 
 class TestParseConclusao:
 
-    def test_dispositivo_alineas_advertencia(self):
+    def test_dispositivo_e_alineas(self):
         textos = [
             "Diante do exposto, o parecer é favorável. Recomenda-se:",
             "(a) primeira recomendação",
             "(b) segunda recomendação",
-            "Cumpre advertir sobre o risco de responsabilização.",
         ]
-        dispositivo, alineas, advertencia = _parse_conclusao(textos)
+        dispositivo, alineas = _parse_conclusao(textos)
         assert "Diante do exposto" in dispositivo
         assert alineas == [
             ("a", "primeira recomendação"),
             ("b", "segunda recomendação"),
         ]
-        assert advertencia is not None
-        assert "responsabilização" in advertencia
 
     def test_alineas_sem_parenteses(self):
         textos = ["Dispositivo.", "a) recomendação A", "b) recomendação B"]
-        _, alineas, _ = _parse_conclusao(textos)
+        _, alineas = _parse_conclusao(textos)
         assert alineas == [("a", "recomendação A"), ("b", "recomendação B")]
 
-    def test_sem_advertencia(self):
-        textos = ["Dispositivo.", "(a) só alínea"]
-        _, _, adv = _parse_conclusao(textos)
-        assert adv is None
-
-    def test_advertencia_no_dispositivo_se_sem_alineas(self):
+    def test_paragrafo_pos_alineas_e_descartado(self):
+        # Advertências terminais ao gestor foram abolidas; mesmo que escapem
+        # do prompt, o parser as descarta silenciosamente.
         textos = [
-            "Dispositivo principal.",
-            "Cumpre advertir o gestor.",
+            "Diante do exposto, parecer favorável.",
+            "(a) recomendação",
+            "Cumpre advertir o gestor sobre o risco de responsabilização.",
         ]
-        dispositivo, alineas, adv = _parse_conclusao(textos)
-        assert alineas == []
-        # Sem alíneas, a heurística promove o último parágrafo a advertência
-        # quando começa com palavra-gatilho.
-        assert adv is not None
-        assert "Cumpre advertir" in adv
+        dispositivo, alineas = _parse_conclusao(textos)
+        assert "Diante do exposto" in dispositivo
+        assert "Cumpre advertir" not in dispositivo
+        assert alineas == [("a", "recomendação")]
 
 
 class TestEnsureRelatorioFormula:
@@ -400,8 +423,6 @@ def _tiptap_canonico() -> dict:
              "content": [{"type": "text", "text": "a) a observância do prazo legal"}]},
             {"type": "paragraph",
              "content": [{"type": "text", "text": "b) a publicação do extrato no diário oficial"}]},
-            {"type": "paragraph",
-             "content": [{"type": "text", "text": "Cumpre advertir o gestor quanto à responsabilização perante o TCE-CE."}]},
         ],
     }
 
@@ -430,7 +451,7 @@ class TestMinutaFromTipTap:
             ("a", "a observância do prazo legal"),
             ("b", "a publicação do extrato no diário oficial"),
         ]
-        assert "Cumpre advertir" in minuta["advertencia_protetiva"]
+        assert "advertencia_protetiva" not in minuta
 
     def test_tiptap_vazio_devolve_estrutura_minima(self):
         minuta = minuta_from_tiptap(
@@ -457,4 +478,4 @@ class TestMinutaFromTipTap:
         doc = Document(io.BytesIO(bytes_docx))
         textos = "\n".join(p.text for p in doc.paragraphs)
         assert "DIREITO ADMINISTRATIVO" in textos
-        assert "Cumpre advertir" in textos
+        assert "É o parecer, submetido à superior consideração." in textos

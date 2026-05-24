@@ -81,7 +81,7 @@ Marcadores `[REVISAR — TEXTO EM CAIXA ALTA]` (vertente licitação) e `[!VERIF
 
 5. **Corrigir uma citação:** aceite a correção e ajuste o texto.
 
-6. **Fortalecer ou suavizar a conclusão:** ajuste o tom mantendo a fundamentação coerente. Se a mudança criar contradição com os fundamentos, sinalize em `notas_revisor`. Lembre que advertência protetiva é em **prosa institucional sóbria** — NUNCA em CAIXA ALTA dramática.
+6. **Fortalecer ou suavizar a conclusão:** ajuste o tom mantendo a fundamentação coerente. Se a mudança criar contradição com os fundamentos, sinalize em `notas_revisor`. **Vedado** introduzir advertência terminal ao gestor ("Cumpre advertir...") — esse formato foi abolido por soar como ameaça ao consulente. Risco grave fica sinalizado dentro da fundamentação, em prosa sóbria.
 
 7. **Dados ausentes continuam como ressalva**, a menos que o advogado forneça dados novos.
 
@@ -110,7 +110,7 @@ Retorne APENAS as seções modificadas dentro de `<revisao>`, incluindo mapeamen
 </fundamentos>
 
 <conclusao>
-[Nova conclusão completa, se alterada — alíneas (a) (b) (c) (d) em prosa; advertência protetiva sóbria quando aplicável.]
+[Nova conclusão completa, se alterada — alíneas (a) (b) (c) (d) em prosa.]
 </conclusao>
 
 <trechos_revisados>

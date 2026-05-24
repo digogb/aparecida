@@ -7,7 +7,7 @@
 # "administrativo", "tributario_financeiro" ou "terceiro_setor".
 # Demonstram: estrutura tripartite estrita, ementa em MAIÚSCULAS com figure-dash,
 # fundamentos em prosa contínua (SEM subdivisão numerada), paráfrase funcional após
-# citação literal, exemplos concretos, advertência protetiva em prosa sóbria.
+# citação literal, exemplos concretos.
 # ═══════════════════════════════════════════════════════════════
 
 ## EXEMPLO 1 — Vertente A (administrativo) — Nepotismo em cargo político
@@ -68,8 +68,6 @@ b) Recomenda-se que o processo de nomeação documente, em peça apartada, a qua
 c) Recomenda-se a anexação de certidões negativas de antecedentes criminais, de improbidade administrativa e de débitos com a Fazenda Pública, a fim de robustecer o juízo de idoneidade moral perante eventual controle externo.
 
 d) Recomenda-se verificação prévia da inexistência de nepotismo cruzado, mediante mapeamento das nomeações em curso na administração municipal envolvendo familiares de outras autoridades.
-
-Cumpre, ainda, advertir formalmente o gestor sobre o risco de responsabilização pessoal perante o controle externo na hipótese de configuração de nepotismo cruzado superveniente, com possível anulação do ato e devolução de valores percebidos, acrescidos de juros e correção monetária.
 
 É o parecer, submetido à superior consideração.
 </conclusao>
@@ -160,8 +158,6 @@ b) A vedação incide independentemente de prova de interferência, favoreciment
 c) Recomenda-se à Secretaria consulente comunicar formalmente à Associação ALIPE o impedimento detectado, indicando que a celebração futura demanda alteração da composição diretiva da entidade, com remoção do dirigente cônjuge da vereadora.
 
 d) Recomenda-se, em paralelo, a publicação do indeferimento administrativo, com fundamentação no art. 39, inciso III, da Lei nº 13.019/2014, em prevenção a eventual judicialização ou representação no Ministério Público.
-
-Cumpre, ainda, advertir formalmente o gestor sobre o risco de responsabilização pessoal perante o controle externo e o Ministério Público na hipótese de celebração da parceria em desacordo com o art. 39, inciso III, com possível anulação do ato, devolução dos valores transferidos e eventual configuração de improbidade administrativa, a teor da Lei nº 8.429/1992.
 
 É o parecer, submetido à superior consideração.
 </conclusao>

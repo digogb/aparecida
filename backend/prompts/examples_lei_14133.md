@@ -5,8 +5,8 @@
 # Uso: injetado no final do system prompt P2 quando vertente == "licitacao_14133".
 # Demonstram: estrutura tripartite estrita, ementa em MAIÚSCULAS com figure-dash,
 # fundamentos em prosa contínua (SEM subdivisão numerada), paráfrase funcional após
-# citação literal, exemplos concretos do universo municipal, advertência protetiva
-# em prosa sóbria, alíneas (a) (b) (c) (d) na conclusão.
+# citação literal, exemplos concretos do universo municipal, alíneas (a) (b) (c) (d)
+# na conclusão.
 # ═══════════════════════════════════════════════════════════════
 
 ## EXEMPLO 1 — Aditivo quantitativo de contrato administrativo
@@ -73,8 +73,6 @@ b) Recomenda-se que a justificativa técnica firmada pela Diretoria de Transport
 c) Recomenda-se a publicação do termo aditivo no PNCP e no Diário Oficial do Município, nos termos do art. 94 da Lei nº 14.133/2021.
 
 d) Recomenda-se atenção à margem residual do limite do art. 125 — restam 7 pontos percentuais até o teto de 25% — de modo que eventual nova demanda de acréscimo, na vigência do contrato, exigirá análise prévia da capacidade do instrumento de absorver a alteração, sob pena de impedir o aditivo e tornar necessária a celebração de nova contratação.
-
-Cumpre, ainda, advertir formalmente o gestor sobre a vedação a sucessivos aditivos que, somados, ultrapassem o teto legal — hipótese em que o controle externo determina a recomposição do contrato ao parâmetro original, podendo, conforme a gravidade, redundar em responsabilização pessoal do ordenador de despesas.
 
 É o parecer, submetido à superior consideração.
 </conclusao>
@@ -149,8 +147,6 @@ c) Recomenda-se, ao retornar a consulta com a documentação completa, a emissã
 
 d) Recomenda-se, em paralelo, a juntada ao processo da estimativa de impacto financeiro da contratação, com indicação da dotação orçamentária consignada na LOA do exercício corrente, em atenção ao art. 16 da Lei Complementar nº 101/2000.
 
-Cumpre, ainda, advertir formalmente o gestor sobre o risco de responsabilização pessoal perante o controle externo na hipótese de prática do ato de dispensa sem a documentação indispensável, com possível determinação de devolução de valores, acrescidos de juros e correção monetária.
-
 É o parecer, submetido à superior consideração.
 </conclusao>
 
@@ -224,8 +220,6 @@ c) Recomenda-se o aprofundamento do Estudo Técnico Preliminar com dados especí
 
 d) Após o saneamento, recomenda-se a publicação do edital no PNCP e nos demais canais previstos no art. 94 da Lei nº 14.133/2021.
 
-Cumpre, ainda, advertir formalmente o gestor sobre o risco de responsabilização pessoal perante o controle externo na hipótese de publicação do edital na forma originalmente proposta, com possível determinação de anulação do certame e responsabilização do ordenador de despesas.
-
 É o parecer, submetido à superior consideração.
 </conclusao>
 
@@ -298,8 +292,6 @@ b) No mérito, recomenda-se o provimento do recurso, com reforma da decisão de 
 c) Recomenda-se a declaração de nulidade dos atos praticados a partir da decisão de inabilitação e a retomada do certame com a habilitação da recorrente, prosseguindo-se aos atos subsequentes.
 
 d) Para futuros certames, recomenda-se à Administração a observância estrita do parâmetro de cinquenta por cento da Súmula nº 263 do TCU ou, alternativamente, a documentação prévia, no Estudo Técnico Preliminar, da razão técnica que justifique exigência de quantitativo majorado.
-
-Cumpre, ainda, advertir formalmente o gestor sobre o risco de responsabilização pessoal perante o controle externo na hipótese de manutenção da decisão de inabilitação, com possível determinação de anulação do certame e devolução de valores eventualmente pagos a contratado posteriormente declarado vencedor.
 
 É o parecer, submetido à superior consideração.
 </conclusao>

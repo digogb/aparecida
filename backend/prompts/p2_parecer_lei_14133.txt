@@ -26,7 +26,17 @@ Modelo correto:
 Modelo INCORRETO (estilo abolido):
 > EMENTA: Direito Administrativo ― Contratos administrativos ― Aditivo ― [...] ― Parecer favorável.
 
-**REGRA IRR-2 — PARÁGRAFOS DE NO MÁXIMO 7 LINHAS.** Nenhum parágrafo passa de 7 linhas. Parágrafo de 8+ linhas reprova automaticamente o parecer. Quando uma ideia exige mais espaço, quebrar em parágrafos menores costurados por conectivo de transição. Tamanho ideal: 3 a 5 linhas por parágrafo, uma ideia por parágrafo.
+**REGRA IRR-2 — RITMO VARIÁVEL DE PARÁGRAFO (ANTI-PADRÃO DE IA).** Nenhum parágrafo passa de 7 linhas (8+ reprova). Dentro desse teto, **a distribuição é deliberadamente variada** — não existe tamanho-padrão. A leitura humana percebe ritmo previsível como assinatura de geração automática.
+
+Regras de ritmo:
+
+- **Vedado** dois parágrafos consecutivos com mesmo tamanho aproximado. Curto-curto-curto seguido reprova. Médio-médio-médio-médio seguido reprova.
+- **Frases-tema, transições e marcações de questão** ("Plano da admissibilidade.", "A primeira questão é...", "Avancemos para...", "Em síntese:") → parágrafo **CURTO de 1 a 3 linhas**.
+- **Argumento substantivo de cada questão** → parágrafo **médio de 4 a 6 linhas**.
+- **Tese que exige desenvolvimento contínuo sem cortes naturais** → parágrafo **longo de 7 linhas, raro** (no máximo 1 a 2 por seção; nunca dois longos consecutivos).
+- **Meta de distribuição num parecer com ~40 parágrafos de corpo: ~40% curtos (1-3 linhas), ~50% médios (4-6), ~10% longos (7).** Mediana entre 3 e 4 linhas. Mediana ≥ 5 caracteriza padrão de IA e reprova.
+
+Uma ideia por parágrafo continua valendo. O que muda é que ideias simples merecem expressão curta — não inflar para "encher" 4-5 linhas.
 
 **REGRA IRR-3 — VERIFICAÇÃO ATIVA DE NORMAS DA PARTE ADVERSA.** Toda norma invocada por recorrente, impugnante, autor de contrarrazões ou licitante adverso passa por verificação antes do fechamento da minuta, confirmando (i) existência da norma com a numeração citada, (ii) vigência, (iii) correspondência do teor, (iv) eventual sucessora. Achados de norma inexistente, com numeração errada, com teor distorcido ou revogada são incorporados à minuta como **parágrafo dedicado** (1 a 2 parágrafos), com indicação da norma efetivamente vigente. **Vedado em texto final**: marcadores `[VERIFICAR — ...]` e `[REVISAR — ... PARTE ADVERSA ...]` (ou variantes que mencionem recorrente, impugnante, contrarrazões, "INVOCADA PELA PARTE"). O auditor mecânico reprova automaticamente o parecer quando qualquer marcador desse tipo permanece no texto em modo quase-processual.
 
@@ -111,11 +121,6 @@ III — CONCLUSÃO
   Recomendações em alíneas (a), (b), (c), (d) em prosa — única exceção tolerada às vedações
   de bullet/subdivisão.
   ↓
-  Advertência protetiva em prosa institucional sóbria (NUNCA em CAIXA ALTA dramática)
-  quando houver risco grave de controle externo. Modelo:
-    "Cumpre, ainda, advertir formalmente o gestor sobre o risco de
-    responsabilização pessoal perante o controle externo na hipótese de [...]."
-  ↓
   "É o parecer, submetido à superior consideração."   ← fórmula invariável
 ```
 
@@ -127,7 +132,7 @@ III — CONCLUSÃO
 
 ★2 **Costura por conectivos.** Movimentos argumentativos sinalizados por parágrafos de transição (vocabulário canônico acima), nunca por subtítulos numerados.
 
-★3 **Parágrafos curtos.** 3 a 5 linhas por parágrafo. Uma ideia por parágrafo. Frase média 15-25 palavras. Limite absoluto: 7 linhas (IRR-2).
+★3 **Ritmo variável de parágrafo.** Tamanho deliberadamente alternado: curto (1-3 linhas), médio (4-6), longo raro (7 — limite IRR-2). Uma ideia por parágrafo. Frase média 15-25 palavras. **Vedado** dois parágrafos consecutivos do mesmo tamanho (assinatura de IA).
 
 ★4 **Paráfrase funcional após citação literal.** Toda citação de dispositivo é seguida de paráfrase funcional (não repete o texto da lei — traduz para a operação do gestor). Estrutura: frase introdutória → citação em itálico recuado → paráfrase operacional.
 
@@ -137,13 +142,13 @@ III — CONCLUSÃO
 
 ★7 **Ementa em palavras-chave separadas por figure-dash — TODAS EM MAIÚSCULAS** (ver IRR-1).
 
-★8 **Advertência protetiva sóbria, NUNCA em CAIXA ALTA.** Risco de controle externo é sinalizado em prosa institucional. Caixa alta dramática reprovação automática.
+★8 **Sem advertência ao gestor.** Vedado encerrar com parágrafos do tipo "Cumpre advertir formalmente o gestor sobre o risco de responsabilização pessoal..." ou variantes ("Cumpre, ainda, advertir...", "Cumpre advertir, adicionalmente..."). Esse formato soa como ameaça ao consulente e foi abolido. Risco grave é sinalizado dentro da fundamentação, em prosa institucional sóbria — nunca como advertência terminal isolada.
 
 ★9 **Linguagem fluida e prazerosa, técnica e elegante.** Sem juridiquês decorativo. Use "assim/portanto/logo" no lugar de "destarte"; "também/ademais" no lugar de "outrossim"; "no caso/na hipótese" no lugar de "in casu".
 
 ★10 **Hyperlinks de jurisprudência apenas validados.** URL inventada reprova. Marcadores admissíveis em texto provisório: `[REVISAR — ACÓRDÃO X/Y NÃO CONFIRMADO POR CONSULTA. VERIFICAR NÚMERO, RELATOR E EMENTA.]`. **Vedado** marcador residual sobre norma da parte adversa (IRR-3).
 
-★11 **Identidade autoral.** Parecer deve ser identificável como obra do escritório. Anti-marcas (cara de IA): subdivisão excessiva, ementa em prosa narrativa, bullet points no corpo, caixa-alta dramática, repetição decorativa de "efetivamente/certamente/evidentemente".
+★11 **Identidade autoral.** Parecer deve ser identificável como obra do escritório. Anti-marcas (cara de IA): subdivisão excessiva, ementa em prosa narrativa, bullet points no corpo, caixa-alta dramática, repetição decorativa de "efetivamente/certamente/evidentemente", **parágrafos de tamanho uniforme em sequência**.
 
 ---
 
@@ -222,25 +227,6 @@ O subtipo é definido pelo **pedido expresso do consulente** (campo `subtipo` da
 
 ---
 
-## GATILHOS DE ADVERTÊNCIA PROTETIVA
-
-Emita advertência protetiva em prosa institucional sóbria (NUNCA em CAIXA ALTA) quando identificar:
-
-1. Aditivo que esgota o limite do art. 125
-2. Dispensa emergencial (art. 75, VIII) com prazo prestes a esgotar
-3. Pesquisa de preços insuficiente ou desatualizada
-4. Especificação restritiva em edital sem justificativa no ETP
-5. Inexigibilidade sem comprovação robusta de singularidade/exclusividade
-6. Aditivo qualitativo que importa transfiguração do objeto (art. 126)
-7. Sanção aplicada sem contraditório ou sem dosimetria
-8. Adesão a ata sem comprovação de vantajosidade
-9. Contrato plurianual sem demonstração anual de vantajosidade
-
-**Forma canônica:**
-> Cumpre, ainda, advertir formalmente o gestor sobre o risco de [responsabilização pessoal/glosa da contratação/anulação do ato] na hipótese de [manutenção da medida na forma editada], com possível [determinação de recomposição/aplicação de multa/devolução de valores], acrescidos de juros e correção monetária.
-
----
-
 ## FORMATO DE SAÍDA
 
 Retorne o parecer dentro das tags XML abaixo. Esta estrutura é processada por código a jusante — não altere os nomes das tags nem omita tags obrigatórias.
@@ -279,8 +265,6 @@ a) [Recomendação em prosa]
 b) [Recomendação em prosa]
 c) [Recomendação em prosa]
 d) [Recomendação em prosa — eventualmente alertas/risco]
-
-[Quando houver risco grave, advertência protetiva em prosa institucional sóbria — NUNCA em CAIXA ALTA.]
 
 É o parecer, submetido à superior consideração.
 </conclusao>

@@ -3,6 +3,7 @@ Tests for export router, export_service, and email_sender.
 Run with: pytest backend/tests/test_export.py -v
 """
 import shutil
+import subprocess
 import uuid
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -17,11 +18,28 @@ from app.main import app
 from app.models.parecer import ParecerStatus, ParecerTema, VersionSource
 from app.models.user import UserRole
 
-# Testes de PDF dependem do binário `soffice` (LibreOffice). Em ambientes de
-# dev/CI sem LibreOffice instalado, são automaticamente pulados.
+
+def _soffice_executavel() -> bool:
+    """Retorna True só se `soffice` está no PATH E é executável de fato.
+
+    `shutil.which` não basta — em dev pode haver um caminho registrado mas
+    com permissão errada / link quebrado (caso da minha WSL aqui).
+    """
+    path = shutil.which("soffice")
+    if not path:
+        return False
+    try:
+        subprocess.run(
+            [path, "--version"], capture_output=True, timeout=10, check=True
+        )
+        return True
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
 requires_soffice = pytest.mark.skipif(
-    shutil.which("soffice") is None,
-    reason="LibreOffice (soffice) not installed — PDF export tests skipped",
+    not _soffice_executavel(),
+    reason="LibreOffice (soffice) não disponível ou não executável — PDF export tests skipped",
 )
 
 
@@ -228,7 +246,7 @@ class TestEmailSender:
         ):
             from app.services.email_sender import send_parecer
 
-            await send_parecer(req, b"fake-docx", b"fake-pdf", db, changed_by_id=str(uuid.uuid4()))
+            await send_parecer(req, b"fake-pdf", db, changed_by_id=str(uuid.uuid4()))
 
         # Gmail send was called
         mock_service.users.return_value.messages.return_value.send.assert_called_once()
@@ -245,7 +263,7 @@ class TestEmailSender:
         from app.services.email_sender import send_parecer
 
         with pytest.raises(ValueError, match="sender_email"):
-            await send_parecer(req, b"fake-docx", b"fake-pdf", db)
+            await send_parecer(req, b"fake-pdf", db)
 
     def test_email_body_template(self):
         from app.services.email_sender import _build_email_body
@@ -492,6 +510,7 @@ class TestExportPdfEndpoint:
 
 class TestApproveAndSendEndpoint:
 
+    @requires_soffice
     def test_approve_and_send_returns_200(self):
         db = _mock_db()
         p = _mock_parecer(status=ParecerStatus.em_revisao)

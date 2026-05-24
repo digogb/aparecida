@@ -134,7 +134,6 @@ async def to_docx(
                 *minuta["fundamentos_paragrafos"],
                 minuta["conclusao_dispositivo"],
                 *[a[1] for a in minuta["recomendacoes_alineas"]],
-                minuta.get("advertencia_protetiva") or "",
             ]
         ),
     )

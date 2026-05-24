@@ -204,6 +204,25 @@ def _adicionar_paragrafo_corpo(
     return p
 
 
+def _adicionar_blockquote(doc, texto: str):
+    """Citação legal em bloco — padrão calibrado pelo Dr. Ione.
+
+    align=justify, left_indent=4cm (parágrafo inteiro recuado, não só 1ª linha),
+    Consolas 12pt **negrito**, espaço de 12pt antes e depois para destacar
+    visualmente do corpo. Sem prefixo '>' nem itálico via '*'.
+    """
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    pf = p.paragraph_format
+    pf.left_indent = RECUO_PRIMEIRA_LINHA
+    pf.first_line_indent = Cm(0)
+    pf.space_before = Pt(12)
+    pf.space_after = Pt(12)
+    pf.line_spacing = ESPACAMENTO_LINHA_15
+    _adicionar_runs_com_marcadores(p, texto, bold=True)
+    return p
+
+
 def _adicionar_paragrafo_vazio(doc):
     p = doc.add_paragraph()
     run = p.add_run("")
@@ -335,9 +354,32 @@ def _adicionar_titulo_secao(doc, titulo: str) -> None:
     _set_font(run, bold=True)
 
 
+_PADRAO_BLOCKQUOTE_LITERAL = re.compile(
+    r"^>\s*\*?\s*[\"'“”]?(.*?)[\"'“”]?\s*\*?\s*$",
+    re.DOTALL,
+)
+
+
+def _normalizar_blockquote(texto: str) -> str:
+    """Remove prefixo '>' (markdown vazado do TipTap) e wrap '*...*' (itálico
+    markdown) do texto de citação legal, devolvendo apenas o conteúdo."""
+    linhas = [linha.lstrip("> ").strip() for linha in texto.splitlines()]
+    bruto = " ".join(linhas).strip()
+    # Strip de wrap '*...*' (negrito/itálico markdown) e aspas curvas
+    m = re.match(r"^\*+\s*(.*?)\s*\*+$", bruto, re.DOTALL)
+    if m:
+        bruto = m.group(1).strip()
+    return bruto
+
+
 def _adicionar_paragrafos_corpo(doc, paragrafos: List[str]) -> None:
+    """Renderiza parágrafos de uma seção. Linhas que começam com '>' são
+    tratadas como citação legal (blockquote) e ganham formatação dedicada."""
     for texto in paragrafos:
-        _adicionar_paragrafo_corpo(doc, texto)
+        if texto.lstrip().startswith(">"):
+            _adicionar_blockquote(doc, _normalizar_blockquote(texto))
+        else:
+            _adicionar_paragrafo_corpo(doc, texto)
 
 
 def _adicionar_recomendacoes(doc, alineas: List[Tuple[str, str]]) -> None:
@@ -491,10 +533,10 @@ def gerar_parecer_bytes(minuta: dict) -> bytes:
               ("PARECER FAVORÁVEL", "PARECER PERTINENTE — PROVIMENTO RECOMENDADO" etc.)
             - relatorio_paragrafos (List[str]) — último é "É o breve relatório.
               Passa-se à fundamentação."
-            - fundamentos_paragrafos (List[str]) — prosa contínua, sem subdivisão
+            - fundamentos_paragrafos (List[str]) — prosa contínua, sem subdivisão.
+              Parágrafos iniciados por '>' viram blockquote (citação legal recuada).
             - conclusao_dispositivo (str) — "Diante do exposto, ..."
             - recomendacoes_alineas (List[Tuple[str, str]]) — [("a", "..."), ...]
-            - advertencia_protetiva (str | None) — opcional
             - data_extenso (str) — "Fortaleza/CE, 15 de maio de 2026"
             - subtipo (str) — informativo
             - vertente (str) — informativo
@@ -531,9 +573,6 @@ def gerar_parecer_bytes(minuta: dict) -> bytes:
     _adicionar_titulo_secao(doc, "III — CONCLUSÃO")
     _adicionar_paragrafo_corpo(doc, minuta["conclusao_dispositivo"])
     _adicionar_recomendacoes(doc, minuta["recomendacoes_alineas"])
-
-    if minuta.get("advertencia_protetiva"):
-        _adicionar_paragrafo_corpo(doc, minuta["advertencia_protetiva"])
 
     _adicionar_fecho(doc)
     _adicionar_fortaleza_data(doc, minuta["data_extenso"])
@@ -573,20 +612,14 @@ _PADRAO_ALINEA = re.compile(r"^\(?([a-z])\)\s*(.*)$", re.DOTALL)
 # Separadores de palavras-chave da ementa: figure-dash (U+2015) ou em-dash
 _PADRAO_SEP_EMENTA = re.compile(r"\s*[―—–]\s*")
 
-# Palavras-gatilho de advertência protetiva (qualquer ocorrência inicial do parágrafo)
-_PALAVRAS_ADVERTENCIA = (
-    "cumpre advertir",
-    "cabe advertir",
-    "adverte-se",
-    "alerta-se",
-    "ressalte-se",
-    "registre-se que",
-    "convém advertir",
-)
-
 
 def _tiptap_node_to_text(node: dict) -> str:
-    """Concatena o texto plano de um node TipTap (paragraph, heading, blockquote, list)."""
+    """Concatena o texto plano de um node TipTap (paragraph, heading, blockquote, list).
+
+    Blockquote é marcado com prefixo '>' no início de cada linha — esse sentinel
+    é consumido por `_adicionar_paragrafos_corpo` para despachar ao render de
+    citação legal (left_indent=4cm, bold, space_before/after=12pt).
+    """
     if node.get("type") == "text":
         return node.get("text", "")
     parts = []
@@ -647,18 +680,19 @@ def _parse_ementa_palavras_chave(textos: List[str]) -> List[str]:
     return palavras
 
 
-def _parse_conclusao(textos: List[str]) -> Tuple[str, List[Tuple[str, str]], Optional[str]]:
-    """Quebra a conclusão em (dispositivo, alíneas, advertencia).
+def _parse_conclusao(textos: List[str]) -> Tuple[str, List[Tuple[str, str]]]:
+    """Quebra a conclusão em (dispositivo, alíneas).
 
-    Heurística:
     - Dispositivo = parágrafos antes da primeira alínea, concatenados com "\\n\\n".
     - Alíneas = parágrafos que começam com "a)", "(b)", etc.
-    - Advertência = parágrafos após as alíneas, OU parágrafo que começa com palavras-gatilho.
+
+    Parágrafos posteriores às alíneas (eventuais "Cumpre advertir..." que escapem
+    do filtro do prompt) são silenciosamente descartados — o formato de
+    advertência terminal ao gestor foi abolido pelo Dr. Ione.
     """
     dispositivo_parts: List[str] = []
     alineas: List[Tuple[str, str]] = []
-    pos_alineas_parts: List[str] = []
-    estado = "antes"  # "antes" → "alineas" → "depois"
+    estado = "antes"  # "antes" → "alineas" → "descartado"
 
     for paragrafo in textos:
         match = _PADRAO_ALINEA.match(paragrafo.strip())
@@ -668,29 +702,12 @@ def _parse_conclusao(textos: List[str]) -> Tuple[str, List[Tuple[str, str]], Opt
             alineas.append((letra, conteudo))
             estado = "alineas"
             continue
-        # Não é alínea
         if estado == "antes":
             dispositivo_parts.append(paragrafo)
-        else:
-            estado = "depois"
-            pos_alineas_parts.append(paragrafo)
+        # else: parágrafo pós-alíneas — descartado
 
-    # Caso o "dispositivo" venha vazio (IA pôs tudo numa alínea direta),
-    # usa string vazia. O caller decide.
     dispositivo = "\n\n".join(dispositivo_parts).strip()
-
-    # Mesmo sem alíneas, pode haver advertência detectada pelos gatilhos
-    # dentro do dispositivo_parts. Quebra o último parágrafo se começa com gatilho.
-    advertencia: Optional[str] = None
-    if pos_alineas_parts:
-        advertencia = "\n\n".join(pos_alineas_parts).strip()
-    elif dispositivo_parts:
-        ultimo = dispositivo_parts[-1].strip()
-        if any(ultimo.lower().startswith(g) for g in _PALAVRAS_ADVERTENCIA):
-            advertencia = ultimo
-            dispositivo = "\n\n".join(dispositivo_parts[:-1]).strip()
-
-    return dispositivo, alineas, advertencia
+    return dispositivo, alineas
 
 
 def _ensure_relatorio_termina_com_passa_se(paragrafos: List[str]) -> List[str]:
@@ -728,7 +745,7 @@ def minuta_from_tiptap(
     ementa_palavras = _parse_ementa_palavras_chave(grouped.get("ementa", []))
     relatorio = _ensure_relatorio_termina_com_passa_se(grouped.get("relatorio", []))
     fundamentos = grouped.get("fundamentos", [])
-    dispositivo, alineas, advertencia = _parse_conclusao(grouped.get("conclusao", []))
+    dispositivo, alineas = _parse_conclusao(grouped.get("conclusao", []))
 
     return {
         "consulente": consulente,
@@ -737,7 +754,6 @@ def minuta_from_tiptap(
         "fundamentos_paragrafos": fundamentos,
         "conclusao_dispositivo": dispositivo,
         "recomendacoes_alineas": alineas,
-        "advertencia_protetiva": advertencia,
         "data_extenso": data_extenso,
         "subtipo": subtipo,
         "vertente": vertente,
