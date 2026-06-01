@@ -15,9 +15,11 @@ interface Props {
   onToggleSearch: () => void
   onSearchChange: (value: string) => void
   onCloseSearch: () => void
+  showRuler: boolean
+  onToggleRuler: () => void
 }
 
-export default function EditorToolbar({ editor, onSave, isSaving, isDirty, onExport, showSplitView, onToggleSplitView, showSearch, searchTerm, searchResults, onToggleSearch, onSearchChange, onCloseSearch }: Props) {
+export default function EditorToolbar({ editor, onSave, isSaving, isDirty, onExport, showSplitView, onToggleSplitView, showSearch, searchTerm, searchResults, onToggleSearch, onSearchChange, onCloseSearch, showRuler, onToggleRuler }: Props) {
   const searchInputRef = useRef<HTMLInputElement>(null)
   if (!editor) return null
 
@@ -35,6 +37,34 @@ export default function EditorToolbar({ editor, onSave, isSaving, isDirty, onExp
 
   return (
     <div className="flex items-center gap-1 px-4 py-2 flex-wrap" style={{ background: '#FAF8F5', borderBottom: '1px solid #EDE8DF' }}>
+      {/* Undo / Redo */}
+      <button
+        className="px-2 py-1 rounded text-sm transition-all duration-150 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+        style={{ color: '#6B6860' }}
+        onClick={() => editor.chain().focus().undo().run()}
+        disabled={!editor.can().undo()}
+        title="Desfazer (Ctrl+Z)"
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 7v6h6" />
+          <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+        </svg>
+      </button>
+      <button
+        className="px-2 py-1 rounded text-sm transition-all duration-150 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+        style={{ color: '#6B6860' }}
+        onClick={() => editor.chain().focus().redo().run()}
+        disabled={!editor.can().redo()}
+        title="Refazer (Ctrl+Y)"
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 7v6h-6" />
+          <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
+        </svg>
+      </button>
+
+      <div className="w-px h-5 mx-1" style={{ background: '#E0D9CE' }} />
+
       {/* Block type dropdown */}
       <select
         className="text-sm rounded-lg px-2 py-1 mr-2 focus:outline-none"
@@ -241,6 +271,19 @@ export default function EditorToolbar({ editor, onSave, isSaving, isDirty, onExp
       </button>
 
       <div className="w-px h-5 mx-1" style={{ background: '#E0D9CE' }} />
+
+      <button
+        onClick={onToggleRuler}
+        className="px-3 py-1 text-sm rounded-lg transition-all duration-150 cursor-pointer"
+        style={
+          showRuler
+            ? { background: '#C9A94E18', color: '#C9A94E', border: '1.5px solid #C9A94E44' }
+            : { color: '#6B6860', border: '1.5px solid #E0D9CE' }
+        }
+        title="Mostrar/ocultar régua de recuos"
+      >
+        Régua
+      </button>
 
       <button
         onClick={onToggleSplitView}

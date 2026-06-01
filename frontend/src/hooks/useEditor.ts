@@ -437,8 +437,10 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     },
     editorProps: {
       attributes: {
-        class:
-          'prose prose-sm max-w-none focus:outline-none min-h-[500px] pl-8 pr-16 py-6',
+        // A aparência (folha A4, fonte, recuos) é controlada pelo CSS .ProseMirror
+        // em index.css — espelho fiel do DOCX. Sem classes utilitárias aqui para
+        // não conflitar com as margens/recuos em cm.
+        class: 'focus:outline-none',
       },
       handleKeyDown: (_view, event) => {
         if ((event.ctrlKey || event.metaKey) && event.key === 's') {

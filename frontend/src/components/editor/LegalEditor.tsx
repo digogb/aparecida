@@ -8,6 +8,7 @@ import type { PeerReviewListItem, RespostaTrecho } from '../../types/parecer'
 import EditorToolbar from './EditorToolbar'
 import EditorSidebar from './EditorSidebar'
 import SplitView from './SplitView'
+import Ruler from './Ruler'
 import PeerReviewModal from './PeerReviewModal'
 import CompletedReviewModal from './CompletedReviewModal'
 import ExportWithMarkersModal from './ExportWithMarkersModal'
@@ -498,6 +499,7 @@ export default function LegalEditor() {
   const [showSearch, setShowSearch] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false)
+  const [showRuler, setShowRuler] = useState(true)
 
   const searchResults = editor?.storage.searchHighlight?.results ?? 0
 
@@ -611,6 +613,8 @@ export default function LegalEditor() {
               onToggleSearch={() => setShowSearch(true)}
               onSearchChange={handleSearchChange}
               onCloseSearch={() => { setShowSearch(false); setSearchTerm(''); editor?.commands.setSearchTerm('') }}
+              showRuler={showRuler}
+              onToggleRuler={() => setShowRuler((v) => !v)}
             />
           )}
 
@@ -633,14 +637,17 @@ export default function LegalEditor() {
           )}
 
           {/* Editor area */}
-          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto relative" style={{ background: '#FAF8F5' }}>
+          <div ref={scrollContainerRef} className="flex-1 overflow-auto relative" style={{ background: '#E8E2D6' }}>
             {showSplitView ? (
               <SplitView
                 originalText={parecer.extracted_text}
                 editor={editor}
               />
             ) : (
-              <EditorContent editor={editor} />
+              <div className="editor-page-col">
+                {showRuler && <Ruler />}
+                <EditorContent editor={editor} />
+              </div>
             )}
             {diffAnnotation && editor && (
               <DiffGutter
