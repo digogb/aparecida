@@ -62,6 +62,26 @@ def _build_gmail_service():
     )
 
 
+def send_plain_email(to: str, subject: str, body_text: str) -> None:
+    """Envia um email de texto simples pela conta do Gmail configurada.
+
+    Reusa o mesmo serviço/credenciais do envio de pareceres. Síncrono (googleapiclient) —
+    chame via asyncio.to_thread a partir de handlers async para não bloquear o event loop.
+    """
+    service = _build_gmail_service()
+
+    msg = MIMEText(body_text, "plain", "utf-8")
+    if settings.GMAIL_SENDER_EMAIL:
+        msg["From"] = settings.GMAIL_SENDER_EMAIL
+    recipient = settings.GMAIL_TEST_RECIPIENT or to
+    msg["To"] = recipient
+    msg["Subject"] = subject
+
+    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode("ascii")
+    service.users().messages().send(userId="me", body={"raw": raw}).execute()
+    logger.info("Email simples enviado para %s%s", recipient, " (teste)" if settings.GMAIL_TEST_RECIPIENT else "")
+
+
 def _build_email_body(req: ParecerRequest) -> str:
     """Build formal reply body text."""
     subject = req.subject or "Consulta Jurídica"

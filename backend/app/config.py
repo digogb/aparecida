@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     ENV: str = "development"
     # Origens permitidas para CORS — separadas por vírgula. Vazio = fallback dev (localhost:5173)
     CORS_ORIGINS: str = ""
+    # URL pública da app — usada para montar o link de redefinição de senha enviado por email.
+    # Ex (prod): https://app.ioneadvogados.com.br ; (dev) http://localhost:5173
+    APP_BASE_URL: str = "http://localhost:5173"
 
     # DJE search — configure via .env
     # Ex: DJE_NOME_ADVOGADO="JOSE ANTONIO SOUZA"

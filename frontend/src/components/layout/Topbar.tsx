@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle } from 'lucide-react'
 import NotificationBell from '../dje/NotificationBell'
+import ChangePasswordModal from '../auth/ChangePasswordModal'
 import api from '../../services/api'
 
 interface Props {
@@ -8,6 +10,8 @@ interface Props {
 }
 
 export function Topbar({ onMenuToggle }: Props) {
+  const [showChangePassword, setShowChangePassword] = useState(false)
+
   const handleLogout = () => {
     localStorage.removeItem('token')
     window.location.href = '/login'
@@ -57,6 +61,13 @@ export function Topbar({ onMenuToggle }: Props) {
       {/* Ações — sempre à direita */}
       <NotificationBell />
       <button
+        onClick={() => setShowChangePassword(true)}
+        className="text-sm transition-all duration-150 cursor-pointer"
+        style={{ color: '#6B6860' }}
+      >
+        Trocar senha
+      </button>
+      <button
         onClick={handleLogout}
         className="text-sm transition-all duration-150 cursor-pointer"
         style={{ color: '#6B6860' }}
@@ -64,6 +75,7 @@ export function Topbar({ onMenuToggle }: Props) {
         Sair
       </button>
     </header>
+    {showChangePassword && <ChangePasswordModal onClose={() => setShowChangePassword(false)} />}
     {gmailStatus === 'token_revoked' && (
       <div
         className="flex items-center gap-2 px-6 py-2 text-sm flex-shrink-0"
