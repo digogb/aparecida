@@ -332,7 +332,8 @@ class TestParseConclusao:
             "(b) segunda recomendação",
         ]
         dispositivo, alineas = _parse_conclusao(textos)
-        assert "Diante do exposto" in dispositivo
+        # dispositivo agora é bloco {'text','attrs'} (carrega recuos da régua)
+        assert "Diante do exposto" in dispositivo["text"]
         assert alineas == [
             ("a", "primeira recomendação"),
             ("b", "segunda recomendação"),
@@ -352,8 +353,8 @@ class TestParseConclusao:
             "Cumpre advertir o gestor sobre o risco de responsabilização.",
         ]
         dispositivo, alineas = _parse_conclusao(textos)
-        assert "Diante do exposto" in dispositivo
-        assert "Cumpre advertir" not in dispositivo
+        assert "Diante do exposto" in dispositivo["text"]
+        assert "Cumpre advertir" not in dispositivo["text"]
         assert alineas == [("a", "recomendação")]
 
 
@@ -362,7 +363,8 @@ class TestEnsureRelatorioFormula:
     def test_adiciona_quando_falta(self):
         paragrafos = ["Parágrafo 1.", "Parágrafo 2."]
         result = _ensure_relatorio_termina_com_passa_se(paragrafos)
-        assert result[-1] == "É o breve relatório. Passa-se à fundamentação."
+        # a fórmula anexada vem como bloco {'text','attrs'} (padrão da casa)
+        assert result[-1]["text"] == "É o breve relatório. Passa-se à fundamentação."
 
     def test_nao_duplica(self):
         paragrafos = ["Parágrafo 1.", "É o breve relatório. Passa-se à fundamentação."]
@@ -444,9 +446,10 @@ class TestMinutaFromTipTap:
             "PARECER FAVORÁVEL",
         ]
         assert len(minuta["relatorio_paragrafos"]) == 2
-        assert minuta["relatorio_paragrafos"][-1].startswith("É o breve relatório")
+        # minuta_from_tiptap devolve blocos {'text','attrs'} (recuos por parágrafo da régua)
+        assert minuta["relatorio_paragrafos"][-1]["text"].startswith("É o breve relatório")
         assert len(minuta["fundamentos_paragrafos"]) == 2
-        assert minuta["conclusao_dispositivo"].startswith("Diante do exposto")
+        assert minuta["conclusao_dispositivo"]["text"].startswith("Diante do exposto")
         assert minuta["recomendacoes_alineas"] == [
             ("a", "a observância do prazo legal"),
             ("b", "a publicação do extrato no diário oficial"),
@@ -479,3 +482,61 @@ class TestMinutaFromTipTap:
         textos = "\n".join(p.text for p in doc.paragraphs)
         assert "DIREITO ADMINISTRATIVO" in textos
         assert "É o parecer, submetido à superior consideração." in textos
+
+
+# ---------------------------------------------------------------------------
+# Recuos por parágrafo (régua funcional do editor)
+# ---------------------------------------------------------------------------
+
+class TestRecuosPorParagrafo:
+    """Os recuos definidos na régua do editor (atributos firstLineIndent/leftIndent/
+    rightIndent no node paragraph) fluem até o paragraph_format do DOCX. Parágrafos
+    sem atributos seguem o gabarito calibrado da casa (1ª linha 4cm, esq/dir não setados)."""
+
+    def _doc_de_tiptap(self, paragraph_attrs: dict) -> Document:
+        tiptap = {
+            "type": "doc",
+            "content": [
+                {"type": "heading", "attrs": {"level": 2},
+                 "content": [{"type": "text", "text": "II — FUNDAMENTOS"}]},
+                {"type": "paragraph", "attrs": paragraph_attrs,
+                 "content": [{"type": "text", "text": "Parágrafo com recuo custom da régua."}]},
+                {"type": "paragraph",
+                 "content": [{"type": "text", "text": "Parágrafo sem recuo segue o padrão."}]},
+            ],
+        }
+        minuta = minuta_from_tiptap(
+            tiptap, consulente="X", data_extenso="Fortaleza/CE, 1 de janeiro de 2026"
+        )
+        return Document(io.BytesIO(gerar_parecer_bytes(minuta)))
+
+    def _para(self, doc: Document, trecho: str):
+        for p in doc.paragraphs:
+            if trecho in p.text:
+                return p
+        raise AssertionError(f"parágrafo não encontrado: {trecho!r}")
+
+    def test_recuos_custom_refletem_no_docx(self):
+        doc = self._doc_de_tiptap(
+            {"firstLineIndent": 2, "leftIndent": 1.5, "rightIndent": 0.5}
+        )
+        pf = self._para(doc, "recuo custom da régua").paragraph_format
+        # round-trip EMU→twips no XML introduz ~±0,0003cm; comparar com tolerância
+        assert pf.first_line_indent.cm == pytest.approx(2, abs=0.01)
+        assert pf.left_indent.cm == pytest.approx(1.5, abs=0.01)
+        assert pf.right_indent.cm == pytest.approx(0.5, abs=0.01)
+
+    def test_paragrafo_sem_attrs_mantem_padrao_casa(self):
+        doc = self._doc_de_tiptap(
+            {"firstLineIndent": 2, "leftIndent": 1.5, "rightIndent": 0.5}
+        )
+        pf = self._para(doc, "sem recuo segue o padrão").paragraph_format
+        assert pf.first_line_indent.cm == pytest.approx(4, abs=0.01)  # padrão da casa
+        assert pf.left_indent is None
+        assert pf.right_indent is None
+
+    def test_first_line_indent_zero_explicito_e_respeitado(self):
+        # 0 explícito (usuário arrastou o marcador até 0) ≠ None (que herda 4cm)
+        doc = self._doc_de_tiptap({"firstLineIndent": 0})
+        pf = self._para(doc, "recuo custom da régua").paragraph_format
+        assert pf.first_line_indent.cm == pytest.approx(0, abs=0.01)

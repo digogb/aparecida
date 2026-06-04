@@ -50,9 +50,9 @@
    - Citação legal: recuo esquerdo 4 cm, negrito, SEM itálico, 12pt antes/depois
    - Títulos de seção: caixa alta, negrito, 12pt antes/depois */
 
-/* Coluna que centraliza a folha e a régua (ambas com 21 cm → alinhadas) */
+/* Coluna que centraliza a folha e a régua (ambas com 21,59 cm → alinhadas) */
 .editor-page-col {
-  width: 21cm;
+  width: 21.59cm;
   margin: 0 auto;
   padding: 16px 0 64px;
 }
@@ -64,18 +64,41 @@
   z-index: 5;
 }
 
-/* A folha A4 */
+/* Folha única contínua, no tamanho US Letter (21,59 cm de largura) — o papel do
+   DOCX gerado (python-docx usa template Letter, não A4). Sem paginação: a folha
+   cresce continuamente com o conteúdo. */
 .ProseMirror {
-  width: 21cm;
+  width: 21.59cm;
   box-sizing: border-box;
-  min-height: 29.7cm;
+  min-height: 27.94cm;
   padding: 2.5cm 3cm 3cm 3cm; /* topo · direita · base · esquerda */
   background: #ffffff;
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.12);
   font-family: 'Consolas', 'Courier New', 'Noto Sans Mono', monospace;
   font-size: 12pt;
-  line-height: 1.5;
+  /* "1,5 linha" do Word/LibreOffice (line_spacing=1.5) = 1.5 × altura natural da
+     linha da fonte (~1.17 em no Consolas) ≈ 1.75 em. O CSS line-height usa o em
+     direto, então 1.5 deixava a página densa demais (mais texto que o DOCX).
+     1.75 aproxima a densidade real do .docx. Ajuste fino conforme comparação. */
+  line-height: 1.75;
   color: #000;
+}
+
+/* Asterisco solto vazado do markdown (itálico) — escondido pela extensão
+   AsteriskCleanup; o DOCX já o descarta, então some também no editor. */
+.ProseMirror .md-asterisk-hidden {
+  display: none;
+}
+
+/* Rótulo "EMENTA: " inline (widget da extensão EmentaHighlight) — negrito,
+   herda a fonte do corpo; o parágrafo já é negrito via .ementa-block. */
+.ProseMirror .ementa-label {
+  font-weight: bold;
+}
+
+/* Esconde o título "EMENTA" à esquerda — o rótulo passou a ser inline. */
+.ProseMirror .ementa-heading-hidden {
+  display: none;
 }
 
 .ProseMirror:focus {
@@ -86,6 +109,24 @@
   text-indent: 4cm; /* RECUO_PRIMEIRA_LINHA = Cm(4.0) */
   text-align: justify;
   margin: 0 0 6pt 0; /* space_after = Pt(6) */
+}
+
+/* EMENTA — espelha o DOCX: negrito + recuo de 4 cm à esquerda (bloco inteiro,
+   sem recuo de 1ª linha). Classe aplicada pela extensão EmentaHighlight.
+   Recuos manuais da régua (estilo inline) ainda têm precedência. */
+.ProseMirror p.ementa-block {
+  font-weight: bold;
+  margin-left: 4cm;
+  text-indent: 0;
+  text-align: justify;
+  margin-bottom: 12pt; /* space_after do DOCX (_adicionar_ementa = Pt(12)) */
+}
+
+/* Parágrafo CONSULENTE — space_after 12pt no DOCX (_adicionar_consulente),
+   não os 6pt herdados. Marcado pela extensão EmentaHighlight. Sem isso a página
+   cabe 1 linha a mais que o documento. */
+.ProseMirror p.consulente-block {
+  margin-bottom: 12pt;
 }
 
 .ProseMirror h1 {
@@ -147,6 +188,66 @@
   margin: 0;
 }
 
+/* ═══ Bloco final fixo: fecho + data + assinaturas (widget não-editável da
+   extensão SignatureBlock) — espelha o docx_generator. Consolas, negrito nas
+   assinaturas, espaços calibrados aproximados pelo layout. ═══ */
+.ProseMirror .pm-signature {
+  text-indent: 0;
+  user-select: none;
+  cursor: default;
+}
+
+.ProseMirror .pm-signature-fecho {
+  text-indent: 4cm; /* fecho recuado como parágrafo de corpo */
+  text-align: justify;
+  margin: 12pt 0 6pt 0;
+}
+
+.ProseMirror .pm-signature-data {
+  text-indent: 4cm;
+  text-align: justify;
+  margin: 24pt 0; /* space_before/after = Pt(24) */
+}
+
+.ProseMirror .pm-signature-single {
+  margin: 0;
+  font-size: 10pt;
+  font-weight: bold;
+  line-height: 1.2;
+  text-indent: 0;
+}
+
+.ProseMirror .pm-signature-single .pm-signature-nome,
+.ProseMirror .pm-signature-single .pm-signature-oab {
+  white-space: nowrap;
+}
+
+/* Ione: recuo de ~25 caracteres (≈ avanço calibrado do DOCX). */
+.ProseMirror .pm-signature-ione {
+  margin-left: 6cm;
+}
+
+/* Valéria: recuo de ~26 caracteres. */
+.ProseMirror .pm-signature-valeria {
+  margin-left: 6cm;
+}
+
+/* Matheus + Flávio lado a lado, ocupando a largura útil. */
+.ProseMirror .pm-signature-dupla {
+  display: flex;
+  justify-content: space-between;
+  gap: 1cm;
+  margin: 18pt 0;
+}
+
+.ProseMirror .pm-signature-ione {
+  margin-top: 18pt;
+}
+
+.ProseMirror .pm-signature-valeria {
+  margin-top: 0;
+}
+
 /* Mobile: abandona a folha A4 fixa, usa largura fluida e esconde a régua */
 @media (max-width: 820px) {
   .editor-page-col {
@@ -166,8 +267,25 @@
   .ProseMirror p {
     text-indent: 1.5rem;
   }
+  .ProseMirror p.ementa-block {
+    margin-left: 1.5rem;
+    text-indent: 0;
+  }
   .ProseMirror blockquote {
     margin-left: 1.5rem;
+  }
+  /* Assinaturas: sem recuos largos no mobile. */
+  .ProseMirror .pm-signature-fecho,
+  .ProseMirror .pm-signature-data {
+    text-indent: 1.5rem;
+  }
+  .ProseMirror .pm-signature-ione,
+  .ProseMirror .pm-signature-valeria {
+    margin-left: 0;
+  }
+  .ProseMirror .pm-signature-dupla {
+    flex-direction: column;
+    gap: 12pt;
   }
 }
 

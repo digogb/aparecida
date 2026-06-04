@@ -30,6 +30,7 @@ from app.services.prompt_service import (
     load_prompt,
     resolve_vertente,
 )
+from app.services.leis_municipios import assemble_municipal_context
 from app.services.parecer_html_service import parse_parecer_xml
 
 logger = logging.getLogger(__name__)
@@ -633,6 +634,17 @@ async def generate_parecer(
         include_fewshot=True,
     )
 
+    # Camada M — leis municipais do município da consulta (índice sempre + texto
+    # integral da lei relevante ao tema). Apendado fora do lru_cache porque depende
+    # do município, que não é chave de cache do assemble_p2_context.
+    municipal_block = assemble_municipal_context(
+        municipio=classification.get("municipio", "") or "",
+        subtipo=subtipo,
+        assunto=classification.get("assunto_resumido", "") or "",
+    )
+    if municipal_block:
+        system_prompt = f"{system_prompt}\n\n---\n\n{municipal_block}"
+
     # Camada 6 — orçamento de web_search por modo da consulta.
     web_search_budget = (
         settings.WEB_SEARCH_MAX_USES_QUASE_PROCESSUAL
@@ -696,6 +708,17 @@ async def revise_parecer(
         subtipo = classification.get("subtipo") or ""
         modo = classification.get("modo") or "consultivo_puro"
         system_prompt = assemble_p3_context(vertente=vertente, subtipo=subtipo, modo=modo)
+        # Camada M — leis municipais também na revisão, com orçamento menor (o
+        # user_message do P3 já carrega o XML do parecer original).
+        municipal_block = assemble_municipal_context(
+            municipio=classification.get("municipio", "") or "",
+            subtipo=subtipo,
+            assunto=classification.get("assunto_resumido", "") or "",
+            full_text_budget=18_000,
+            force_top_match=False,
+        )
+        if municipal_block:
+            system_prompt = f"{system_prompt}\n\n---\n\n{municipal_block}"
         web_search_budget = (
             settings.WEB_SEARCH_MAX_USES_QUASE_PROCESSUAL
             if modo == "quase_processual"

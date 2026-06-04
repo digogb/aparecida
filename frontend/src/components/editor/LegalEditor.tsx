@@ -645,7 +645,7 @@ export default function LegalEditor() {
               />
             ) : (
               <div className="editor-page-col">
-                {showRuler && <Ruler />}
+                {showRuler && <Ruler editor={editor} />}
                 <EditorContent editor={editor} />
               </div>
             )}

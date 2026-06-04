@@ -11,6 +11,10 @@ import CorrectionMark from '../components/editor/extensions/CorrectionMark'
 import SearchHighlight from '../components/editor/extensions/SearchHighlight'
 import DiffHighlight from '../components/editor/extensions/DiffHighlight'
 import RevisaoMarkerHighlight from '../components/editor/extensions/RevisaoMarkerHighlight'
+import ParagraphIndent from '../components/editor/extensions/ParagraphIndent'
+import EmentaHighlight from '../components/editor/extensions/EmentaHighlight'
+import SignatureBlock from '../components/editor/extensions/SignatureBlock'
+import AsteriskCleanup from '../components/editor/extensions/AsteriskCleanup'
 import type { DiffAnnotation } from '../components/editor/extensions/DiffHighlight'
 import {
   saveVersionSnapshot,
@@ -26,6 +30,12 @@ import {
 import type { CorrectionPreview, PeerReviewCreatePayload, PeerReviewRespondPayload } from '../services/editorApi'
 import type { ParecerRequestDetail, ParecerVersion, PeerReviewListItem } from '../types/parecer'
 import { contarMarcadoresRevisao, extrairMarcadoresRevisao, type MarcadorRevisao } from '../utils/revisaoMarkers'
+
+// getMonth() → 0–11
+const MESES_EXTENSO = [
+  'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
+]
 
 function getCurrentUserId(): string {
   try {
@@ -430,6 +440,10 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
       SearchHighlight,
       DiffHighlight,
       RevisaoMarkerHighlight,
+      ParagraphIndent,
+      EmentaHighlight,
+      SignatureBlock,
+      AsteriskCleanup,
     ],
     content: activeVersion?.content_tiptap || activeVersion?.content_html || '',
     onUpdate: () => {
@@ -452,6 +466,19 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
       },
     },
   })
+
+  // Alimenta a linha "Município/UF, DD de mês de AAAA." do bloco de assinaturas
+  // (widget fixo). Espelha o `_adicionar_fortaleza_data` do docx_generator: cidade
+  // do consulente (fallback Fortaleza) + data de hoje. Apenas exibição — não entra
+  // no conteúdo salvo.
+  useEffect(() => {
+    if (!editor) return
+    const cidadeRaw = (parecer?.municipio_nome || 'Fortaleza').trim()
+    const cidade = cidadeRaw.includes('/') ? cidadeRaw : `${cidadeRaw}/CE`
+    const now = new Date()
+    const dataLine = `${cidade}, ${now.getDate()} de ${MESES_EXTENSO[now.getMonth()]} de ${now.getFullYear()}.`
+    editor.commands.setSignatureDataLine(dataLine)
+  }, [editor, parecer?.municipio_nome])
 
   // Track correction mark count
   useEffect(() => {

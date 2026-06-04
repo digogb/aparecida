@@ -36,21 +36,32 @@ _GATE_MAX_RETRIES = 3
 
 # ─── TipTap JSON builder com formatação rica ───
 
+# Asterisco solto (não faz parte de **negrito**): itálico markdown que a IA às
+# vezes coloca em volta de citações. O DOCX já o descarta (_normalizar_blockquote);
+# aqui removemos do conteúdo para não vazar como caractere literal no editor.
+_LONE_ASTERISK_RE = re.compile(r"(?<!\*)\*(?!\*)")
+
+
 def _parse_inline_marks(text: str) -> list[dict]:
-    """Converte **negrito** em marks do TipTap."""
+    """Converte **negrito** em marks do TipTap e remove asteriscos soltos (itálico
+    markdown que a IA insere em citações — não é renderizado, vazaria literal)."""
     nodes: list[dict] = []
     parts = re.split(r"(\*\*.+?\*\*)", text)
     for part in parts:
         if not part:
             continue
         if part.startswith("**") and part.endswith("**"):
-            nodes.append({
-                "type": "text",
-                "text": part[2:-2],
-                "marks": [{"type": "bold"}],
-            })
+            inner = part[2:-2]
+            if inner:
+                nodes.append({
+                    "type": "text",
+                    "text": inner,
+                    "marks": [{"type": "bold"}],
+                })
         else:
-            nodes.append({"type": "text", "text": part})
+            clean = _LONE_ASTERISK_RE.sub("", part)
+            if clean:
+                nodes.append({"type": "text", "text": clean})
     return nodes if nodes else [{"type": "text", "text": text}]
 
 
@@ -206,16 +217,66 @@ def _strip_signature_block(text: str) -> str:
     return text
 
 
+def _consulente_from_metadata(metadata: dict) -> str:
+    """Texto do consulente — mesma regra do bloco 'CONSULENTE:' do DOCX
+    (export_service._consulente_text)."""
+    orgao = (metadata.get("orgao_consulente") or "").strip()
+    municipio_uf = (metadata.get("municipio_uf") or "").strip()
+    if municipio_uf and municipio_uf != "[Município/UF]" and municipio_uf not in orgao:
+        return f"{orgao} — {municipio_uf}"
+    return orgao
+
+
+def _header_nodes(metadata: dict | None) -> list[dict]:
+    """Nodes de cabeçalho do editor: título 'PARECER JURÍDICO' (H1) + bloco
+    'CONSULENTE: ...', espelhando o que o docx_generator reconstrói na exportação.
+
+    Ficam ANTES do primeiro H2 → tanto o gerador DOCX (`_group_sections`) quanto a
+    extração de seções (`_extract_sections_*`) os ignoram. O DOCX segue montando o
+    cabeçalho a partir dos metadados (fonte canônica) — sem divergência."""
+    if not metadata:
+        return []
+    nodes: list[dict] = [
+        {
+            "type": "heading",
+            "attrs": {"level": 1},
+            "content": [{"type": "text", "text": "PARECER JURÍDICO"}],
+        }
+    ]
+    consulente = _consulente_from_metadata(metadata)
+    if consulente:
+        nodes.append({
+            "type": "paragraph",
+            "attrs": {"firstLineIndent": 0},  # sem recuo de 1ª linha (igual ao DOCX)
+            "content": [
+                {"type": "text", "marks": [{"type": "bold"}], "text": "CONSULENTE: "},
+                {"type": "text", "text": consulente},
+            ],
+        })
+    return nodes
+
+
+# Rótulo "EMENTA" / "EMENTA:" / "EMENTA —" no início do texto da seção. A IA repete
+# o rótulo no corpo, mas o editor já tem o heading H2 "EMENTA" — sem remover, a palavra
+# apareceria duas vezes. (O DOCX remove/readiciona o prefixo no parser, então é indiferente lá.)
+_PADRAO_ROTULO_EMENTA = re.compile(r"^\s*EMENTA\s*[:.\-–—―]?\s*", re.IGNORECASE)
+
+
+def _strip_ementa_label(text: str) -> str:
+    """Remove o rótulo 'EMENTA:' redundante do início do texto da ementa."""
+    return _PADRAO_ROTULO_EMENTA.sub("", text or "", count=1)
+
+
 def _sections_to_tiptap(sections: dict, metadata: dict | None = None) -> dict:
     """Converte seções do parecer para formato TipTap JSON com formatação rica."""
     conclusao = _strip_signature_block(sections.get("conclusao", ""))
     section_map = [
-        ("EMENTA", sections.get("ementa", "")),
+        ("EMENTA", _strip_ementa_label(sections.get("ementa", ""))),
         ("I — RELATÓRIO", sections.get("relatorio", "")),
         ("II — FUNDAMENTOS", sections.get("fundamentos", "")),
         ("III — CONCLUSÃO", conclusao),
     ]
-    content: list[dict] = []
+    content: list[dict] = _header_nodes(metadata)
     for title, text in section_map:
         content.append({
             "type": "heading",
@@ -233,9 +294,14 @@ def _build_merged_tiptap(
     sections: dict,
     original_nodes: dict[str, list[dict]],
     secoes_alteradas: list[str],
+    metadata: dict | None = None,
 ) -> dict:
     """Constrói TipTap mesclando nodes originais (seções inalteradas) com
-    reconstrução formatada (seções alteradas pela IA)."""
+    reconstrução formatada (seções alteradas pela IA).
+
+    O cabeçalho (título + consulente) é reconstruído a partir do `metadata` — os
+    nodes originais dele ficam antes do 1º H2 e não são preservados por
+    `_extract_sections_as_nodes`, então precisam ser prefixados de novo aqui."""
     import copy
 
     section_map = [
@@ -244,7 +310,7 @@ def _build_merged_tiptap(
         ("II — FUNDAMENTOS", "fundamentos"),
         ("III — CONCLUSÃO", "conclusao"),
     ]
-    content: list[dict] = []
+    content: list[dict] = _header_nodes(metadata)
     for title, key in section_map:
         content.append({
             "type": "heading",
@@ -257,6 +323,8 @@ def _build_merged_tiptap(
             text = sections.get(key, "")
             if key == "conclusao":
                 text = _strip_signature_block(text)
+            elif key == "ementa":
+                text = _strip_ementa_label(text)
             blocks = [b.strip() for b in text.split("\n\n") if b.strip()]
             for block in blocks:
                 content.extend(_parse_block(block))
@@ -267,6 +335,8 @@ def _build_merged_tiptap(
                 content.extend(copy.deepcopy(orig))
             else:
                 text = sections.get(key, "")
+                if key == "ementa":
+                    text = _strip_ementa_label(text)
                 blocks = [b.strip() for b in text.split("\n\n") if b.strip()]
                 for block in blocks:
                     content.extend(_parse_block(block))
@@ -659,7 +729,7 @@ async def apply_correction(
     # TipTap: preservar nodes originais para seções NÃO aprovadas,
     # reconstruir apenas as aprovadas
     secoes_alteradas = list(secoes_aprovadas.keys())
-    tiptap = _build_merged_tiptap(parecer_atual, original_nodes, secoes_alteradas)
+    tiptap = _build_merged_tiptap(parecer_atual, original_nodes, secoes_alteradas, metadata)
 
     next_version_num = last_version.version_number + 1
 

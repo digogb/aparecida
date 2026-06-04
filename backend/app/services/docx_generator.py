@@ -109,9 +109,44 @@ PADRAO_MARCADOR_QUALQUER = re.compile(
 )
 
 
-def contar_marcadores(texto: str) -> int:
-    """Conta o número de marcadores [REVISAR—] ou [!VERIFICAR:!] no texto."""
+def contar_marcadores(texto) -> int:
+    """Conta o número de marcadores [REVISAR—] ou [!VERIFICAR:!] no texto.
+
+    Aceita str ou bloco {'text': ...} (parágrafo com recuos da régua)."""
+    if isinstance(texto, dict):
+        texto = texto.get("text", "")
     return len(PADRAO_MARCADOR_QUALQUER.findall(texto or ""))
+
+
+def _coerce_block(item) -> Tuple[str, Optional[dict]]:
+    """Normaliza um item de parágrafo em (texto, attrs).
+
+    Aceita tanto `str` (gabarito antigo / placeholders) quanto bloco
+    `{'text': str, 'attrs': {...}}` produzido por `minuta_from_tiptap`. `attrs`
+    traz os recuos por parágrafo definidos na régua do editor (em cm) ou None."""
+    if isinstance(item, dict):
+        return item.get("text", ""), item.get("attrs")
+    return item, None
+
+
+def _aplicar_recuos_override(pf, attrs: Optional[dict], recuar_primeira_linha: bool) -> None:
+    """Aplica recuos por parágrafo definidos na régua (cm), sobrepondo o padrão.
+
+    Quando um atributo vem None, mantém o gabarito da casa: 1ª linha = 4 cm
+    (se `recuar_primeira_linha`), esquerda/direita não são setadas (= 0). Assim,
+    parágrafos intocados na régua saem idênticos ao formato calibrado do Dr. Ione."""
+    attrs = attrs or {}
+    fli = attrs.get("first_line_indent")
+    if fli is not None:
+        pf.first_line_indent = Cm(fli)
+    elif recuar_primeira_linha:
+        pf.first_line_indent = RECUO_PRIMEIRA_LINHA
+    li = attrs.get("left_indent")
+    if li is not None:
+        pf.left_indent = Cm(li)
+    ri = attrs.get("right_indent")
+    if ri is not None:
+        pf.right_indent = Cm(ri)
 
 
 # =============================================================================
@@ -189,17 +224,20 @@ def _adicionar_paragrafo_corpo(
     recuar_primeira_linha: bool = True,
     negrito: bool = False,
     fonte_size=TAMANHO_CORPO,
+    attrs: Optional[dict] = None,
 ):
     """Parágrafo de corpo com formatação padrão e detecção automática de marcadores.
-    space_after = 6pt — alinhado ao gabarito do escritório (cliente)."""
+    space_after = 6pt — alinhado ao gabarito do escritório (cliente).
+
+    `attrs` (opcional) traz recuos por parágrafo definidos na régua do editor
+    (first_line_indent / left_indent / right_indent em cm); None = padrão da casa."""
     p = doc.add_paragraph()
     p.alignment = alinhamento
     pf = p.paragraph_format
     pf.space_before = Pt(0)
     pf.space_after = Pt(6)
     pf.line_spacing = ESPACAMENTO_LINHA_15
-    if recuar_primeira_linha:
-        pf.first_line_indent = RECUO_PRIMEIRA_LINHA
+    _aplicar_recuos_override(pf, attrs, recuar_primeira_linha)
     _adicionar_runs_com_marcadores(p, texto, bold=negrito, fonte_size=fonte_size)
     return p
 
@@ -372,14 +410,16 @@ def _normalizar_blockquote(texto: str) -> str:
     return bruto
 
 
-def _adicionar_paragrafos_corpo(doc, paragrafos: List[str]) -> None:
-    """Renderiza parágrafos de uma seção. Linhas que começam com '>' são
-    tratadas como citação legal (blockquote) e ganham formatação dedicada."""
-    for texto in paragrafos:
+def _adicionar_paragrafos_corpo(doc, paragrafos: List) -> None:
+    """Renderiza parágrafos de uma seção. Cada item pode ser `str` ou bloco
+    `{'text','attrs'}`. Linhas que começam com '>' viram citação legal
+    (blockquote) com formatação calibrada fixa — ignoram os recuos da régua."""
+    for item in paragrafos:
+        texto, attrs = _coerce_block(item)
         if texto.lstrip().startswith(">"):
             _adicionar_blockquote(doc, _normalizar_blockquote(texto))
         else:
-            _adicionar_paragrafo_corpo(doc, texto)
+            _adicionar_paragrafo_corpo(doc, texto, attrs=attrs)
 
 
 def _adicionar_recomendacoes(doc, alineas: List[Tuple[str, str]]) -> None:
@@ -571,7 +611,8 @@ def gerar_parecer_bytes(minuta: dict) -> bytes:
     _adicionar_paragrafos_corpo(doc, minuta["fundamentos_paragrafos"])
 
     _adicionar_titulo_secao(doc, "III — CONCLUSÃO")
-    _adicionar_paragrafo_corpo(doc, minuta["conclusao_dispositivo"])
+    _disp_texto, _disp_attrs = _coerce_block(minuta["conclusao_dispositivo"])
+    _adicionar_paragrafo_corpo(doc, _disp_texto, attrs=_disp_attrs)
     _adicionar_recomendacoes(doc, minuta["recomendacoes_alineas"])
 
     _adicionar_fecho(doc)
@@ -632,6 +673,25 @@ def _tiptap_node_to_text(node: dict) -> str:
     return inner
 
 
+def _extract_indent_attrs(node: dict) -> dict:
+    """Lê os recuos por parágrafo (em cm) gravados pela régua do editor.
+
+    A extensão frontend `ParagraphIndent` grava `firstLineIndent`/`leftIndent`/
+    `rightIndent` em `node.attrs` (None = padrão da casa). Só `paragraph` os carrega;
+    headings e blockquotes não têm os atributos, logo seguem o formato calibrado."""
+    a = node.get("attrs") or {}
+    return {
+        "first_line_indent": a.get("firstLineIndent"),
+        "left_indent": a.get("leftIndent"),
+        "right_indent": a.get("rightIndent"),
+    }
+
+
+def _tiptap_node_to_block(node: dict) -> dict:
+    """Converte um node TipTap em bloco `{'text', 'attrs'}` carregando os recuos."""
+    return {"text": _tiptap_node_to_text(node), "attrs": _extract_indent_attrs(node)}
+
+
 def _identify_section(heading_text: str) -> Optional[str]:
     """Mapeia o texto de um heading H2 para a chave canônica da seção."""
     cleaned = heading_text.strip().upper()
@@ -643,7 +703,10 @@ def _identify_section(heading_text: str) -> Optional[str]:
 
 
 def _group_sections(tiptap: dict) -> dict:
-    """Percorre os nodes TipTap e devolve {ementa: [texts], relatorio: [...], ...}."""
+    """Percorre os nodes TipTap e devolve {ementa: [blocks], relatorio: [...], ...}.
+
+    Cada bloco é `{'text', 'attrs'}` — `attrs` carrega os recuos por parágrafo da
+    régua do editor (ver `_extract_indent_attrs`)."""
     grouped: dict = {key: [] for key in _SECTION_TITLES.keys()}
     current: Optional[str] = None
     for node in tiptap.get("content", []):
@@ -657,45 +720,49 @@ def _group_sections(tiptap: dict) -> dict:
             continue
         if current is None:
             continue
-        text = _tiptap_node_to_text(node).strip()
-        if text:
-            grouped[current].append(text)
+        block = _tiptap_node_to_block(node)
+        block["text"] = block["text"].strip()
+        if block["text"]:
+            grouped[current].append(block)
     return grouped
 
 
-def _parse_ementa_palavras_chave(textos: List[str]) -> List[str]:
-    """Extrai as palavras-chave da ementa.
+def _parse_ementa_palavras_chave(blocos: List) -> List[str]:
+    """Extrai as palavras-chave da ementa (só-texto; recuos da régua não se aplicam).
 
     O texto da ementa pode chegar como:
     - "EMENTA: PALAVRA1 ― PALAVRA2 ― PARECER FAVORÁVEL."
     - "PALAVRA1 ― PALAVRA2 ― PARECER FAVORÁVEL"
     - vários parágrafos (raro — junta tudo em uma linha)
     """
-    if not textos:
+    if not blocos:
         return []
-    bruto = " ".join(textos).strip()
+    bruto = " ".join(_coerce_block(b)[0] for b in blocos).strip()
     bruto = re.sub(r"^EMENTA\s*:\s*", "", bruto, flags=re.IGNORECASE)
     bruto = bruto.rstrip(".")
     palavras = [p.strip() for p in _PADRAO_SEP_EMENTA.split(bruto) if p.strip()]
     return palavras
 
 
-def _parse_conclusao(textos: List[str]) -> Tuple[str, List[Tuple[str, str]]]:
+def _parse_conclusao(blocos: List) -> Tuple[dict, List[Tuple[str, str]]]:
     """Quebra a conclusão em (dispositivo, alíneas).
 
-    - Dispositivo = parágrafos antes da primeira alínea, concatenados com "\\n\\n".
-    - Alíneas = parágrafos que começam com "a)", "(b)", etc.
+    - Dispositivo = bloco `{'text','attrs'}` com os parágrafos antes da primeira
+      alínea concatenados ("\\n\\n"). Os recuos da régua vêm do 1º desses parágrafos.
+    - Alíneas = parágrafos que começam com "a)", "(b)", etc. (só-texto, padrão da casa).
 
     Parágrafos posteriores às alíneas (eventuais "Cumpre advertir..." que escapem
     do filtro do prompt) são silenciosamente descartados — o formato de
     advertência terminal ao gestor foi abolido pelo Dr. Ione.
     """
     dispositivo_parts: List[str] = []
+    dispositivo_attrs: Optional[dict] = None
     alineas: List[Tuple[str, str]] = []
     estado = "antes"  # "antes" → "alineas" → "descartado"
 
-    for paragrafo in textos:
-        match = _PADRAO_ALINEA.match(paragrafo.strip())
+    for bloco in blocos:
+        texto, attrs = _coerce_block(bloco)
+        match = _PADRAO_ALINEA.match(texto.strip())
         if match:
             letra = match.group(1).lower()
             conteudo = match.group(2).strip()
@@ -703,22 +770,30 @@ def _parse_conclusao(textos: List[str]) -> Tuple[str, List[Tuple[str, str]]]:
             estado = "alineas"
             continue
         if estado == "antes":
-            dispositivo_parts.append(paragrafo)
+            if dispositivo_attrs is None:
+                dispositivo_attrs = attrs
+            dispositivo_parts.append(texto)
         # else: parágrafo pós-alíneas — descartado
 
-    dispositivo = "\n\n".join(dispositivo_parts).strip()
+    dispositivo = {
+        "text": "\n\n".join(dispositivo_parts).strip(),
+        "attrs": dispositivo_attrs,
+    }
     return dispositivo, alineas
 
 
-def _ensure_relatorio_termina_com_passa_se(paragrafos: List[str]) -> List[str]:
-    """Garante que o último parágrafo do relatório é a fórmula de passagem."""
+def _ensure_relatorio_termina_com_passa_se(paragrafos: List) -> List:
+    """Garante que o último parágrafo do relatório é a fórmula de passagem.
+
+    Opera sobre blocos `{'text','attrs'}`; a fórmula anexada usa o padrão da casa
+    (attrs None)."""
     if not paragrafos:
         return paragrafos
     formula = "É o breve relatório. Passa-se à fundamentação."
-    ultimo = paragrafos[-1].strip()
+    ultimo = _coerce_block(paragrafos[-1])[0].strip()
     if ultimo == formula or formula in ultimo:
         return paragrafos
-    return paragrafos + [formula]
+    return paragrafos + [{"text": formula, "attrs": None}]
 
 
 def minuta_from_tiptap(
@@ -746,13 +821,16 @@ def minuta_from_tiptap(
     relatorio = _ensure_relatorio_termina_com_passa_se(grouped.get("relatorio", []))
     fundamentos = grouped.get("fundamentos", [])
     dispositivo, alineas = _parse_conclusao(grouped.get("conclusao", []))
+    # Colapsa para "" quando vazio — preserva a salvaguarda `if not ...` do export_service
+    # (um dict sempre seria truthy e burlaria o placeholder de dispositivo ausente).
+    conclusao_dispositivo = dispositivo if dispositivo["text"] else ""
 
     return {
         "consulente": consulente,
         "ementa_palavras_chave": ementa_palavras,
         "relatorio_paragrafos": relatorio,
         "fundamentos_paragrafos": fundamentos,
-        "conclusao_dispositivo": dispositivo,
+        "conclusao_dispositivo": conclusao_dispositivo,
         "recomendacoes_alineas": alineas,
         "data_extenso": data_extenso,
         "subtipo": subtipo,

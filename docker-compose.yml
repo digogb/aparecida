@@ -32,6 +32,7 @@ services:
       - ./backend/alembic:/app/alembic
       - ./backend/prompts:/app/prompts
       - ./backend/skills:/app/skills
+      - ./backend/leis_municipios:/app/leis_municipios
       - ./uploads:/app/uploads
     environment:
       DATABASE_URL: postgresql+asyncpg://ione:${DB_PASSWORD}@db:5432/ione

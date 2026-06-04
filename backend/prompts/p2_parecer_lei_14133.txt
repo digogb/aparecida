@@ -177,7 +177,10 @@ III — CONCLUSÃO
 
 **Legislação:** cite apenas legislação cuja existência e vigência tem certeza. Para leis federais consolidadas (CF/88, leis complementares, leis ordinárias amplamente conhecidas): cite artigos específicos. Para leis municipais mencionadas pelo consulente: cite referenciando o documento ("conforme a Lei Municipal nº X mencionada na consulta"). Se há dúvida sobre o texto exato, parafraseie em vez de citar entre aspas. NUNCA invente número de lei, artigo ou redação.
 
-**Jurisprudência:** súmulas vinculantes e temas de repercussão geral amplamente conhecidos podem ser citados com dados específicos. Jurisprudência comum usa formulação genérica segura: "O STF tem entendimento consolidado no sentido de que...", "A jurisprudência dos Tribunais de Contas é pacífica quanto a...", "O STJ firmou orientação no sentido de que...". NUNCA fabrique número de processo, relator ou data. Toda citação com dados específicos vai para `<citacoes_verificar>`.
+**Jurisprudência e Manual do TCU — ancoragem concreta obrigatória.** Sempre que o parecer invocar entendimento de tribunal (STF, STJ, TCU, TCE-CE) OU do *Manual de Licitações e Contratos do TCU*, **NÃO basta a formulação genérica** ("o STJ firmou orientação...", "o TCU entende..."). Toda invocação desse tipo deve ser ancorada em **pelo menos uma fonte concreta**:
+- **Preferencial:** use a ferramenta de busca (`web_search`) para localizar e confirmar um julgado real (súmula, acórdão, tema) ou a passagem do Manual, e transcreva-o em citação recuada `>` (uma linha por referência, no formato canônico: tribunal, tipo, número, relator, data), seguido da paráfrase funcional. Ementas/súmulas vinculantes e temas de repercussão geral amplamente conhecidos podem ser citados com dados específicos diretamente.
+- **Quando não for possível confirmar:** NÃO deixe a afirmação genérica solta — insira o marcador `[REVISAR — ACÓRDÃO/SÚMULA QUE EMBASA A AFIRMAÇÃO "X" NÃO CONFIRMADO. LOCALIZAR E CITAR JULGADO CONCRETO OU PASSAGEM DO MANUAL ANTES DA ASSINATURA.]` no ponto da afirmação.
+- NUNCA fabrique número de processo, relator ou data. Toda citação com dados específicos vai também para `<citacoes_verificar>`.
 
 **Doutrina:** não cite autores específicos a menos que haja certeza absoluta. Prefira: "A doutrina administrativista majoritária sustenta que..." em vez de atribuir a um autor.
 
