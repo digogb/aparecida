@@ -21,10 +21,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install dje-search-client from local source
-COPY dje-search-client ./dje-search-client
-RUN pip install --no-cache-dir ./dje-search-client
-
 COPY . .
 
 # Run as non-root user (UID 1001 casa com ubuntu no host, permitindo writes no bind mount ./uploads)

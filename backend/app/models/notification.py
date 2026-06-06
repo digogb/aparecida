@@ -1,8 +1,8 @@
 import enum
 import uuid
-from datetime import date, datetime
+from datetime import datetime
 
-from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -32,15 +32,4 @@ class Notification(Base):
     link: Mapped[str | None] = mapped_column(String(500), nullable=True)
     metadata_: Mapped[dict | None] = mapped_column("metadata", JSONB, nullable=True)
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class Holiday(Base):
-    __tablename__ = "holidays"
-
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
-    name: Mapped[str] = mapped_column(String(200), nullable=False)
-    national: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    comarca: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

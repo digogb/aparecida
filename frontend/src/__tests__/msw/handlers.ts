@@ -1,6 +1,5 @@
 import { http, HttpResponse } from 'msw'
 import { parecerFixture, parecerListFixture } from '../fixtures/parecer'
-import { boardFixture, taskFixture } from '../fixtures/task'
 
 export const handlers = [
   // Pareceres
@@ -14,39 +13,6 @@ export const handlers = [
 
   http.delete('/api/parecer-requests/:id', () => {
     return new HttpResponse(null, { status: 204 })
-  }),
-
-  // Kanban
-  http.get('/api/boards/default/tasks', () => {
-    return HttpResponse.json(boardFixture)
-  }),
-
-  http.post('/api/tasks', async ({ request }) => {
-    const body = await request.json() as Record<string, unknown>
-    return HttpResponse.json({ id: 'task-new', ...body, position: 99,
-      created_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-  }),
-
-  http.patch('/api/tasks/:id', async ({ params, request }) => {
-    const body = await request.json() as Record<string, unknown>
-    return HttpResponse.json({ ...taskFixture, id: params.id as string, ...body })
-  }),
-
-  http.delete('/api/tasks/:id', () => {
-    return new HttpResponse(null, { status: 204 })
-  }),
-
-  http.patch('/api/tasks/:id/move', async ({ params, request }) => {
-    const body = await request.json() as Record<string, unknown>
-    return HttpResponse.json({ ...taskFixture, id: params.id as string, ...body })
-  }),
-
-  http.get('/api/tasks/:id/history', () => {
-    return HttpResponse.json([])
-  }),
-
-  http.get('/api/tasks/:id/comments', () => {
-    return HttpResponse.json([])
   }),
 
   // Auth

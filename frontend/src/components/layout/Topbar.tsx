@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle } from 'lucide-react'
-import NotificationBell from '../dje/NotificationBell'
+import NotificationBell from '../notifications/NotificationBell'
 import ChangePasswordModal from '../auth/ChangePasswordModal'
 import api from '../../services/api'
 
