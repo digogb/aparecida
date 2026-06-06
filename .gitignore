@@ -49,3 +49,7 @@ uploads/
 .tasks/
 frontend/playwright-report/
 frontend/test-results/
+
+# Coverage
+.coverage
+htmlcov/
