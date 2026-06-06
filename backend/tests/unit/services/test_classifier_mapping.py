@@ -1,51 +1,61 @@
 """
-Testes unitários para as tabelas de mapeamento do classifier.
-Não usa DB — testa apenas a lógica de resolução de área → tema/modelo.
+Testes unitários para as tabelas de mapeamento do classifier (P1 v5.0).
+Não usa DB — testa apenas a resolução de vertente → tema/modelo legacy.
 """
 from __future__ import annotations
-
-import pytest
 
 from app.models.parecer import ParecerModelo, ParecerTema
 from app.services.classifier import (
     NotLegalConsultationError,
-    _AREA_TO_MODELO,
-    _AREA_TO_TEMA,
-    _LICITACAO_AREAS,
+    _LEGACY_AREA_TO_VERTENTE,
+    _VERTENTE_TO_MODELO,
+    _VERTENTE_TO_TEMA,
+    _resolve_vertente_from_data,
 )
 
 
-class TestAreaToTema:
-    def test_licitacao_areas_mapeiam_para_licitacao(self):
-        for area in _LICITACAO_AREAS:
-            assert _AREA_TO_TEMA[area] == ParecerTema.licitacao, f"falhou para área '{area}'"
+class TestVertenteToTema:
+    def test_licitacao_mapeia_para_licitacao(self):
+        assert _VERTENTE_TO_TEMA["licitacao_14133"] == ParecerTema.licitacao
 
-    def test_agentes_publicos_eh_administrativo(self):
-        assert _AREA_TO_TEMA["agentes_publicos"] == ParecerTema.administrativo
+    def test_demais_vertentes_sao_administrativo(self):
+        for v in ("administrativo", "tributario_financeiro", "terceiro_setor"):
+            assert _VERTENTE_TO_TEMA[v] == ParecerTema.administrativo
 
-    def test_responsabilidade_fiscal_eh_administrativo(self):
-        assert _AREA_TO_TEMA["responsabilidade_fiscal"] == ParecerTema.administrativo
-
-    def test_urbanismo_eh_administrativo(self):
-        assert _AREA_TO_TEMA["urbanismo"] == ParecerTema.administrativo
-
-    def test_outro_eh_administrativo(self):
-        assert _AREA_TO_TEMA["outro"] == ParecerTema.administrativo
-
-    def test_area_desconhecida_usa_default_administrativo(self):
-        area_inventada = "area_que_nao_existe"
-        tema = _AREA_TO_TEMA.get(area_inventada, ParecerTema.administrativo)
-        assert tema == ParecerTema.administrativo
+    def test_todas_vertentes_tem_tema_e_modelo(self):
+        assert set(_VERTENTE_TO_TEMA) == set(_VERTENTE_TO_MODELO)
 
 
-class TestAreaToModelo:
-    def test_licitacao_areas_mapeiam_para_modelo_licitacao(self):
-        for area in _LICITACAO_AREAS:
-            assert _AREA_TO_MODELO[area] == ParecerModelo.licitacao
+class TestVertenteToModelo:
+    def test_licitacao_usa_modelo_licitacao(self):
+        assert _VERTENTE_TO_MODELO["licitacao_14133"] == ParecerModelo.licitacao
 
-    def test_area_administrativa_usa_default_generico(self):
-        modelo = _AREA_TO_MODELO.get("agentes_publicos", ParecerModelo.generico)
-        assert modelo == ParecerModelo.generico
+    def test_demais_usam_modelo_generico(self):
+        for v in ("administrativo", "tributario_financeiro", "terceiro_setor"):
+            assert _VERTENTE_TO_MODELO[v] == ParecerModelo.generico
+
+
+class TestResolveVertente:
+    def test_vertente_valida_e_usada_diretamente(self):
+        assert _resolve_vertente_from_data({"vertente": "licitacao_14133"}) == "licitacao_14133"
+
+    def test_vertente_desconhecida_cai_no_fallback_legacy(self):
+        # vertente inválida + sem area_principal => default administrativo
+        assert _resolve_vertente_from_data({"vertente": "inexistente"}) == "administrativo"
+
+    def test_schema_legacy_area_principal_mapeia(self):
+        assert _resolve_vertente_from_data({"area_principal": "licitacoes_contratos"}) == "licitacao_14133"
+        assert _resolve_vertente_from_data({"area_principal": "tributos_municipais"}) == "tributario_financeiro"
+
+    def test_area_legacy_desconhecida_default_administrativo(self):
+        assert _resolve_vertente_from_data({"area_principal": "algo_que_nao_existe"}) == "administrativo"
+
+    def test_payload_vazio_default_administrativo(self):
+        assert _resolve_vertente_from_data({}) == "administrativo"
+
+    def test_todas_areas_legacy_resolvem_para_vertente_valida(self):
+        for area, vertente in _LEGACY_AREA_TO_VERTENTE.items():
+            assert vertente in _VERTENTE_TO_TEMA, f"área legacy '{area}' aponta p/ vertente inválida"
 
 
 class TestNotLegalConsultationError:
