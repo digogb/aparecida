@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import io
 import re
+from pathlib import Path
 from typing import List, Optional, Tuple
 
 from docx import Document
@@ -81,6 +82,15 @@ ASSINATURA_IONE = ("FRANCISCO IONE PEREIRA LIMA", "OAB-CE nº 4.585")
 ASSINATURA_MATHEUS = ("MATHEUS NOGUEIRA PEREIRA LIMA", "OAB-CE nº 31.251")
 ASSINATURA_FLAVIO = ("FLÁVIO HENRIQUE LUNA SILVA", "OAB-CE nº 31.252")
 ASSINATURA_VALERIA = ("VALÉRIA MATIAS DE ALENCAR", "OAB/CE nº 36.666")
+
+# Assinatura digitalizada do Dr. Ione (rubrica + nome + OAB já impressos na
+# imagem). Substitui o bloco de texto que antes era assinado à mão na cópia
+# impressa. As demais assinaturas continuam como texto.
+ASSINATURA_IONE_IMG = Path(__file__).resolve().parent.parent / "assets" / "assinatura_ione.png"
+# Largura calibrada para o bloco caber na coluna útil sem distorcer a proporção
+# original da imagem (227×108 px). Centralizada na coluna (alinha opticamente
+# com o bloco da Valéria logo abaixo).
+LARGURA_ASSINATURA_IONE = Cm(5.0)
 
 
 # =============================================================================
@@ -525,9 +535,31 @@ def _adicionar_assinatura_dupla_matheus_flavio(doc) -> None:
     _set_font(run_of, bold=True, size=TAMANHO_ASSINATURA)
 
 
+def _adicionar_assinatura_ione_imagem(doc) -> None:
+    """Insere a assinatura digitalizada do Dr. Ione (imagem com rubrica + nome +
+    OAB). Centralizada na coluna útil para alinhar com o bloco da Valéria abaixo.
+
+    Fallback: se a imagem não puder ser lida (ausente, sem permissão, corrompida),
+    recai no antigo bloco de texto calibrado para não quebrar a geração do parecer."""
+    try:
+        img_bytes = ASSINATURA_IONE_IMG.read_bytes()
+    except OSError:
+        _adicionar_paragrafo_assinatura_centralizado(doc, *ASSINATURA_IONE, espacos=25)
+        return
+
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    pf = p.paragraph_format
+    pf.space_before = Pt(0)
+    pf.space_after = Pt(0)
+    pf.line_spacing = ESPACAMENTO_LINHA_SIMPLES
+    run = p.add_run()
+    run.add_picture(io.BytesIO(img_bytes), width=LARGURA_ASSINATURA_IONE)
+
+
 def _adicionar_bloco_assinaturas(doc) -> None:
-    """Três blocos: Ione (25 espaços) — Matheus+Flávio (parágrafo único) — Valéria (26 espaços)."""
-    _adicionar_paragrafo_assinatura_centralizado(doc, *ASSINATURA_IONE, espacos=25)
+    """Três blocos: Ione (imagem digitalizada) — Matheus+Flávio (parágrafo único) — Valéria (26 espaços)."""
+    _adicionar_assinatura_ione_imagem(doc)
     _adicionar_paragrafo_vazio(doc)
     _adicionar_assinatura_dupla_matheus_flavio(doc)
     _adicionar_paragrafo_vazio(doc)

@@ -227,6 +227,18 @@
   margin-left: 6cm;
 }
 
+/* Assinatura digitalizada do Dr. Ione (imagem com rubrica + nome + OAB).
+   Mesmo recuo da Valéria (6 cm) para o bloco ficar alinhado com o dela abaixo.
+   Largura espelha LARGURA_ASSINATURA_IONE (5 cm) do docx_generator.py. */
+.ProseMirror .pm-signature-ione-img {
+  margin-left: 6cm;
+}
+.ProseMirror .pm-signature-img {
+  display: block;
+  width: 5cm;
+  height: auto;
+}
+
 /* Valéria: recuo de ~26 caracteres. */
 .ProseMirror .pm-signature-valeria {
   margin-left: 6cm;

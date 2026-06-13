@@ -250,16 +250,16 @@ class TestContarMarcadores:
 
 class TestAssinaturas:
 
-    def test_ione_tem_25_espacos_avanco(self):
+    def test_ione_assinatura_e_imagem(self):
         bytes_docx = gerar_parecer_bytes(MINUTA_VALIDA)
         doc = Document(io.BytesIO(bytes_docx))
-        # Procura o parágrafo de nome de Ione (primeiro run = 25 espaços, segundo = nome)
-        para_ione = next(
-            p for p in doc.paragraphs
-            if p.text.strip() == "FRANCISCO IONE PEREIRA LIMA"
+        # A assinatura do Dr. Ione agora é uma imagem digitalizada (rubrica +
+        # nome + OAB já impressos), não mais um bloco de texto.
+        assert len(doc.inline_shapes) >= 1
+        assert all(
+            p.text.strip() != "FRANCISCO IONE PEREIRA LIMA"
+            for p in doc.paragraphs
         )
-        assert para_ione.runs[0].text == " " * 25
-        assert para_ione.runs[1].text == "FRANCISCO IONE PEREIRA LIMA"
 
     def test_valeria_tem_26_espacos_avanco(self):
         bytes_docx = gerar_parecer_bytes(MINUTA_VALIDA)

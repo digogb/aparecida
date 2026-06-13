@@ -39,8 +39,16 @@ logger = logging.getLogger(__name__)
 MODEL_P1 = "claude-haiku-4-5-20251001"   # classificação: rápido, barato, TPM separado
 MODEL_P2_P3 = "claude-sonnet-4-6"  # geração/revisão: qualidade máxima
 
-# Limite de conteúdo do usuário (~15k tokens ≈ 60k chars)
-MAX_USER_CONTENT_CHARS = 60_000
+# Limite de conteúdo do usuário (~45k tokens ≈ 180k chars). Atua como rede de
+# segurança em todas as etapas; Sonnet 4.6 e Haiku 4.5 têm 200k tokens de
+# contexto, com folga grande para consultas municipais com vários anexos.
+MAX_USER_CONTENT_CHARS = 180_000
+
+# Orçamento dedicado à seção "## DOCUMENTOS ANEXOS" do P2, distribuído por anexo
+# (water-filling) para que NENHUM documento seja descartado inteiro — a causa de
+# a IA afirmar que um anexo "não foi juntado". Deixa folga p/ classificação,
+# valores e corpo do email dentro de MAX_USER_CONTENT_CHARS.
+MAX_DOCS_CHARS = 150_000
 
 # Retry config — alinhado com o limite de 30k tokens/min
 MAX_RETRIES = 3
@@ -90,6 +98,46 @@ def _truncate(text: str, max_chars: int) -> str:
         return text
     truncated = text[:max_chars].rsplit(" ", 1)[0]
     return truncated + "\n\n[... conteúdo truncado por limite de tokens ...]"
+
+
+def _budget_documents(
+    documents: list[tuple[str, str]], total_budget: int
+) -> list[tuple[str, str]]:
+    """Distribui `total_budget` caracteres entre os anexos (water-filling).
+
+    Garante que NENHUM anexo seja descartado inteiro: processa do menor para o
+    maior, dando a cada um sua cota (orçamento_restante / docs_restantes); anexos
+    menores que a cota usam só o que precisam e devolvem a sobra para os maiores.
+    Anexos truncados recebem um aviso explícito no fim do trecho.
+
+    Retorna lista de (filename, texto_possivelmente_truncado) na ordem original.
+    """
+    n = len(documents)
+    if n == 0:
+        return []
+
+    takes: dict[int, int] = {}
+    remaining = total_budget
+    count = n
+    # Menores primeiro: liberam sobra para os maiores.
+    for idx in sorted(range(n), key=lambda i: len(documents[i][1])):
+        share = remaining // count if count else 0
+        take = min(len(documents[idx][1]), share)
+        takes[idx] = take
+        remaining -= take
+        count -= 1
+
+    result: list[tuple[str, str]] = []
+    for idx, (name, text) in enumerate(documents):
+        take = takes[idx]
+        if take >= len(text):
+            result.append((name, text))
+        else:
+            cortado = text[:take].rsplit(" ", 1)[0]
+            result.append(
+                (name, cortado + "\n\n[... trecho deste anexo truncado por limite ...]")
+            )
+    return result
 
 
 def _extract_text_and_tool_calls(response) -> tuple[str, list[dict]]:
@@ -584,12 +632,17 @@ async def extract_valores_financeiros(
 
 async def generate_parecer(
     classification: dict,
-    documents_text: list[str],
+    documents: list[tuple[str, str]],
     email_body: str,
 ) -> dict:
     """
     Chama P2 (Sonnet) para gerar o parecer completo.
     Serializado pelo semáforo — apenas 1 geração por vez.
+
+    `documents` é uma lista de (filename, texto_extraído). Cada anexo é rotulado
+    com seu nome no prompt (para o Sonnet saber exatamente quais documentos foram
+    juntados) e recebe uma cota de caracteres via `_budget_documents`, de modo que
+    nenhum anexo seja descartado inteiro pelo limite do prompt.
 
     Quando a consulta envolve cálculo de valor (aditivo, dispensa,
     pesquisa de preços, etc.), executa P1.5 antes — uma chamada Haiku
@@ -597,8 +650,15 @@ async def generate_parecer(
     no user_message do P2 como bloco "VALORES FINANCEIROS IDENTIFICADOS",
     para o Sonnet usar como fato dado em vez de inferir do texto bruto.
     """
-    docs_joined = "\n\n---\n\n".join(documents_text) if documents_text else "(sem anexos)"
+    budgeted = _budget_documents(documents, MAX_DOCS_CHARS)
+    if budgeted:
+        docs_joined = "\n\n---\n\n".join(
+            f"### ANEXO: {name}\n{text}" for name, text in budgeted
+        )
+    else:
+        docs_joined = "(sem anexos)"
 
+    documents_text = [text for _, text in documents]
     valores = await extract_valores_financeiros(classification, documents_text)
     valores_block = ""
     if valores is not None:
