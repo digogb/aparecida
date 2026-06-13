@@ -2,6 +2,7 @@ import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import type { Node as PmNode } from '@tiptap/pm/model'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
+import assinaturaIone from '../../../assets/assinatura-ione.png'
 
 /**
  * Renderiza o fecho final do parecer — "É o parecer..." + data + bloco de
@@ -40,6 +41,20 @@ function buildDeco(doc: PmNode, dataLine: string): DecorationSet {
       key: `signature-${showFecho ? 'f' : 'n'}-${dataLine}`,
     }),
   ])
+}
+
+/** Assinatura do Dr. Ione: imagem digitalizada (rubrica + nome + OAB já
+ *  impressos), espelhando o que o `docx_generator.py` embute no DOCX/PDF.
+ *  As demais assinaturas continuam como texto. */
+function assinaturaIoneImagem(): HTMLElement {
+  const wrap = document.createElement('div')
+  wrap.className = 'pm-signature-single pm-signature-ione pm-signature-ione-img'
+  const img = document.createElement('img')
+  img.src = assinaturaIone
+  img.alt = 'Assinatura de Francisco Ione Pereira Lima — OAB-CE nº 4.585'
+  img.className = 'pm-signature-img'
+  wrap.appendChild(img)
+  return wrap
 }
 
 function assinaturaSimples(nome: string, oab: string, extraClass = ''): HTMLElement {
@@ -81,8 +96,8 @@ function buildSignatureDom(dataLine: string, showFecho: boolean): HTMLElement {
     root.appendChild(data)
   }
 
-  // Ione (centralizado/recuado, sozinho na primeira linha)
-  root.appendChild(assinaturaSimples(ADVOGADOS.ione[0], ADVOGADOS.ione[1], 'pm-signature-ione'))
+  // Ione (assinatura digitalizada, sozinho na primeira linha)
+  root.appendChild(assinaturaIoneImagem())
 
   // Matheus + Flávio lado a lado (duas colunas)
   const dupla = document.createElement('div')

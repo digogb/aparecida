@@ -489,11 +489,16 @@ async def generate(parecer_request_id: str, db: AsyncSession) -> ParecerVersion:
         classification = await classify_email(body_section, attachments, subject=pr.subject or "")
         pr.classificacao = classification
 
-    # Coleta textos dos anexos
-    attachment_texts = [a.extracted_text for a in pr.attachments if a.extracted_text]
+    # Coleta (nome, texto) dos anexos — o nome é rotulado no prompt do P2 para o
+    # Sonnet saber exatamente quais documentos foram juntados.
+    attachment_docs = [
+        (a.filename or "anexo_sem_nome", a.extracted_text)
+        for a in pr.attachments
+        if a.extracted_text
+    ]
 
     # P2 — Gerar parecer
-    sections = await generate_parecer(classification, attachment_texts, body_section)
+    sections = await generate_parecer(classification, attachment_docs, body_section)
 
     # Gate mecânico (Camada 4) — IRR-1 ementa em CAPS, IRR-2 parágrafos ≤ 7 linhas.
     # Se reprovar, dispara revisão automática pelo P3 com a lista de parágrafos longos
