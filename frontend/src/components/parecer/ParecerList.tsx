@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
-import { usePareceres, useParecerMetrics } from '../../hooks/useParecer'
+import { usePareceres } from '../../hooks/useParecer'
+import { fetchPareceresOverview } from '../../services/dashboardApi'
 import type { ParecerFiltersState } from '../../types/parecer'
 import ParecerCard from './ParecerCard'
 import ParecerFilters from './ParecerFilters'
@@ -24,7 +25,14 @@ export default function ParecerList() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { data, isLoading, isError } = usePareceres(filters)
-  const { data: metricsData } = useParecerMetrics()
+  // Métricas vêm do mesmo endpoint server-side do dashboard (base inteira, não a página) —
+  // mesma queryKey, então compartilha cache e fica consistente com a tela de Dashboard.
+  const { data: overview } = useQuery({
+    queryKey: ['dashboard', 'pareceres-overview'],
+    queryFn: fetchPareceresOverview,
+    staleTime: 60_000,
+    refetchInterval: 2 * 60_000,
+  })
 
   async function handleEmlUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -38,6 +46,7 @@ export default function ParecerList() {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       await queryClient.invalidateQueries({ queryKey: ['pareceres'] })
+      await queryClient.invalidateQueries({ queryKey: ['dashboard', 'pareceres-overview'] })
       navigate(`/pareceres/${data.id}`)
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
@@ -49,12 +58,13 @@ export default function ParecerList() {
   }
 
   const items = data?.items ?? []
-  const allItems = metricsData?.items ?? []
-  const total = metricsData?.total ?? 0
-  const aguardando = allItems.filter(p => p.status === 'gerado' || p.status === 'em_revisao').length
-  const emCorrecao = allItems.filter(p => p.status === 'em_correcao').length
-  const oneWeekAgo = new Date(); oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-  const enviadosSemana = allItems.filter(p => p.status === 'enviado' && new Date(p.created_at) >= oneWeekAgo).length
+  const pipeline = overview?.pipeline ?? []
+  const countOf = (...statuses: string[]) =>
+    pipeline.filter(s => statuses.includes(s.status)).reduce((sum, s) => sum + s.count, 0)
+  const total = pipeline.reduce((sum, s) => sum + s.count, 0)
+  const aguardando = countOf('gerado', 'em_revisao')
+  const emCorrecao = countOf('em_correcao')
+  const enviadosSemana = overview?.enviados_semana ?? 0
   const values = [total, aguardando, emCorrecao, enviadosSemana]
 
   const sorted = [...items].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
