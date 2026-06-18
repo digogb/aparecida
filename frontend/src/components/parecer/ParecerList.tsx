@@ -57,7 +57,7 @@ export default function ParecerList() {
   const enviadosSemana = allItems.filter(p => p.status === 'enviado' && new Date(p.created_at) >= oneWeekAgo).length
   const values = [total, aguardando, emCorrecao, enviadosSemana]
 
-  const sorted = [...items].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+  const sorted = [...items].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   return (
     <div className="min-h-full px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8" style={{ background: '#FAF8F5' }}>
