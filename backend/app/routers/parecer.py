@@ -153,7 +153,7 @@ async def list_parecer_requests(
         select(ParecerRequest)
         .where(*base_filters)
         .options(selectinload(ParecerRequest.status_history))
-        .order_by(ParecerRequest.created_at.asc())
+        .order_by(ParecerRequest.created_at.desc())
         .limit(limit)
         .offset(offset)
     )
