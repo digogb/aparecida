@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -319,7 +320,17 @@ async def get_pareceres_overview(
     _require_user(credentials)
 
     now = datetime.now(timezone.utc)
-    week_ago = now - timedelta(days=7)
+
+    # Semana corrente no fuso local (segunda 00:00 -> domingo 23:59), convertida p/ UTC.
+    # weekday(): segunda=0 ... domingo=6.
+    _tz = ZoneInfo("America/Fortaleza")
+    now_local = now.astimezone(_tz)
+    week_start_local = (now_local - timedelta(days=now_local.weekday())).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    week_end_local = week_start_local + timedelta(days=7)  # próxima segunda 00:00 (exclusivo)
+    week_start = week_start_local.astimezone(timezone.utc)
+    week_end = week_end_local.astimezone(timezone.utc)
 
     # Pipeline: contagem por status
     pipeline_q = await db.execute(
@@ -402,12 +413,14 @@ async def get_pareceres_overview(
         for pr in antigos_q.scalars().all()
     ]
 
-    # Concluídos na semana (enviados ou aprovados nos últimos 7 dias)
+    # Concluídos nesta semana (segunda a domingo, fuso local).
+    # Só status terminais de conclusão (enviado/aprovado) — devolvido/erro NÃO entram.
     concluidos_q = await db.execute(
         select(func.count()).select_from(ParecerRequest).where(
             and_(
                 ParecerRequest.status.in_([ParecerStatus.enviado, ParecerStatus.aprovado]),
-                ParecerRequest.updated_at >= week_ago,
+                ParecerRequest.updated_at >= week_start,
+                ParecerRequest.updated_at < week_end,
             )
         )
     )
