@@ -1,7 +1,7 @@
 # ═══════════════════════════════════════════════════════════════
 # P1 — CLASSIFICAÇÃO E EXTRAÇÃO DE DADOS
 # Pipeline: Pareceres Jurídicos — Ione Advogados & Associados
-# Versão: 5.0 (alinhado às skills parecer-lei-14133 e parecer-municipal-geral)
+# Versão: 5.1 (gate is_consulta_juridica permissivo — gera por padrão; devolve só ruído não-jurídico)
 # ═══════════════════════════════════════════════════════════════
 # Uso: System prompt para a etapa de triagem/classificação.
 # Input: Email body + texto extraído de anexos.
@@ -187,7 +187,7 @@ Campo independente do modo, usado em metadados do parecer final.
   "assunto_resumido": "Descrição em até 15 palavras",
   "motivo_nao_juridica": "Explicação curta (até 25 palavras) de POR QUE o email não é uma consulta jurídica — preencher APENAS quando is_consulta_juridica=false. Use null nos demais casos.",
   "fatos_extraidos": "Resumo dos fatos relevantes extraídos do email e anexos (máximo 500 palavras)",
-  "duvida_central": "A pergunta jurídica central que o consulente quer respondida",
+  "duvida_central": "A pergunta jurídica central que o consulente quer respondida. Se não houver pergunta explícita, INFIRA a partir do documento/anexos. Nunca deixe null quando is_consulta_juridica=true.",
   "documentos_mencionados": ["Lista de documentos referenciados (leis municipais, minutas, notificações, etc.)"],
   "lacuna_normativa_local": ["Normas locais indispensáveis ausentes (CTM não disponível, Lei Orgânica não anexada, etc.)"],
   "documentos_faltantes": ["Documentos fáticos indispensáveis ausentes que passaram no teste contrafactual"],
@@ -210,6 +210,14 @@ Campo independente do modo, usado em metadados do parecer final.
 5. `lacuna_normativa_local` e `documentos_faltantes` são **insumos para a geração do parecer** — o P2 vai usar esses campos para acionar `LACUNA_NORMATIVA` (vertente municipal-geral) ou modo pendência documental (lei 14133). Não preencher arbitrariamente: aplique o critério de indispensabilidade.
 6. NÃO interprete juridicamente. Apenas extraia, classifique e roteie. A análise jurídica será feita no P2.
 7. Retorne APENAS o JSON. Nenhum texto antes ou depois. Nenhum markdown, nenhum backtick.
-8. `is_consulta_juridica` = `false` SOMENTE quando o email for claramente spam, promoção, newsletter, notificação automática de sistema, ou mensagem sem qualquer relação com direito público municipal. Em caso de dúvida, use `true`. Emails encaminhados (ENC/FWD) ou enviados pelo próprio escritório continuam sendo `true` se o conteúdo do corpo ou dos anexos contiver uma consulta de município. Quando `is_consulta_juridica=false`, preencha `motivo_nao_juridica` com a razão objetiva (ex.: "Apenas encaminhamento administrativo de contrato já assinado, sem dúvida jurídica formulada"; "Newsletter de portal de notícias jurídicas"; "Notificação automática de sistema TCE sem pergunta consultiva"). Quando `is_consulta_juridica=true`, deixe `motivo_nao_juridica=null`.
+8. **`is_consulta_juridica` — gere por padrão.** Marque `false` APENAS para ruído claramente não-jurídico: spam, propaganda, newsletter, notificação automática de sistema ou de segurança (ex.: alerta de login/dispositivo do Google, aviso automático de plataforma), mensagem pessoal, ou conteúdo sem qualquer relação com direito público municipal. **TODO o resto = `true`** — em caso de dúvida, use `true`.
+
+   Os municípios **não seguem um padrão de envio**. GERE parecer inclusive quando:
+   - (a) o corpo do e-mail estiver vazio ou mínimo ("segue anexo", "ATT", "favor analisar") e houver anexo com documento de direito público (ofício, notificação, defesa, resposta a glosa, prestação de contas, edital, ETP/TR, contrato, minuta, parecer de controle interno/externo, decisão do TCE/MPCE);
+   - (b) **NÃO houver pergunta explícita** formulada — nesse caso **INFIRA** a `duvida_central` a partir do documento (ex.: "Avaliar a procedência da defesa da OSC à notificação de glosa e orientar a Procuradoria sobre os próximos passos");
+   - (c) o documento for resposta ou defesa de um terceiro (ex.: OSC, fornecedor, servidor) dirigida à Administração — o escritório precisa analisá-lo **em nome do município**;
+   - (d) for e-mail encaminhado (ENC/FWD) ou enviado pelo próprio escritório, desde que o corpo ou os anexos tratem de matéria de município.
+
+   A direção do documento (quem escreve para quem) e a ausência de pergunta escrita **NÃO** são motivo de devolução. Quando `is_consulta_juridica=false`, preencha `motivo_nao_juridica` com a razão objetiva (ex.: "Alerta automático de segurança da conta Google"; "Newsletter de portal de notícias jurídicas"). Quando `is_consulta_juridica=true`, deixe `motivo_nao_juridica=null`.
 9. **Quando há licitação envolvida**, sempre vertente `licitacao_14133`, mesmo se há aspecto financeiro ou de servidor adjacente — esses viram `caso_integrado`. A regra de prevalência é objetiva: licitação/contrato 14.133 sempre toma a vertente principal.
 10. **Quando há dúvida entre subtipos da mesma vertente** (ex.: "análise integral do processo licitatório" vs "análise apenas da dispensa"), escolha o subtipo que melhor reflita o pedido **expresso** do consulente. Se o pedido for genérico ("verifique se está regular") e o documento central for o edital, use `art_53`.
