@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
 from jose import jwt, JWTError
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -95,7 +95,9 @@ async def _user_from_reset_token(token: str, db: AsyncSession) -> User:
 
 @router.post("/auth/login", response_model=TokenOut)
 async def login(body: LoginIn, db: AsyncSession = Depends(get_db)) -> TokenOut:
-    result = await db.execute(select(User).where(User.email == body.email, User.is_active == True))
+    result = await db.execute(
+        select(User).where(func.lower(User.email) == body.email.strip().lower(), User.is_active == True)
+    )
     user = result.scalar_one_or_none()
     if not user or not pwd_ctx.verify(body.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciais invalidas")
@@ -140,7 +142,9 @@ async def change_password(
 @router.post("/auth/forgot-password")
 async def forgot_password(body: ForgotPasswordIn, db: AsyncSession = Depends(get_db)) -> dict:
     """Envia link de redefinição por email. Sempre responde 200 (não revela se o email existe)."""
-    result = await db.execute(select(User).where(User.email == body.email, User.is_active == True))
+    result = await db.execute(
+        select(User).where(func.lower(User.email) == body.email.strip().lower(), User.is_active == True)
+    )
     user = result.scalar_one_or_none()
     if user:
         token = create_reset_token(user)
