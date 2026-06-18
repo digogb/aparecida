@@ -44,7 +44,7 @@ export default function ParecerCard({ parecer }: { parecer: ParecerRequest }) {
     try {
       await deleteParecer(parecer.id)
       await queryClient.invalidateQueries({ queryKey: ['pareceres'] })
-      await queryClient.invalidateQueries({ queryKey: ['pareceres-metrics'] })
+      await queryClient.invalidateQueries({ queryKey: ['dashboard', 'pareceres-overview'] })
     } finally {
       setDeleting(false)
     }

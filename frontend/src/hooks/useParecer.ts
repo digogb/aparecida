@@ -16,20 +16,6 @@ export function usePareceres(filters: ParecerFiltersState) {
   })
 }
 
-const EMPTY_FILTERS: ParecerFiltersState = { status: '', tema: '', remetente: '' }
-
-export function useParecerMetrics() {
-  return useQuery({
-    queryKey: ['pareceres-metrics'],
-    queryFn: () => fetchPareceres(EMPTY_FILTERS),
-    staleTime: 30_000,
-    refetchInterval: (query) => {
-      const items = query.state.data?.items ?? []
-      return items.some(p => PROCESSING.has(p.status)) ? 3000 : false
-    },
-  })
-}
-
 export function useParecer(id: string | undefined) {
   return useQuery({
     queryKey: ['parecer', id],

@@ -43,3 +43,4 @@ class PareceresOverview(BaseModel):
     mais_antigos: list[OldestParecer]
     total_abertos: int
     concluidos_semana: int
+    enviados_semana: int

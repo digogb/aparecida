@@ -172,6 +172,19 @@ async def get_pareceres_overview(
     )
     concluidos_semana = concluidos_q.scalar() or 0
 
+    # Enviados nesta semana (só status enviado — métrica da aba Pareceres).
+    # Mesma janela seg-dom; por updated_at (quando passou a enviado).
+    enviados_q = await db.execute(
+        select(func.count()).select_from(ParecerRequest).where(
+            and_(
+                ParecerRequest.status == ParecerStatus.enviado,
+                ParecerRequest.updated_at >= week_start,
+                ParecerRequest.updated_at < week_end,
+            )
+        )
+    )
+    enviados_semana = enviados_q.scalar() or 0
+
     return PareceresOverview(
         pipeline=pipeline,
         por_municipio=por_municipio,
@@ -179,4 +192,5 @@ async def get_pareceres_overview(
         mais_antigos=mais_antigos,
         total_abertos=total_abertos,
         concluidos_semana=concluidos_semana,
+        enviados_semana=enviados_semana,
     )
