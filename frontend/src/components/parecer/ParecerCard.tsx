@@ -29,6 +29,9 @@ export default function ParecerCard({ parecer }: { parecer: ParecerRequest }) {
   const [deleting, setDeleting] = useState(false)
   const s = STATUS[parecer.status]
   const t = parecer.tema ? TEMA[parecer.tema] : null
+  // devolvido/erro não geram versão de parecer — abrir o editor mostraria só a assinatura
+  // sobre um documento vazio. Esses cards já exibem o motivo inline e o botão de excluir.
+  const openable = !DELETABLE_STATUSES.includes(parecer.status)
   const date = new Date(parecer.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
   const enviadoEm = parecer.status === 'enviado' && parecer.updated_at
     ? new Date(parecer.updated_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -48,8 +51,8 @@ export default function ParecerCard({ parecer }: { parecer: ParecerRequest }) {
   }
 
   return (
-    <div onClick={() => navigate(`/pareceres/${parecer.id}`)}
-      className="animate-fade-up rounded-xl px-5 py-4 cursor-pointer transition-all duration-150 hover:brightness-[0.97]"
+    <div onClick={openable ? () => navigate(`/pareceres/${parecer.id}`) : undefined}
+      className={`animate-fade-up rounded-xl px-5 py-4 transition-all duration-150 ${openable ? 'cursor-pointer hover:brightness-[0.97]' : 'cursor-default'}`}
       style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
