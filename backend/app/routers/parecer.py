@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -227,6 +227,57 @@ async def retry_extraction(
     item.extracted_text = None
     await db.commit()
     await db.refresh(item)
+
+    return ParecerRequestOut.model_validate(item)
+
+
+@router.post("/parecer-requests/{id}/reprocess", response_model=ParecerRequestOut)
+async def reprocess_parecer(
+    id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> ParecerRequestOut:
+    """
+    Redispara o pipeline P1→P2 para um request que falhou (status=erro).
+
+    Usado quando o erro foi transitório (ex.: limite de API, timeout) e o email
+    é, de fato, uma consulta jurídica. O texto extraído já está no banco, então
+    não é preciso reimportar o email.
+    """
+    result = await db.execute(
+        select(ParecerRequest).where(ParecerRequest.id == id)
+    )
+    item = result.scalar_one_or_none()
+    if not item:
+        raise HTTPException(status_code=404, detail="Parecer request nao encontrado")
+
+    if item.status != ParecerStatus.erro:
+        raise HTTPException(
+            status_code=400,
+            detail="Reprocessamento so permitido para pareceres com status 'erro'",
+        )
+
+    if not item.extracted_text:
+        raise HTTPException(
+            status_code=400,
+            detail="Sem texto extraido para reprocessar — refaca a extracao primeiro",
+        )
+
+    old_status = item.status
+    item.status = ParecerStatus.pendente
+    db.add(
+        ParecerStatusHistory(
+            request_id=item.id,
+            from_status=old_status,
+            to_status=ParecerStatus.pendente,
+            notes="Reprocessamento manual solicitado",
+        )
+    )
+    await db.commit()
+    await db.refresh(item)
+
+    from app.services.pipeline import process_parecer_pipeline
+    background_tasks.add_task(process_parecer_pipeline, str(item.id))
 
     return ParecerRequestOut.model_validate(item)
 
