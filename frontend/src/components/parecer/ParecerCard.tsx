@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import type { ParecerRequest, ParecerStatus, ParecerTema } from '../../types/parecer'
-import { deleteParecer } from '../../services/parecerApi'
+import { deleteParecer, reprocessParecer } from '../../services/parecerApi'
 
 const STATUS: Record<ParecerStatus, { label: string; color: string }> = {
   pendente:     { label: 'Pendente',           color: '#C9A94E' },
@@ -27,6 +27,7 @@ export default function ParecerCard({ parecer }: { parecer: ParecerRequest }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [deleting, setDeleting] = useState(false)
+  const [reprocessing, setReprocessing] = useState(false)
   const s = STATUS[parecer.status]
   const t = parecer.tema ? TEMA[parecer.tema] : null
   // devolvido/erro não geram versão de parecer — abrir o editor mostraria só a assinatura
@@ -47,6 +48,18 @@ export default function ParecerCard({ parecer }: { parecer: ParecerRequest }) {
       await queryClient.invalidateQueries({ queryKey: ['dashboard', 'pareceres-overview'] })
     } finally {
       setDeleting(false)
+    }
+  }
+
+  async function handleReprocess(e: React.MouseEvent) {
+    e.stopPropagation()
+    setReprocessing(true)
+    try {
+      await reprocessParecer(parecer.id)
+      await queryClient.invalidateQueries({ queryKey: ['pareceres'] })
+      await queryClient.invalidateQueries({ queryKey: ['dashboard', 'pareceres-overview'] })
+    } catch {
+      setReprocessing(false)
     }
   }
 
@@ -84,6 +97,21 @@ export default function ParecerCard({ parecer }: { parecer: ParecerRequest }) {
         </div>
         <div className="flex items-center gap-2 shrink-0 mt-0.5">
           <span className="text-xs xs:text-sm" style={{ color: '#A69B8D' }}>{date}</span>
+          {parecer.status === 'erro' && (
+            <button
+              onClick={handleReprocess}
+              disabled={reprocessing}
+              title="Reprocessar"
+              className="p-1.5 rounded-lg transition-all duration-150 hover:brightness-[0.92] disabled:opacity-50 cursor-pointer"
+              style={{ background: '#5B755318', color: '#5B7553' }}
+            >
+              {reprocessing ? (
+                <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              )}
+            </button>
+          )}
           {DELETABLE_STATUSES.includes(parecer.status) && (
             <button
               onClick={handleDelete}

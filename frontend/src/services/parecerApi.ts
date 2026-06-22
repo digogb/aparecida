@@ -22,3 +22,7 @@ export async function fetchParecer(id: string): Promise<ParecerRequestDetail> {
 export async function deleteParecer(id: string): Promise<void> {
   await api.delete(`/api/parecer-requests/${id}`)
 }
+
+export async function reprocessParecer(id: string): Promise<void> {
+  await api.post(`/api/parecer-requests/${id}/reprocess`)
+}
