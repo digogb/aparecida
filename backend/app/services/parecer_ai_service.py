@@ -37,18 +37,28 @@ logger = logging.getLogger(__name__)
 
 # Modelos por etapa
 MODEL_P1 = "claude-haiku-4-5-20251001"   # classificação: rápido, barato, TPM separado
-MODEL_P2_P3 = "claude-sonnet-4-6"  # geração/revisão: qualidade máxima
+MODEL_P2_P3 = "claude-sonnet-5"  # geração/revisão: Sonnet 5 (1M ctx, sucessor do 4.6)
 
-# Limite de conteúdo do usuário (~45k tokens ≈ 180k chars). Atua como rede de
-# segurança em todas as etapas; Sonnet 4.6 e Haiku 4.5 têm 200k tokens de
-# contexto, com folga grande para consultas municipais com vários anexos.
-MAX_USER_CONTENT_CHARS = 180_000
+# Rede de segurança das chamadas HAIKU (P1 classificação, P1.5 valores).
+# LIMITE OBRIGATÓRIO: Haiku 4.5 tem janela de 200k TOKENS — e os anexos são densos
+# (~1,9-2,0 chars/token nas planilhas de preço), então 300k chars ≈ ~155k tokens;
+# com system (~5k) + output (2k) fica seguro sob 200k. NÃO remover: um único anexo
+# real (ex. pesquisa de preços = 566k chars ≈ 294k tokens) já estoura a janela do
+# Haiku — sem cap o classify daria 400 e travaria o pipeline no gate. Não custa
+# assertividade: o P0 prefilter põe a consulta primeiro (corta a cauda de
+# referência) e o resumo_financeiro_canonico sobe o "VALOR TOTAL" antes do corte.
+MAX_USER_CONTENT_CHARS = 300_000
 
-# Orçamento dedicado à seção "## DOCUMENTOS ANEXOS" do P2, distribuído por anexo
-# (water-filling) para que NENHUM documento seja descartado inteiro — a causa de
-# a IA afirmar que um anexo "não foi juntado". Deixa folga p/ classificação,
-# valores e corpo do email dentro de MAX_USER_CONTENT_CHARS.
-MAX_DOCS_CHARS = 150_000
+# Cap do user_message do P2 (Sonnet = janela de 1M tokens). "Sem limite prático":
+# nenhuma consulta real encosta (maior anexo único visto = 566k chars). Serve só
+# de trava anti-400 contra estourar 1M. Pior caso denso: 1,5M chars / ~1,9 ≈ 790k
+# tokens + system (~77k) + output (8k) ≈ 875k < 1M. Tier da conta = 10M ITPM.
+MAX_P2_USER_CONTENT_CHARS = 1_500_000
+
+# Orçamento water-filling da seção "## DOCUMENTOS ANEXOS" do P2 — NENHUM anexo é
+# descartado inteiro. Fica abaixo do cap total p/ sobrar espaço p/ classificação +
+# email + bloco de valores. Alto o bastante p/ caber conjuntos documentais completos.
+MAX_DOCS_CHARS = 1_300_000
 
 # Retry config — alinhado com o limite de 30k tokens/min
 MAX_RETRIES = 3
@@ -211,13 +221,27 @@ async def _call_api(
     last_error = None
     for attempt in range(MAX_RETRIES):
         try:
+            # `temperature` só nos modelos que ainda aceitam sampling (Haiku 4.5,
+            # usado em P1/P1.5). Sonnet 5 e a família 5 / Opus 4.7+ removeram
+            # temperature/top_p/top_k e retornam 400 se enviados.
+            #
+            # Nos modelos Sonnet 5 (P2/P3) o thinking vem LIGADO por padrão e o
+            # web_search induz thinking interleaved; esses blocos consomem o
+            # orçamento de max_tokens ANTES de o bloco `text` do parecer sair —
+            # produzindo parecer vazio (stop_reason=max_tokens, só `thinking`).
+            # Desligamos o thinking para reproduzir o comportamento do Sonnet 4.6:
+            # todo o max_tokens vira texto do parecer.
+            if "haiku" in model:
+                sampling_kwargs: dict = {"temperature": 0}
+            else:
+                sampling_kwargs = {"thinking": {"type": "disabled"}}
             async with AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY) as client:
                 response = await client.messages.create(
                     model=model,
                     max_tokens=max_tokens,
-                    temperature=0,
                     system=system,
                     messages=[{"role": "user", "content": user_message}],
+                    **sampling_kwargs,
                     **tools_kwargs,
                 )
             usage = response.usage
@@ -680,7 +704,7 @@ async def generate_parecer(
         "## DOCUMENTOS ANEXOS\n"
         f"{docs_joined}"
     )
-    user_message = _truncate(user_message, MAX_USER_CONTENT_CHARS)
+    user_message = _truncate(user_message, MAX_P2_USER_CONTENT_CHARS)
 
     vertente = resolve_vertente(classification)
     subtipo = classification.get("subtipo") or ""
@@ -717,7 +741,7 @@ async def generate_parecer(
             model=MODEL_P2_P3,
             system=system_prompt,
             user_message=user_message,
-            max_tokens=8000,
+            max_tokens=12000,
             stage=f"P2-{vertente}",
             web_search_max_uses=web_search_budget,
         )
