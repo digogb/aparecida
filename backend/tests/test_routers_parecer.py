@@ -380,9 +380,9 @@ class TestGmailWebhook:
     def test_creates_parecer_request(self):
         db = _mock_db()
 
-        # duplicate check returns None (no existing record)
+        # duplicate check returns None (no existing record) — dedup usa .first()
         check_mock = MagicMock()
-        check_mock.scalar_one_or_none.return_value = None
+        check_mock.first.return_value = None
         db.execute.return_value = check_mock
 
         app.dependency_overrides[get_db] = _override_db(db)
@@ -405,7 +405,7 @@ class TestGmailWebhook:
 
         existing = MagicMock()
         check_mock = MagicMock()
-        check_mock.scalar_one_or_none.return_value = existing
+        check_mock.first.return_value = (existing.id,)
         db.execute.return_value = check_mock
 
         app.dependency_overrides[get_db] = _override_db(db)

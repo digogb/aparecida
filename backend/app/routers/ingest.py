@@ -29,6 +29,7 @@ from app.models.parecer import (
     ParecerRequest,
     ParecerStatus,
 )
+from app.services.attachment_filter import has_document_attachment
 from app.services.content_assembler import assemble
 from app.services.extractor import extract_file
 
@@ -150,18 +151,34 @@ async def ingest_eml(
     message_id = msg.get("Message-ID") or str(uuid.uuid4())
     thread_id = msg.get("In-Reply-To") or message_id
 
-    # Deduplicate by thread_id
+    # Dedup real por mensagem (não por thread): a thread pode ter vários requests "irmãos".
     existing = await db.execute(
-        select(ParecerRequest).where(ParecerRequest.gmail_thread_id == thread_id)
+        select(ParecerRequest.id).where(ParecerRequest.gmail_message_id == message_id)
     )
-    if existing.scalar_one_or_none():
+    if existing.first():
         raise HTTPException(status_code=409, detail="Parecer já importado para este email")
-
-    # Extract body
-    body = _extract_body(msg)
 
     # Extract attachments
     attachments_meta = _collect_attachments(msg)
+
+    # Gate de réplica: se a thread já tem request, esta é uma rodada seguinte e só entra
+    # (como request "irmão") se trouxer um anexo-documento; caso contrário é comunicação comum.
+    sibling_result = await db.execute(
+        select(ParecerRequest)
+        .where(ParecerRequest.gmail_thread_id == thread_id)
+        .order_by(ParecerRequest.created_at.desc())
+        .limit(1)
+    )
+    sibling = sibling_result.scalar_one_or_none()
+    if sibling is not None and not has_document_attachment(
+        (filename, content_type) for filename, content_type, _ in attachments_meta
+    ):
+        raise HTTPException(
+            status_code=409, detail="Réplica sem documento nesta thread — nada a importar"
+        )
+
+    # Extract body
+    body = _extract_body(msg)
     attachment_texts: list[str] = []
     attachment_records: list[dict] = []
 
@@ -197,11 +214,14 @@ async def ingest_eml(
     header_context = f"Assunto: {subject}\nRemetente: {sender_email}"
     extracted_text = f"{header_context}\n\n{extracted_text}" if extracted_text else header_context
 
-    # Create ParecerRequest
+    # Create ParecerRequest — irmãos herdam município/responsável do request mais recente
+    # da thread (o "Re:" costuma vir enxuto, sem dados para reclassificar com confiança).
     parecer = ParecerRequest(
         id=uuid.uuid4(),
         gmail_thread_id=thread_id,
         gmail_message_id=message_id,
+        municipio_id=sibling.municipio_id if sibling is not None else None,
+        assigned_to=sibling.assigned_to if sibling is not None else None,
         sender_email=sender_email,
         subject=subject,
         extracted_text=extracted_text,

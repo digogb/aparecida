@@ -19,6 +19,8 @@ export interface ParecerRequest {
   municipio_id: string | null
   municipio_nome?: string | null
   assigned_to: string | null
+  /** Agrupador de rodadas da mesma consulta (badge "rodada N/M"). */
+  gmail_thread_id: string | null
   subject: string | null
   sender_email: string | null
   sent_to_email: string | null

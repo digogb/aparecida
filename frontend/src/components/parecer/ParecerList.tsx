@@ -69,6 +69,22 @@ export default function ParecerList() {
 
   const sorted = [...items].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
+  // Agrupa por thread (só quando não-nula) para anotar a rodada N/M de cada irmão.
+  // A rodada é a posição do request na thread ordenada por created_at asc.
+  const roundInfo = new Map<string, { rodada: number; total: number }>()
+  const byThread = new Map<string, typeof items>()
+  for (const p of items) {
+    if (!p.gmail_thread_id) continue
+    const arr = byThread.get(p.gmail_thread_id) ?? []
+    arr.push(p)
+    byThread.set(p.gmail_thread_id, arr)
+  }
+  for (const arr of byThread.values()) {
+    if (arr.length < 2) continue
+    const asc = [...arr].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    asc.forEach((p, i) => roundInfo.set(p.id, { rodada: i + 1, total: asc.length }))
+  }
+
   return (
     <div className="min-h-full px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8" style={{ background: '#FAF8F5' }}>
 
@@ -135,7 +151,7 @@ export default function ParecerList() {
         )}
         {!isLoading && !isError && sorted.map((p, i) => (
           <div key={p.id} style={{ animationDelay: `${240 + i * 40}ms` }}>
-            <ParecerCard parecer={p} />
+            <ParecerCard parecer={p} rodada={roundInfo.get(p.id)} />
           </div>
         ))}
       </div>

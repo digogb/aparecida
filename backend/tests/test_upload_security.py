@@ -41,9 +41,11 @@ def patch_uploads_dir(tmp_path):
 # ---------------------------------------------------------------------------
 
 def _db_no_duplicate(db):
-    """DB retorna None na checagem de duplicata e None no lookup de município."""
+    """DB retorna None na checagem de duplicata (dedup por gmail_message_id usa .first()),
+    None no lookup de irmão da thread e nenhum município."""
     result = MagicMock()
-    result.scalar_one_or_none.return_value = None
+    result.first.return_value = None  # dedup por gmail_message_id
+    result.scalar_one_or_none.return_value = None  # lookup de irmão / município
     result.scalars.return_value.all.return_value = []  # municipios
     db.execute.return_value = result
     return db
@@ -134,9 +136,10 @@ class TestDeduplication:
         eml = build_eml(message_id=thread_id)
 
         db = mock_db()
-        # Retorna um parecer existente na checagem de duplicata
+        # Retorna um parecer existente na checagem de duplicata (dedup por gmail_message_id).
         existing = mock_parecer(gmail_thread_id=thread_id)
         result = MagicMock()
+        result.first.return_value = (existing.id,)
         result.scalar_one_or_none.return_value = existing
         db.execute.return_value = result
         app.dependency_overrides[get_db] = override_db(db)

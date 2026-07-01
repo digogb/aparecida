@@ -69,8 +69,11 @@ class ParecerRequest(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     municipio_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("municipios.id"), nullable=True, index=True)
     assigned_to: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
-    gmail_thread_id: Mapped[str | None] = mapped_column(String(200), nullable=True, unique=True)
-    gmail_message_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Agrupador de rodadas da mesma consulta (não é mais chave de dedup: uma thread
+    # pode ter vários requests "irmãos", um por mensagem relevante). Ver migration 0013.
+    gmail_thread_id: Mapped[str | None] = mapped_column(String(200), nullable=True, index=True)
+    # Chave de dedup real: cada mensagem do Gmail vira no máximo um request.
+    gmail_message_id: Mapped[str | None] = mapped_column(String(200), nullable=True, unique=True, index=True)
     subject: Mapped[str | None] = mapped_column(String(500), nullable=True)
     sender_email: Mapped[str | None] = mapped_column(String(200), nullable=True)
     sent_to_email: Mapped[str | None] = mapped_column(String(200), nullable=True)

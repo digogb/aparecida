@@ -66,12 +66,17 @@ async def gmail_webhook(
     gmail_thread_id: str | None = gmail_info.get("historyId") or gmail_message_id
     sender_email: str | None = gmail_info.get("emailAddress") or None
 
-    # Deduplicate by thread id
-    if gmail_thread_id:
+    # NOTA: este webhook é um STUB — não busca a mensagem real nem baixa anexos, então
+    # NÃO aplica o gate de anexo-documento (ver gmail_poller._ingest_message). O caminho
+    # de produção é o poller (roda a cada 5 min). Antes de promover este webhook a
+    # produção, ele precisa ser reescrito para buscar a mensagem via Gmail API e aplicar
+    # o mesmo gate/herança de irmão. Aqui apenas alinhamos o dedup para gmail_message_id
+    # por consistência com o resto do pipeline.
+    if gmail_message_id:
         existing = await db.execute(
-            select(ParecerRequest).where(ParecerRequest.gmail_thread_id == gmail_thread_id)
+            select(ParecerRequest.id).where(ParecerRequest.gmail_message_id == gmail_message_id)
         )
-        if existing.scalar_one_or_none():
+        if existing.first():
             return {"status": "ok", "action": "duplicate"}
 
     parecer = ParecerRequest(

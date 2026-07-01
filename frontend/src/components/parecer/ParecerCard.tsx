@@ -23,7 +23,13 @@ const TEMA: Record<NonNullable<ParecerTema>, { label: string; color: string }> =
 
 const DELETABLE_STATUSES: ParecerStatus[] = ['devolvido', 'erro']
 
-export default function ParecerCard({ parecer }: { parecer: ParecerRequest }) {
+export default function ParecerCard({
+  parecer,
+  rodada,
+}: {
+  parecer: ParecerRequest
+  rodada?: { rodada: number; total: number }
+}) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [deleting, setDeleting] = useState(false)
@@ -80,6 +86,13 @@ export default function ParecerCard({ parecer }: { parecer: ParecerRequest }) {
             {t && (
               <span className="text-xs font-semibold px-2.5 py-0.5 rounded-lg"
                 style={{ background: `${t.color}18`, color: t.color }}>{t.label}</span>
+            )}
+            {rodada && rodada.total > 1 && (
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-lg"
+                title="Rodada desta consulta na mesma thread de e-mail"
+                style={{ background: '#14203818', color: '#142038' }}>
+                rodada {rodada.rodada}/{rodada.total}
+              </span>
             )}
           </div>
           <p className="text-base font-medium truncate" style={{ color: '#0A1120' }}>

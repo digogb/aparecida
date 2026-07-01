@@ -34,6 +34,7 @@ from app.models.parecer import (
     ParecerStatus,
 )
 from app.models.system_config import SystemConfig
+from app.services.attachment_filter import has_document_attachment
 from app.services.content_assembler import assemble
 from app.services.extractor import extract_file
 
@@ -214,14 +215,31 @@ async def _get_or_create_config(db: AsyncSession, key: str) -> SystemConfig:
     return cfg
 
 
-async def _already_imported(thread_id: str, message_id: str, db: AsyncSession) -> bool:
+async def _already_imported(message_id: str, db: AsyncSession) -> bool:
+    """Dedup real: a mensagem já virou um request? (thread não conta mais)."""
     result = await db.execute(
-        select(ParecerRequest).where(
-            (ParecerRequest.gmail_thread_id == thread_id)
-            | (ParecerRequest.gmail_message_id == message_id)
-        )
+        select(ParecerRequest.id).where(ParecerRequest.gmail_message_id == message_id)
     )
-    return result.scalar_one_or_none() is not None
+    return result.first() is not None
+
+
+async def _thread_already_imported(thread_id: str, db: AsyncSession) -> bool:
+    """A thread já tem algum request? Se sim, novas mensagens são réplicas (rodadas)."""
+    result = await db.execute(
+        select(ParecerRequest.id).where(ParecerRequest.gmail_thread_id == thread_id)
+    )
+    return result.first() is not None
+
+
+async def _latest_sibling(thread_id: str, db: AsyncSession) -> ParecerRequest | None:
+    """Request mais recente da thread — fonte de município/responsável para o irmão."""
+    result = await db.execute(
+        select(ParecerRequest)
+        .where(ParecerRequest.gmail_thread_id == thread_id)
+        .order_by(ParecerRequest.created_at.desc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
 
 
 async def _ingest_message(
@@ -250,6 +268,28 @@ async def _ingest_message(
 
     attachment_metas: list[dict[str, Any]] = []
     _collect_attachments(payload, message_id, attachment_metas)
+
+    # Gate de réplica: se a thread já tem request, esta mensagem é uma rodada seguinte.
+    # Só a ingerimos (como request "irmão") se trouxer um anexo-documento — do contrário
+    # é comunicação comum e seria descartada silenciosamente para não poluir a tela.
+    is_followup = await _thread_already_imported(thread_id, db)
+    if is_followup and not has_document_attachment(
+        (m["filename"], m.get("mime_type")) for m in attachment_metas
+    ):
+        logger.info(
+            "Gmail poller: réplica sem anexo-documento na thread %s (msg %s) — descartada",
+            thread_id,
+            message_id,
+        )
+        return False
+
+    inherited_municipio_id = None
+    inherited_assigned_to = None
+    if is_followup:
+        sibling = await _latest_sibling(thread_id, db)
+        if sibling is not None:
+            inherited_municipio_id = sibling.municipio_id
+            inherited_assigned_to = sibling.assigned_to
 
     attachment_texts: list[str] = []
     attachment_records: list[dict] = []
@@ -294,6 +334,8 @@ async def _ingest_message(
         id=uuid.uuid4(),
         gmail_thread_id=thread_id,
         gmail_message_id=message_id,
+        municipio_id=inherited_municipio_id,
+        assigned_to=inherited_assigned_to,
         sender_email=sender_email,
         subject=subject,
         extracted_text=extracted_text,
@@ -363,7 +405,7 @@ async def _recover_unread_backlog(service, db: AsyncSession) -> int:
             message_id = msg["id"]
             thread_id = msg.get("threadId", message_id)
 
-            if await _already_imported(thread_id, message_id, db):
+            if await _already_imported(message_id, db):
                 continue
             try:
                 created = await _ingest_message(service, message_id, thread_id, db)
@@ -473,7 +515,7 @@ async def poll_inbox() -> int:
 
         count = 0
         for message_id, thread_id in message_ids.items():
-            if await _already_imported(thread_id, message_id, db):
+            if await _already_imported(message_id, db):
                 continue
             try:
                 created = await _ingest_message(service, message_id, thread_id, db)

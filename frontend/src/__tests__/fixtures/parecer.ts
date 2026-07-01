@@ -6,6 +6,7 @@ export const parecerFixture: ParecerRequestDetail = {
   municipio_id: 'municipio-1',
   municipio_nome: 'São Paulo',
   assigned_to: null,
+  gmail_thread_id: null,
   subject: 'Consulta sobre pregão eletrônico',
   sender_email: 'prefeitura@municipio.sp.gov.br',
   sent_to_email: null,

@@ -69,6 +69,9 @@ class ParecerRequestOut(BaseModel):
     id: uuid.UUID
     municipio_id: Optional[uuid.UUID] = None
     assigned_to: Optional[uuid.UUID] = None
+    # Agrupador de rodadas — o frontend usa para o badge "rodada N/M" quando a mesma
+    # thread tem vários requests "irmãos".
+    gmail_thread_id: Optional[str] = None
     subject: Optional[str] = None
     sender_email: Optional[str] = None
     status: ParecerStatus
