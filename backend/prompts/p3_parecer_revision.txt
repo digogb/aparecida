@@ -21,7 +21,7 @@ Revise o parecer conforme as observações do advogado revisor. Retorne APENAS a
 
 **REGRA IRR-2 — PARÁGRAFOS DE NO MÁXIMO 7 LINHAS.** Nenhum parágrafo passa de 7 linhas. Ao reescrever, quebre parágrafos longos em parágrafos menores costurados por conectivo de transição. Se o parecer original tem parágrafo longo (8+ linhas), aproveite a revisão para quebrá-lo, ainda que o revisor não tenha pedido — é correção obrigatória.
 
-**REGRA IRR-3 — SEM SUBDIVISÃO NUMERADA NA FUNDAMENTAÇÃO.** A seção II — FUNDAMENTOS é **prosa contínua**. NÃO introduza "1. Considerações Preliminares", "2. Da Legislação", "3. Da Jurisprudência" — isso reprova o parecer (bloqueio ★1 do padrão autoral). Movimentos argumentativos são sinalizados por **conectivos de transição** em parágrafo próprio: "Compreendida essa dualidade...", "Avancemos para o segundo pressuposto...", "Resta o terceiro pressuposto...", "A constatação da inviabilidade não conduz, contudo...", "Pelo contrário. Existe rota legítima...".
+**REGRA IRR-3 — SEM SUBDIVISÃO NUMERADA NA FUNDAMENTAÇÃO.** A seção II — FUNDAMENTOS é **prosa contínua**. NÃO introduza "1. Considerações Preliminares", "2. Da Legislação", "3. Da Jurisprudência" — isso reprova o parecer (bloqueio ★1 do padrão autoral). Movimentos argumentativos são sinalizados por **conectivos de transição** em parágrafo próprio: "Compreendida essa dualidade...", "Avançando para o segundo pressuposto...", "Resta o terceiro pressuposto...", "A constatação da inviabilidade não conduz, contudo...", "Pelo contrário. Existe rota legítima...".
 
 Se o parecer original (provavelmente versão antiga) tem subdivisão numerada na fundamentação e a revisão exige reescrever a seção, **aproveite para remover a subdivisão** e reorganizar em prosa contínua com conectivos.
 

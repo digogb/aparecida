@@ -296,7 +296,7 @@ Aplicável a qualquer parecer da skill, independentemente do subtipo:
 - ☐ Parágrafos ≤ 7 linhas?
 - ☐ Frases curtas em pontos decisivos?
 - ☐ Vocabulário canônico de casa, sem arcaísmos proibidos?
-- ☐ Encerramento "É o parecer, submetido à superior consideração."?
+- ☐ Encerramento "É o parecer."?
 
 ### Formatação
 

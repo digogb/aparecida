@@ -74,7 +74,7 @@ c) Recomenda-se a publicação do termo aditivo no PNCP e no Diário Oficial do 
 
 d) Recomenda-se atenção à margem residual do limite do art. 125 — restam 7 pontos percentuais até o teto de 25% — de modo que eventual nova demanda de acréscimo, na vigência do contrato, exigirá análise prévia da capacidade do instrumento de absorver a alteração, sob pena de impedir o aditivo e tornar necessária a celebração de nova contratação.
 
-É o parecer, submetido à superior consideração.
+É o parecer.
 </conclusao>
 
 <citacoes_verificar>
@@ -147,7 +147,7 @@ c) Recomenda-se, ao retornar a consulta com a documentação completa, a emissã
 
 d) Recomenda-se, em paralelo, a juntada ao processo da estimativa de impacto financeiro da contratação, com indicação da dotação orçamentária consignada na LOA do exercício corrente, em atenção ao art. 16 da Lei Complementar nº 101/2000.
 
-É o parecer, submetido à superior consideração.
+É o parecer.
 </conclusao>
 
 <citacoes_verificar>
@@ -220,7 +220,7 @@ c) Recomenda-se o aprofundamento do Estudo Técnico Preliminar com dados especí
 
 d) Após o saneamento, recomenda-se a publicação do edital no PNCP e nos demais canais previstos no art. 94 da Lei nº 14.133/2021.
 
-É o parecer, submetido à superior consideração.
+É o parecer.
 </conclusao>
 
 <citacoes_verificar>
@@ -293,7 +293,7 @@ c) Recomenda-se a declaração de nulidade dos atos praticados a partir da decis
 
 d) Para futuros certames, recomenda-se à Administração a observância estrita do parâmetro de cinquenta por cento da Súmula nº 263 do TCU ou, alternativamente, a documentação prévia, no Estudo Técnico Preliminar, da razão técnica que justifique exigência de quantitativo majorado.
 
-É o parecer, submetido à superior consideração.
+É o parecer.
 </conclusao>
 
 <citacoes_verificar>

@@ -247,12 +247,12 @@ manutenção do decreto na forma editada, com possível determinação de
 recomposição dos valores indevidamente reduzidos, acrescidos de juros e
 correção monetária.
 
-É o parecer, submetido à superior consideração.
+É o parecer.
 
 Fortaleza/CE, 7 de maio de 2026.
 ```
 
-**Princípios exemplificados:** ★1 (estrutura tripartite — encerramento da seção III), ★8 (advertência protetiva sóbria, sem CAIXA ALTA), fórmula invariável ("É o parecer, submetido à superior consideração.").
+**Princípios exemplificados:** ★1 (estrutura tripartite — encerramento da seção III), ★8 (advertência protetiva sóbria, sem CAIXA ALTA), fórmula invariável ("É o parecer.").
 
 ---
 

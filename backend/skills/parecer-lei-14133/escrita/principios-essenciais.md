@@ -38,7 +38,7 @@ A fundamentação flui em prosa contínua, e os movimentos argumentativos são s
 - "Compreendida essa dualidade, é preciso examinar..."
 - "Estreita porque submetida a três pressupostos cumulativos..."
 - "O primeiro deles diz respeito a..."
-- "Avancemos, então, para o segundo pressuposto..."
+- "Avançando, então, para o segundo pressuposto..."
 - "Resta o terceiro pressuposto — e ele transcende a esfera infralegal..."
 - "A constatação da inviabilidade não conduz, contudo, à conclusão de que..."
 - "Pelo contrário. Existe rota legítima..."
@@ -189,7 +189,7 @@ O português jurídico do escritório é **preciso sem ser árido, técnico sem 
 **Vocabulário aceito (técnico vivo):**
 - "cuida-se de" (apenas no relatório)
 - "passa-se à fundamentação"
-- "É o parecer, submetido à superior consideração"
+- "É o parecer"
 - "depreende-se" (com parcimônia)
 - "à luz de", "em sede de", "na forma do art. X"
 

@@ -144,7 +144,7 @@ Diante do exposto, recomenda-se:
 
 [Frase de remate, quando cabível: "Os saneamentos apontados, uma vez realizados, viabilizam o prosseguimento do certame conforme planejado." OU "Vícios estruturais identificados impedem o prosseguimento sem refazimento da fase preparatória."]
 
-É o parecer, submetido à superior consideração.
+É o parecer.
 ```
 
 #### 2.4.2 Dispositivos por modo
@@ -159,7 +159,7 @@ Diante do exposto, recomenda-se:
 
 #### 2.4.3 Fórmulas invariáveis
 
-- "É o parecer, submetido à superior consideração." (encerramento)
+- "É o parecer." (encerramento)
 - Sem fórmula adicional do tipo "salvo melhor juízo" ou "data venia" — proibidos.
 
 ### 2.5 BLOCO DE LOCAL, DATA E ASSINATURAS
@@ -219,7 +219,7 @@ Síntese dos 11 princípios estabelecidos em `escrita/principios-essenciais.md`:
 - "O ponto é simples." (frase curta de virada)
 - "Não há, neste plano, alternativa interpretativa." (encerramento de raciocínio)
 - "Diante do exposto, recomenda-se..." (transição para dispositivo)
-- "É o parecer, submetido à superior consideração." (encerramento invariável)
+- "É o parecer." (encerramento invariável)
 
 ### 4.2 Conectivos arquiteturais
 
@@ -315,7 +315,7 @@ Um parecer reconhecível como obra do escritório Dr. Francisco Ione Pereira Lim
 5. **Aterramento operacional** com exemplos concretos do universo municipal.
 6. **Frases curtas em pontos decisivos**, marcando o ritmo.
 7. **Alerta institucional sóbrio**, sem caixa alta dramática.
-8. **Encerramento invariável** ("É o parecer, submetido à superior consideração.").
+8. **Encerramento invariável** ("É o parecer.").
 9. **Bloco de assinaturas padronizado** na hierarquia do escritório.
 10. **Formatação .docx** Consolas 12pt, Garamond cabeçalho, margens 2,5/3,0/2,5/3,0 cm, rodapé Fortaleza/CE.
 

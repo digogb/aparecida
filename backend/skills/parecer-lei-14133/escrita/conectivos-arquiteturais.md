@@ -58,7 +58,7 @@ A maior parte da fundamentação consiste em **encadear movimentos**: um conceit
 
 ### 2.3 Passagem para o segundo pressuposto
 
-> Avancemos, então, para o segundo pressuposto — [tema]. [Desenvolvimento].
+> Avançando, então, para o segundo pressuposto — [tema]. [Desenvolvimento].
 
 > Passa-se, agora, ao segundo aspecto: [tema]. [Desenvolvimento].
 

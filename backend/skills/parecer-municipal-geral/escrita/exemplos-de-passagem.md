@@ -93,11 +93,11 @@ A escolha de três exemplos é deliberada — um exemplo seria pouco (parece coi
 
 > E é exatamente o que a Lei 14.133/2021 não admite por ato unilateral. Reduzir o preço unitário sem alterar o quantitativo equivale, na prática, a refazer o contrato, modificando-lhe a equação econômica original. Refazer contrato é tarefa de instrumento bilateral, não de decreto unilateral.
 >
-> Avancemos, então, para o segundo pressuposto — a exigência de motivação individualizada. Cada contrato administrativo possui objeto, prazo, equilíbrio econômico-financeiro e contexto fático próprios.
+> Avançando, então, para o segundo pressuposto — a exigência de motivação individualizada. Cada contrato administrativo possui objeto, prazo, equilíbrio econômico-financeiro e contexto fático próprios.
 
 **O que demonstra:**
 - ★5 (frase curta de remate — "Refazer contrato é tarefa de instrumento bilateral, não de decreto unilateral")
-- Conectivo tipo 2.3 ("Avancemos, então, para o segundo pressuposto")
+- Conectivo tipo 2.3 ("Avançando, então, para o segundo pressuposto")
 - Em apenas duas frases, o leitor sai do primeiro pressuposto, registra a conclusão, e entra no segundo — *sem* subdivisão tipográfica.
 
 **Por que funciona:** o primeiro pressuposto é encerrado pela frase curta de remate. A transição para o segundo é feita por conectivo de marcação ordinal ("segundo pressuposto"), que substitui perfeitamente o que seria um título "II.2 — Da motivação individualizada". Numa única passagem de prosa, o leitor entende: "terminei o primeiro, agora começo o segundo, e este se chama motivação individualizada".
@@ -215,7 +215,7 @@ A escolha de três exemplos é deliberada — um exemplo seria pouco (parece coi
 
 ## Exemplo 15 — Fechamento institucional sóbrio
 
-> É o parecer, submetido à superior consideração.
+> É o parecer.
 >
 > Este parecer expressa opinião técnica e não substitui a decisão final do gestor, que possui discricionariedade administrativa.
 
@@ -223,7 +223,7 @@ A escolha de três exemplos é deliberada — um exemplo seria pouco (parece coi
 - Fórmula consagrada de fechamento
 - Cláusula de respeito à discricionariedade
 
-**Por que funciona:** a fórmula "É o parecer, submetido à superior consideração" é o fechamento canônico. Encerra o documento com humildade institucional — o parecerista não decide, opina; quem decide é o gestor.
+**Por que funciona:** a fórmula "É o parecer" é o fechamento canônico. Encerra o documento com humildade institucional — o parecerista não decide, opina; quem decide é o gestor.
 
 A cláusula seguinte ("Este parecer expressa opinião técnica e não substitui a decisão final do gestor, que possui discricionariedade administrativa") tem dupla função: protetiva (preserva o parecerista contra alegação de "imposição via parecer") e respeitosa (reconhece a esfera própria do gestor). Marca de maturidade institucional do escritório.
 

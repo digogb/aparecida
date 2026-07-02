@@ -107,7 +107,7 @@ A última alínea costuma trazer **recomendação positiva** quando o parecer fo
 
 ### 2.4 Encerramento
 
-Fórmula breve: *"É o parecer, S.M.J."* ou *"É o parecer, submetido à superior consideração."*
+Fórmula breve: *"É o parecer, S.M.J."* ou *"É o parecer."*
 
 **Nota de discricionariedade:** *"Este parecer expressa opinião técnica e não substitui a decisão final do gestor, que possui discricionariedade administrativa."*
 

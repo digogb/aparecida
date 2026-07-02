@@ -75,7 +75,7 @@ Carregado pelo Passo 3 como reference de **consulta**, não de leitura linear. F
 | **"É o breve relatório. Passa-se à fundamentação."** | Final da Seção I — Relatório |
 | **"Diante do conjunto fundamentado, encaminha-se à conclusão."** | Transição dos Fundamentos para a Conclusão |
 | **"Diante do exposto, recomenda-se: ..."** | Abertura do dispositivo na Conclusão |
-| **"É o parecer, submetido à superior consideração."** | Encerramento invariável do parecer |
+| **"É o parecer."** | Encerramento invariável do parecer |
 
 ### A.8 — Expressões PROIBIDAS (arcaísmos vedados)
 

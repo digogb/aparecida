@@ -38,7 +38,7 @@ Este checklist é executado no **Passo 6 (Auto-auditoria)** do fluxo da skill. S
 ### A.5 — Fórmulas invariáveis presentes
 
 ✓ Aparece "É o breve relatório. Passa-se à fundamentação." ao final do Relatório
-✓ Aparece "É o parecer, submetido à superior consideração." no fechamento
+✓ Aparece "É o parecer." no fechamento
 
 ---
 
@@ -51,7 +51,7 @@ Este checklist é executado no **Passo 6 (Auto-auditoria)** do fluxo da skill. S
 
 ### B.2 — Vocabulário arquitetural canônico utilizado
 
-✓ Aparecem frases-tipo como "Compreendida essa dualidade...", "Avancemos, então...", "Resta o terceiro pressuposto..."
+✓ Aparecem frases-tipo como "Compreendida essa dualidade...", "Avançando, então...", "Resta o terceiro pressuposto..."
 ✗ Transições genéricas tipo "Por outro lado...", "Ademais..."
 
 ### B.3 — Fundamentação organizada em movimentos lógicos sucessivos
@@ -197,7 +197,7 @@ Este checklist é executado no **Passo 6 (Auto-auditoria)** do fluxo da skill. S
 
 ### F.3 — Encerramento conforme padrão
 
-✓ Aparece "É o parecer, submetido à superior consideração." como fórmula invariável de fechamento
+✓ Aparece "É o parecer." como fórmula invariável de fechamento
 ✗ Encerramento livre, sem fórmula institucional
 
 ### F.4 — Local, data e bloco de assinaturas no padrão

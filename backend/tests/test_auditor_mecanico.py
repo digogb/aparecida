@@ -49,7 +49,7 @@ class TestEstimarLinhas:
 
 _FUND_OK = "Análise jurídica em parágrafos curtos. Cada um carrega uma ideia."
 _REL_OK = "Trata-se de consulta da Prefeitura X.\n\nÉ o breve relatório. Passa-se à fundamentação."
-_CONC_OK = "Diante do exposto, o parecer é FAVORÁVEL.\n\na) Recomendação 1.\n\nÉ o parecer, submetido à superior consideração."
+_CONC_OK = "Diante do exposto, o parecer é FAVORÁVEL.\n\na) Recomendação 1.\n\nÉ o parecer."
 
 
 class TestIRR1Ementa:

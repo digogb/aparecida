@@ -43,7 +43,7 @@ A costura argumentativa exerce, *dentro do tecido textual*, a função que a sub
 
 - "Compreendida essa dualidade, é preciso examinar agora..."
 - "O primeiro deles diz respeito a..."
-- "Avancemos, então, para o segundo pressuposto..."
+- "Avançando, então, para o segundo pressuposto..."
 - "Resta o terceiro pressuposto — e ele transcende..."
 - "Pelo contrário. Existe rota legítima para..."
 

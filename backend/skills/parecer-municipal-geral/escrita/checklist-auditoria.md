@@ -45,7 +45,7 @@ O gate é calculado sobre os itens **efetivamente aplicáveis** ao parecer em qu
 ### A.5 — Fórmulas invariáveis presentes
 
 ✓ Aparece "É o breve relatório. Passa-se à fundamentação." ao final do Relatório
-✓ Aparece "É o parecer, submetido à superior consideração." no fechamento
+✓ Aparece "É o parecer." no fechamento
 
 ---
 
@@ -58,7 +58,7 @@ O gate é calculado sobre os itens **efetivamente aplicáveis** ao parecer em qu
 
 ### B.2 — Vocabulário arquitetural canônico utilizado
 
-✓ Aparecem frases-tipo como "Compreendida essa dualidade...", "Avancemos, então...", "Resta o terceiro pressuposto..."
+✓ Aparecem frases-tipo como "Compreendida essa dualidade...", "Avançando, então...", "Resta o terceiro pressuposto..."
 ✗ Transições genéricas tipo "Por outro lado...", "Ademais..."
 
 ### B.3 — Fundamentação organizada em movimentos lógicos sucessivos
@@ -379,7 +379,7 @@ O gate é calculado sobre os itens **efetivamente aplicáveis** ao parecer em qu
 
 ### F.3 — Encerramento conforme padrão
 
-✓ Aparece "É o parecer, submetido à superior consideração." seguido do disclaimer de discricionariedade
+✓ Aparece "É o parecer." seguido do disclaimer de discricionariedade
 ✗ Encerramento livre, sem fórmula institucional
 
 ### F.4 — Local, data e bloco de assinaturas no padrão

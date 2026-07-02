@@ -481,7 +481,7 @@ class TestMinutaFromTipTap:
         doc = Document(io.BytesIO(bytes_docx))
         textos = "\n".join(p.text for p in doc.paragraphs)
         assert "DIREITO ADMINISTRATIVO" in textos
-        assert "É o parecer, submetido à superior consideração." in textos
+        assert "É o parecer." in textos
 
 
 # ---------------------------------------------------------------------------

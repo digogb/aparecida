@@ -51,7 +51,7 @@ Compreendido o contorno da Súmula Vinculante, é preciso examinar a exceção q
 
 A exceção não opera, contudo, em termos absolutos. A jurisprudência é pacífica ao estabelecer duas condições cumulativas para que se aplique: o nomeado deve apresentar **qualificação técnica** compatível com o cargo, e deve demonstrar **idoneidade moral**. A nomeação será considerada ilegítima nas hipóteses de inequívoca falta de razoabilidade — recrutamento ostensivo de pessoa sem qualquer aderência funcional à pasta — ou de **nepotismo cruzado**, configurado pela troca recíproca de nomeações entre autoridades com o objetivo de burlar a vedação.
 
-Avancemos para a aplicação ao caso concreto. O cargo de Secretário de Governo do Município de Potengi/CE foi instituído pela Lei Municipal nº 559/2025 e integra o primeiro escalão da administração municipal — circunstância que o caracteriza, à luz da jurisprudência consolidada, como cargo de natureza política.
+Avançando para a aplicação ao caso concreto. O cargo de Secretário de Governo do Município de Potengi/CE foi instituído pela Lei Municipal nº 559/2025 e integra o primeiro escalão da administração municipal — circunstância que o caracteriza, à luz da jurisprudência consolidada, como cargo de natureza política.
 
 O Sr. Pedrosa, cônjuge da Vice-Prefeita, possui formação em Administração Pública, o que indica qualificação técnica compatível com o cargo. Não constam nos autos elementos que apontem ausência de idoneidade moral.
 
@@ -69,7 +69,7 @@ c) Recomenda-se a anexação de certidões negativas de antecedentes criminais, 
 
 d) Recomenda-se verificação prévia da inexistência de nepotismo cruzado, mediante mapeamento das nomeações em curso na administração municipal envolvendo familiares de outras autoridades.
 
-É o parecer, submetido à superior consideração.
+É o parecer.
 </conclusao>
 
 <citacoes_verificar>
@@ -139,7 +139,7 @@ A vedação opera em registro **objetivo**. Independe de prova de favorecimento,
 
 Para entender em termos concretos: a Lei do MROSC não pergunta se a vereadora interferiu na execução; não pergunta se a OSC foi escolhida em chamamento público regular; não pergunta sequer se houve favorecimento subjetivo. A pergunta é estrutural — existe o vínculo? Se sim, há impedimento.
 
-Avancemos para a aplicação ao caso concreto. O dirigente da Associação ALIPE é cônjuge de vereadora do Município de Potengi/CE, conforme informado pela consulente. A vereadora é **membro de Poder** (Poder Legislativo Municipal), e a parceria seria celebrada na **mesma esfera governamental** (Município de Potengi/CE).
+Avançando para a aplicação ao caso concreto. O dirigente da Associação ALIPE é cônjuge de vereadora do Município de Potengi/CE, conforme informado pela consulente. A vereadora é **membro de Poder** (Poder Legislativo Municipal), e a parceria seria celebrada na **mesma esfera governamental** (Município de Potengi/CE).
 
 A hipótese subsume-se diretamente ao art. 39, inciso III, da Lei nº 13.019/2014. A vedação é integral — alcança qualquer modalidade de parceria prevista no MROSC, vale dizer, termo de fomento, termo de colaboração e acordo de cooperação. Não cabe, portanto, a celebração pretendida.
 
@@ -159,7 +159,7 @@ c) Recomenda-se à Secretaria consulente comunicar formalmente à Associação A
 
 d) Recomenda-se, em paralelo, a publicação do indeferimento administrativo, com fundamentação no art. 39, inciso III, da Lei nº 13.019/2014, em prevenção a eventual judicialização ou representação no Ministério Público.
 
-É o parecer, submetido à superior consideração.
+É o parecer.
 </conclusao>
 
 <citacoes_verificar>

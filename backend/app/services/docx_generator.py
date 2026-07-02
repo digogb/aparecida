@@ -567,8 +567,9 @@ def _adicionar_bloco_assinaturas(doc) -> None:
 
 
 def _adicionar_fecho(doc) -> None:
-    """'É o parecer, submetido à superior consideração.' — space_after = 6pt
-    para alinhar com o restante dos parágrafos de corpo (gabarito do escritório)."""
+    """'É o parecer.' — space_after = 6pt para alinhar com o restante dos
+    parágrafos de corpo (gabarito do escritório). Fecho enxuto por orientação
+    do Dr. Ione (auditoria jun/2026, item 3.2)."""
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     pf = p.paragraph_format
@@ -576,7 +577,7 @@ def _adicionar_fecho(doc) -> None:
     pf.space_before = Pt(12)
     pf.space_after = Pt(6)
     pf.line_spacing = ESPACAMENTO_LINHA_15
-    run = p.add_run("É o parecer, submetido à superior consideração.")
+    run = p.add_run("É o parecer.")
     _set_font(run)
 
 

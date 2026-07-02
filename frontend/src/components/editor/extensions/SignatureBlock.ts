@@ -20,7 +20,7 @@ import assinaturaIone from '../../../assets/assinatura-ione.png'
 
 export const signatureBlockPluginKey = new PluginKey('signatureBlock')
 
-const FECHO = 'É o parecer, submetido à superior consideração.'
+const FECHO = 'É o parecer.'
 
 const ADVOGADOS = {
   ione: ['FRANCISCO IONE PEREIRA LIMA', 'OAB-CE nº 4.585'],
@@ -74,7 +74,9 @@ function assinaturaSimples(nome: string, oab: string, extraClass = ''): HTMLElem
  *  isso pra NÃO duplicar a frase no bloco fixo. */
 function docHasFecho(doc: PmNode): boolean {
   const txt = (doc.textContent || '').toLowerCase()
-  return txt.includes('submetido à superior consideração')
+  // Cobre o fecho novo ("É o parecer.") e o legado ("...submetido à superior
+  // consideração.") — pareceres antigos no banco ainda têm o texto longo.
+  return txt.includes('é o parecer') || txt.includes('submetido à superior consideração')
 }
 
 function buildSignatureDom(dataLine: string, showFecho: boolean): HTMLElement {

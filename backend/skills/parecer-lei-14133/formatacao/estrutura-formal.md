@@ -236,7 +236,7 @@ Após as recomendações alfabéticas, antes do fechamento, vem o parágrafo de 
 ## 11. Fechamento canônico
 
 ```
-É o parecer, submetido à superior consideração.
+É o parecer.
 
 Este parecer expressa opinião técnica e não substitui a decisão final
 do gestor, que possui discricionariedade administrativa.

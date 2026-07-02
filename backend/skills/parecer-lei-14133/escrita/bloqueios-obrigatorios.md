@@ -111,7 +111,7 @@ e correção monetária.
 ✅ **EXIGIDO:**
 
 - Toda informação que se quer comunicar deve ser traduzida em **prosa fluida**
-- Se há três pressupostos a examinar, eles aparecem em prosa contínua: "O primeiro deles diz respeito a... Avancemos para o segundo... Resta o terceiro..."
+- Se há três pressupostos a examinar, eles aparecem em prosa contínua: "O primeiro deles diz respeito a... Avançando para o segundo... Resta o terceiro..."
 - Se há quatro etapas a executar, elas aparecem em prosa contínua: "Essa rota se desenvolve em três momentos sucessivos. O primeiro momento... O segundo momento... O terceiro momento..."
 
 **Justificativa:** em parecer consultivo bem-construído, o texto bem feito *já é* visual law. A estrutura argumentativa em si é o mapa de fundamentação. A paráfrase funcional é o quadro de enquadramento. A sequência de recomendações é o roteiro operacional. Acrescentar caixa visual é redundância, não complementaridade.
@@ -281,7 +281,7 @@ cada um deles.
 
 O primeiro deles diz respeito ao objeto da redução. [desenvolvimento]
 
-Avancemos, então, para o segundo pressuposto — a exigência de motivação
+Avançando, então, para o segundo pressuposto — a exigência de motivação
 individualizada. [desenvolvimento]
 
 Resta o terceiro pressuposto. [desenvolvimento]
