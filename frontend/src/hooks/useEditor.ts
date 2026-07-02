@@ -83,24 +83,38 @@ function getMarkedFragments(editor: ReturnType<typeof useTipTapEditor>): string[
   return fragments
 }
 
-/** Apply correctionMark to text fragments that match the given strings */
+/**
+ * Aplica o correctionMark aos trechos informados, casando de forma ROBUSTA:
+ * texto normalizado (aspas/traços/espaços/caixa) e atravessando nós/parágrafos —
+ * igual ao replaceTextInEditor. Antes o match era `indexOf` exato dentro de um
+ * único text node, então trechos com formatação, quebra ou pequena edição não
+ * eram realçados e a observação "sumia" (auditoria — Erro 5).
+ */
 function applyCorrectionsMarks(editor: ReturnType<typeof useTipTapEditor>, trechos: string[]) {
   if (!editor || trechos.length === 0) return
-  const { doc, tr } = editor.state
   const markType = editor.schema.marks.correctionMark
   if (!markType) return
 
-  doc.descendants((node, pos) => {
-    if (!node.isText || !node.text) return
-    for (const trecho of trechos) {
-      let idx = node.text.indexOf(trecho)
-      while (idx !== -1) {
-        tr.addMark(pos + idx, pos + idx + trecho.length, markType.create())
-        idx = node.text.indexOf(trecho, idx + trecho.length)
+  const { normText, normToPos } = buildNormalizedDocMap(editor)
+  const { tr } = editor.state
+  let applied = false
+
+  for (const trecho of trechos) {
+    const target = normalizeForMatch(trecho)
+    if (!target) continue
+    let idx = normText.indexOf(target)
+    while (idx !== -1) {
+      const from = normToPos[idx]
+      const to = normToPos[idx + target.length - 1] + 1
+      if (from < to) {
+        tr.addMark(from, to, markType.create())
+        applied = true
       }
+      idx = normText.indexOf(target, idx + target.length)
     }
-  })
-  editor.view.dispatch(tr)
+  }
+
+  if (applied) editor.view.dispatch(tr)
 }
 
 /** Remove all correctionMark marks from the entire document */
@@ -135,24 +149,15 @@ function normalizeForMatch(s: string): string {
 }
 
 /**
- * Find `originalText` in the editor (across text nodes, tolerating whitespace,
- * smart-quote/dash, and case differences) and replace with `newText`.
- * Returns true if the replacement happened.
+ * Constr\u00F3i o texto do documento normalizado (mesma normaliza\u00E7\u00E3o de normalizeForMatch,
+ * atravessando text nodes e tratando fronteira de bloco como espa\u00E7o) + um mapa
+ * `normToPos` de cada \u00EDndice-normalizado para a posi\u00E7\u00E3o ProseMirror real da fonte.
+ * Base compartilhada do matching robusto (marca\u00E7\u00E3o e substitui\u00E7\u00E3o).
  */
-function replaceTextInEditor(
+function buildNormalizedDocMap(
   editor: ReturnType<typeof useTipTapEditor>,
-  originalText: string,
-  newText: string,
-): boolean {
-  if (!editor || !originalText) return false
-
-  const target = normalizeForMatch(originalText)
-  if (!target) return false
-
-  const { doc } = editor.state
-
-  // Build normalized doc text with a map from each normalized-char index
-  // back to the real ProseMirror position of that character's source.
+): { normText: string; normToPos: number[] } {
+  const { doc } = editor!.state
   let normText = ''
   const normToPos: number[] = []
   let lastPos: number | null = null
@@ -168,7 +173,7 @@ function replaceTextInEditor(
       }
       return
     }
-    let ch = c
+    const ch = c
       .replace(/[\u201C\u201D\u201E\u201F\u2033]/g, '"')
       .replace(/[\u2018\u2019\u201A\u201B\u2032]/g, "'")
       .replace(/[\u2013\u2014\u2212]/g, '-')
@@ -185,8 +190,6 @@ function replaceTextInEditor(
       }
       lastPos = pos + node.text.length
     } else if (node.isBlock && lastPos !== null) {
-      // Block boundary: treat as whitespace so adjacent paragraphs concatenate
-      // with a single space in the normalized view.
       if (!prevWasSpace) {
         normText += ' '
         normToPos.push(lastPos)
@@ -195,11 +198,30 @@ function replaceTextInEditor(
     }
   })
 
-  // Trim trailing space
   while (normText.endsWith(' ')) {
     normText = normText.slice(0, -1)
     normToPos.pop()
   }
+
+  return { normText, normToPos }
+}
+
+/**
+ * Find `originalText` in the editor (across text nodes, tolerating whitespace,
+ * smart-quote/dash, and case differences) and replace with `newText`.
+ * Returns true if the replacement happened.
+ */
+function replaceTextInEditor(
+  editor: ReturnType<typeof useTipTapEditor>,
+  originalText: string,
+  newText: string,
+): boolean {
+  if (!editor || !originalText) return false
+
+  const target = normalizeForMatch(originalText)
+  if (!target) return false
+
+  const { normText, normToPos } = buildNormalizedDocMap(editor)
 
   const matchIdx = normText.indexOf(target)
   if (matchIdx === -1) return false
