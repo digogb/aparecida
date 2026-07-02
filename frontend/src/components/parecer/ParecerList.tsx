@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
-import { usePareceres } from '../../hooks/useParecer'
+import { usePareceres, PARECERES_PAGE_SIZE } from '../../hooks/useParecer'
 import { fetchPareceresOverview } from '../../services/dashboardApi'
 import type { ParecerFiltersState } from '../../types/parecer'
 import ParecerCard from './ParecerCard'
@@ -19,12 +19,19 @@ const METRICS = [
 
 export default function ParecerList() {
   const [filters, setFilters] = useState<ParecerFiltersState>(EMPTY)
+  const [page, setPage] = useState(0)
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { data, isLoading, isError } = usePareceres(filters)
+  const { data, isLoading, isError } = usePareceres(filters, page)
+
+  // Trocar de filtro volta para a primeira página (o offset antigo não faz sentido no novo recorte).
+  function handleFiltersChange(next: ParecerFiltersState) {
+    setFilters(next)
+    setPage(0)
+  }
   // Métricas vêm do mesmo endpoint server-side do dashboard (base inteira, não a página) —
   // mesma queryKey, então compartilha cache e fica consistente com a tela de Dashboard.
   const { data: overview } = useQuery({
@@ -131,7 +138,7 @@ export default function ParecerList() {
 
       {/* Filters */}
       <div className="animate-fade-up" style={{ animationDelay: '180ms' }}>
-        <ParecerFilters filters={filters} onChange={setFilters} />
+        <ParecerFilters filters={filters} onChange={handleFiltersChange} />
       </div>
 
       {/* List */}
@@ -155,6 +162,36 @@ export default function ParecerList() {
           </div>
         ))}
       </div>
+
+      {/* Paginação — backend devolve total; PAGE_SIZE por página (Checklist item 16). */}
+      {!isError && (data?.total ?? 0) > PARECERES_PAGE_SIZE && (
+        <div className="flex items-center justify-between pt-1">
+          <span className="text-sm" style={{ color: '#A69B8D' }}>
+            {`${page * PARECERES_PAGE_SIZE + 1}–${Math.min((page + 1) * PARECERES_PAGE_SIZE, data?.total ?? 0)} de ${data?.total ?? 0}`}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-150 hover:brightness-[0.97] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE', color: '#6B6860' }}
+            >
+              Anterior
+            </button>
+            <span className="text-sm tabular-nums" style={{ color: '#6B6860' }}>
+              {`${page + 1} / ${Math.max(1, Math.ceil((data?.total ?? 0) / PARECERES_PAGE_SIZE))}`}
+            </span>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={(page + 1) * PARECERES_PAGE_SIZE >= (data?.total ?? 0)}
+              className="px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-150 hover:brightness-[0.97] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE', color: '#6B6860' }}
+            >
+              Próxima
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

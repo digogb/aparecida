@@ -4,11 +4,15 @@ import type { ParecerFiltersState } from '../types/parecer'
 
 const PROCESSING = new Set(['pendente', 'classificado'])
 
-export function usePareceres(filters: ParecerFiltersState) {
+export const PARECERES_PAGE_SIZE = 20
+
+export function usePareceres(filters: ParecerFiltersState, page = 0) {
   return useQuery({
-    queryKey: ['pareceres', filters],
-    queryFn: () => fetchPareceres(filters),
+    queryKey: ['pareceres', filters, page],
+    queryFn: () => fetchPareceres(filters, PARECERES_PAGE_SIZE, page * PARECERES_PAGE_SIZE),
     staleTime: 30_000,
+    // Mantém a página anterior visível durante a troca (evita "piscar" a lista).
+    placeholderData: (previousData) => previousData,
     refetchInterval: (query) => {
       const items = query.state.data?.items ?? []
       return items.some(p => PROCESSING.has(p.status)) ? 3000 : false
