@@ -72,6 +72,20 @@ export async function applyCorrection(
   return data
 }
 
+/** Correção por trecho selecionado (auditoria — Erro 3): reescreve só o trecho,
+ *  sem tocar no resto do documento. Retorna o texto corrigido do trecho. */
+export async function correctSelection(
+  parecerId: string,
+  trecho: string,
+  instrucao: string
+): Promise<string> {
+  const { data } = await api.post<{ corrigido: string }>(
+    `/api/parecer-requests/${parecerId}/correct-selection`,
+    { trecho, instrucao }
+  )
+  return data.corrigido
+}
+
 export async function restoreVersion(
   parecerId: string,
   versionId: string

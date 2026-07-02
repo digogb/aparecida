@@ -22,7 +22,12 @@ from app.services.auditor_mecanico import (
     format_revision_instructions,
 )
 from app.services.content_assembler import extract_body_section
-from app.services.parecer_ai_service import classify_email, generate_parecer, revise_parecer
+from app.services.parecer_ai_service import (
+    classify_email,
+    correct_selection as _ai_correct_selection,
+    generate_parecer,
+    revise_parecer,
+)
 from app.services.parecer_html_service import render_parecer_html, parse_parecer_xml
 from app.services.prompt_service import get_prompt_version
 
@@ -696,6 +701,31 @@ async def preview_correction(
         "notas_revisor": novas_notas,
         "citacoes_verificar": revisao.get("citacoes_verificar") or [],
     }
+
+
+async def correct_selection(
+    parecer_request_id: str, trecho: str, instrucao: str, db: AsyncSession,
+) -> str:
+    """Correção pontual de um trecho selecionado (auditoria — Erro 3).
+
+    Valida que o parecer existe (para 404) e delega ao serviço de IA, que reescreve
+    apenas o trecho. A substituição no documento é feita no editor (frontend), sobre
+    o range selecionado — sem reescrever/recarregar o parecer inteiro.
+    """
+    result = await db.execute(
+        select(ParecerRequest.id).where(ParecerRequest.id == parecer_request_id)
+    )
+    if result.first() is None:
+        raise ValueError(f"ParecerRequest {parecer_request_id} nao encontrado")
+
+    trecho = (trecho or "").strip()
+    instrucao = (instrucao or "").strip()
+    if not trecho:
+        raise ValueError("Trecho vazio")
+    if not instrucao:
+        raise ValueError("Instrução vazia")
+
+    return await _ai_correct_selection(trecho, instrucao)
 
 
 async def apply_correction(

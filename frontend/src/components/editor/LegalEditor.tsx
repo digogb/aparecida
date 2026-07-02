@@ -4,6 +4,7 @@ import { EditorContent } from '@tiptap/react'
 import { useParecer } from '../../hooks/useParecer'
 import { useEditorInstance } from '../../hooks/useEditor'
 import type { CorrectionPreview, PeerReviewRespondPayload } from '../../services/editorApi'
+import { correctSelection } from '../../services/editorApi'
 import type { PeerReviewListItem, RespostaTrecho } from '../../types/parecer'
 import EditorToolbar from './EditorToolbar'
 import EditorSidebar from './EditorSidebar'
@@ -19,6 +20,166 @@ const SECTION_LABELS: Record<string, string> = {
   relatorio: 'I — Relatório',
   fundamentos: 'II — Fundamentos',
   conclusao: 'III — Conclusão',
+}
+
+const TEMA_LABELS: Record<string, string> = {
+  licitacao: 'Licitação',
+  administrativo: 'Administrativo geral',
+}
+
+/** Correção por trecho selecionado (auditoria — Erro 3). Mostra o trecho selecionado,
+ *  coleta a instrução e aplica a correção apenas naquele trecho (sem reescrever tudo). */
+function SelectionCorrectionModal({
+  trecho,
+  isApplying,
+  onApply,
+  onClose,
+}: {
+  trecho: string
+  isApplying?: boolean
+  onApply: (instrucao: string) => void
+  onClose: () => void
+}) {
+  const [instrucao, setInstrucao] = useState('')
+  const podeAplicar = instrucao.trim().length > 0 && !isApplying
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(27,40,56,0.5)' }}>
+      <div className="rounded-2xl w-full max-w-lg overflow-hidden" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}>
+        <div className="px-6 py-4" style={{ borderBottom: '1px solid #EDE8DF' }}>
+          <h3 className="text-base font-semibold" style={{ color: '#0A1120' }}>Corrigir trecho selecionado</h3>
+          <p className="text-sm mt-0.5" style={{ color: '#A69B8D' }}>
+            A IA reescreve apenas o trecho selecionado. O restante do documento é preservado.
+          </p>
+        </div>
+
+        <div className="px-6 py-4 space-y-3">
+          <div>
+            <div className="text-xs font-medium uppercase tracking-widest mb-1" style={{ color: '#A69B8D' }}>Trecho selecionado</div>
+            <div
+              className="text-sm leading-relaxed whitespace-pre-wrap rounded-xl px-3 py-2 max-h-40 overflow-auto"
+              style={{ color: '#0A1120', background: '#FFFFFF', border: '1px solid #EDE8DF' }}
+            >
+              {trecho}
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium uppercase tracking-widest mb-1 block" style={{ color: '#A69B8D' }}>
+              Instrução de correção
+            </label>
+            <textarea
+              autoFocus
+              value={instrucao}
+              onChange={(e) => setInstrucao(e.target.value)}
+              placeholder="Ex.: deixar mais conciso; corrigir a citação do art. 107; trocar o conectivo de abertura…"
+              rows={3}
+              className="w-full text-sm rounded-xl px-3 py-2 resize-none outline-none"
+              style={{ color: '#0A1120', background: '#FFFFFF', border: '1px solid #E0D9CE' }}
+            />
+          </div>
+        </div>
+
+        <div className="px-6 py-4 flex items-center justify-end gap-2" style={{ borderTop: '1px solid #EDE8DF' }}>
+          <button
+            onClick={onClose}
+            disabled={isApplying}
+            className="px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer disabled:opacity-50"
+            style={{ background: '#EDE8DF', color: '#6B6860' }}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => onApply(instrucao.trim())}
+            disabled={!podeAplicar}
+            className="px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            style={{ background: '#5B7553', color: '#FAF8F5' }}
+          >
+            {isApplying && <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+            {isApplying ? 'Corrigindo...' : 'Aplicar correção'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Diálogo de confirmação antes de enviar o parecer por e-mail (ação irreversível).
+ *  Mostra destinatário, assunto e um resumo (nº do parecer, município, tema). */
+function SendConfirmModal({
+  destinatario,
+  assunto,
+  numeroParecer,
+  municipio,
+  tema,
+  isSending,
+  onConfirm,
+  onCancel,
+}: {
+  destinatario: string | null
+  assunto: string
+  numeroParecer: string | null
+  municipio?: string | null
+  tema: string | null
+  isSending?: boolean
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  const semDestinatario = !destinatario
+  const resumo = [numeroParecer, municipio, tema ? (TEMA_LABELS[tema] || tema) : null]
+    .filter(Boolean)
+    .join(' · ')
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(27,40,56,0.5)' }}>
+      <div className="rounded-2xl w-full max-w-md overflow-hidden" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}>
+        <div className="px-6 py-4" style={{ borderBottom: '1px solid #EDE8DF' }}>
+          <h3 className="text-base font-semibold" style={{ color: '#0A1120' }}>Confirmar envio do parecer</h3>
+          <p className="text-sm mt-0.5" style={{ color: '#A69B8D' }}>
+            Esta ação envia o parecer por e-mail ao remetente. É irreversível.
+          </p>
+        </div>
+
+        <div className="px-6 py-4 space-y-3">
+          <div>
+            <div className="text-xs font-medium uppercase tracking-widest mb-1" style={{ color: '#A69B8D' }}>Destinatário</div>
+            <div className="text-sm" style={{ color: semDestinatario ? '#8B2332' : '#0A1120' }}>
+              {destinatario || 'Sem e-mail de remetente — envio indisponível'}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs font-medium uppercase tracking-widest mb-1" style={{ color: '#A69B8D' }}>Assunto</div>
+            <div className="text-sm" style={{ color: '#0A1120' }}>{assunto}</div>
+          </div>
+          {resumo && (
+            <div>
+              <div className="text-xs font-medium uppercase tracking-widest mb-1" style={{ color: '#A69B8D' }}>Resumo</div>
+              <div className="text-sm" style={{ color: '#6B6860' }}>{resumo}</div>
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 py-4 flex items-center justify-end gap-2" style={{ borderTop: '1px solid #EDE8DF' }}>
+          <button
+            onClick={onCancel}
+            disabled={isSending}
+            className="px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer disabled:opacity-50"
+            style={{ background: '#EDE8DF', color: '#6B6860' }}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isSending || semDestinatario}
+            className="px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            style={{ background: '#142038', color: '#FAF8F5' }}
+          >
+            {isSending && <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+            Confirmar envio
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function CorrectionModal({
@@ -500,6 +661,40 @@ export default function LegalEditor() {
   const [searchTerm, setSearchTerm] = useState('')
   const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false)
   const [showRuler, setShowRuler] = useState(true)
+  // Confirmação antes de enviar o parecer por e-mail (ação irreversível — auditoria item D)
+  const [showSendConfirm, setShowSendConfirm] = useState(false)
+  // Correção por trecho selecionado (auditoria — Erro 3): reescreve só a seleção
+  const [selectionCorrection, setSelectionCorrection] = useState<
+    { from: number; to: number; trecho: string } | null
+  >(null)
+  const [isCorrectingSelection, setIsCorrectingSelection] = useState(false)
+
+  const handleOpenSelectionCorrection = useCallback(() => {
+    if (!editor) return
+    const { from, to } = editor.state.selection
+    if (from === to) return // seleção vazia
+    const trecho = editor.state.doc.textBetween(from, to, '\n').trim()
+    if (!trecho) return
+    setSelectionCorrection({ from, to, trecho })
+  }, [editor])
+
+  const handleApplySelectionCorrection = useCallback(
+    async (instrucao: string) => {
+      if (!editor || !selectionCorrection || !id) return
+      setIsCorrectingSelection(true)
+      try {
+        const corrigido = await correctSelection(id, selectionCorrection.trecho, instrucao)
+        const { from, to } = selectionCorrection
+        // Substitui APENAS o range selecionado — preserva o resto do documento
+        // (edições manuais e demais trechos). Não recarrega/reescreve tudo.
+        editor.chain().focus().insertContentAt({ from, to }, corrigido).run()
+        setSelectionCorrection(null)
+      } finally {
+        setIsCorrectingSelection(false)
+      }
+    },
+    [editor, selectionCorrection, id]
+  )
 
   const searchResults = editor?.storage.searchHighlight?.results ?? 0
 
@@ -615,6 +810,7 @@ export default function LegalEditor() {
               onCloseSearch={() => { setShowSearch(false); setSearchTerm(''); editor?.commands.setSearchTerm('') }}
               showRuler={showRuler}
               onToggleRuler={() => setShowRuler((v) => !v)}
+              onCorrectSelection={handleOpenSelectionCorrection}
             />
           )}
 
@@ -760,7 +956,7 @@ export default function LegalEditor() {
             )}
             {parecer.status !== 'enviado' && (
               <button
-                onClick={() => handleApproveWithLoading(true)}
+                onClick={() => setShowSendConfirm(true)}
                 disabled={isSubmitting || isReprocessing || isGenerating}
                 className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 style={{ background: '#142038', color: '#FAF8F5' }}
@@ -823,6 +1019,33 @@ export default function LegalEditor() {
           onApplySuggestion={handleApplySuggestion}
           onDismiss={handleDismissCompletedReview}
           onClose={handleCloseCompletedReview}
+        />
+      )}
+
+      {/* Confirmação de envio por e-mail (auditoria item D) */}
+      {showSendConfirm && (
+        <SendConfirmModal
+          destinatario={parecer.sender_email}
+          assunto={`Re: ${parecer.subject || 'Parecer Jurídico'}`}
+          numeroParecer={parecer.numero_parecer}
+          municipio={parecer.municipio_nome}
+          tema={parecer.tema}
+          isSending={isSubmitting}
+          onCancel={() => setShowSendConfirm(false)}
+          onConfirm={() => {
+            setShowSendConfirm(false)
+            handleApproveWithLoading(true)
+          }}
+        />
+      )}
+
+      {/* Correção por trecho selecionado (auditoria — Erro 3) */}
+      {selectionCorrection && (
+        <SelectionCorrectionModal
+          trecho={selectionCorrection.trecho}
+          isApplying={isCorrectingSelection}
+          onApply={handleApplySelectionCorrection}
+          onClose={() => setSelectionCorrection(null)}
         />
       )}
     </div>

@@ -24,6 +24,15 @@ from app.schemas.parecer_version import (
 class VersionUpdateIn(BaseModel):
     content_html: str
     content_tiptap: Optional[dict] = None
+
+
+class CorrectSelectionIn(BaseModel):
+    trecho: str
+    instrucao: str
+
+
+class CorrectSelectionOut(BaseModel):
+    corrigido: str
 from app.services import classifier, parecer_engine
 
 PREFIX = "/api"
@@ -129,6 +138,28 @@ async def apply_correction(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return ParecerVersionDetail.model_validate(version)
+
+
+@router.post(
+    "/parecer-requests/{id}/correct-selection",
+    response_model=CorrectSelectionOut,
+)
+async def correct_selection(
+    id: uuid.UUID,
+    body: CorrectSelectionIn,
+    db: AsyncSession = Depends(get_db),
+) -> CorrectSelectionOut:
+    """Correção por trecho selecionado (auditoria — Erro 3): reescreve só o trecho,
+    sem tocar no resto do documento. O editor substitui apenas a seleção."""
+    try:
+        corrigido = await parecer_engine.correct_selection(
+            str(id), body.trecho, body.instrucao, db
+        )
+    except ValueError as e:
+        msg = str(e)
+        status = 404 if "nao encontrado" in msg else 400
+        raise HTTPException(status_code=status, detail=msg)
+    return CorrectSelectionOut(corrigido=corrigido)
 
 
 @router.get(

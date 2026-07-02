@@ -825,3 +825,46 @@ async def revise_parecer(
         )
 
     return parse_parecer_xml(raw)
+
+
+async def correct_selection(trecho: str, instrucao: str) -> str:
+    """Correção PONTUAL de um trecho selecionado do parecer (auditoria — Erro 3).
+
+    Reescreve APENAS o trecho conforme a instrução, preservando o estilo autoral,
+    e devolve só o texto corrigido (texto puro). Não toca no resto do documento —
+    o editor substitui apenas o range selecionado, sem reescrever/recarregar tudo.
+    Sem web_search (correção de redação/forma — rápida e barata)."""
+    system_prompt = (
+        "Você é o parecerista revisor do escritório Advocacia & Assessoria — Dr. Francisco "
+        "Ione Pereira Lima. Recebe um TRECHO de um parecer jurídico já redigido e uma "
+        "INSTRUÇÃO de correção. Reescreva APENAS o trecho, aplicando a instrução e "
+        "preservando o estilo autoral do escritório: prosa contínua, sem subdivisão numerada, "
+        "sem bullets, conectivos de abertura variados (não repetir 'Há'), sem juridiquês "
+        "arcaico (destarte, outrossim, data venia decorativos).\n"
+        "Regras de saída (obrigatórias):\n"
+        "- Responda SOMENTE com o texto corrigido do trecho — sem aspas, sem rótulos, sem "
+        "comentários, sem explicações, sem preâmbulo.\n"
+        "- Mantenha o português e o registro técnico-institucional.\n"
+        "- Não acrescente conteúdo novo além do que a instrução pede; não reescreva o que não "
+        "foi pedido; preserve a extensão aproximada do trecho.\n"
+        "- Preserve marcadores [REVISAR — ...] / [!VERIFICAR: ... !] existentes no trecho, salvo "
+        "se a instrução mandar resolvê-los."
+    )
+    user_message = (
+        "## TRECHO A CORRIGIR\n"
+        f"{trecho}\n\n"
+        "## INSTRUÇÃO\n"
+        f"{instrucao}\n\n"
+        "Reescreva o trecho conforme a instrução. Responda apenas com o texto corrigido."
+    )
+    user_message = _truncate(user_message, MAX_USER_CONTENT_CHARS)
+
+    async with _sonnet_semaphore:
+        raw = await _call_api(
+            model=MODEL_P2_P3,
+            system=system_prompt,
+            user_message=user_message,
+            max_tokens=2000,
+            stage="P3-trecho",
+        )
+    return raw.strip()
