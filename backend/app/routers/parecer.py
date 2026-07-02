@@ -3,20 +3,24 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import jwt
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.config import settings
 from app.database import get_db
 from app.models.parecer import (
     Attachment,
-    ExtractionStatus,
+    PeerReview,
     ParecerRequest,
     ParecerStatus,
     ParecerStatusHistory,
     ParecerTema,
     ParecerVersion,
+    ExtractionStatus,
     VersionSource,
 )
 from app.services.notification import parecer_ws_manager
@@ -26,6 +30,21 @@ TAGS = ["parecer"]
 
 router = APIRouter()
 ws_router = APIRouter()
+
+bearer = HTTPBearer(auto_error=False)
+_JWT_ALG = "HS256"
+
+
+def _require_admin(credentials: HTTPAuthorizationCredentials | None) -> None:
+    """Garante que o requisitante é admin (validação server-side, não só no front)."""
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="Nao autenticado")
+    try:
+        payload = jwt.decode(credentials.credentials, settings.JWT_SECRET, algorithms=[_JWT_ALG])
+    except Exception:
+        raise HTTPException(status_code=401, detail="Token invalido")
+    if payload.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Apenas administradores podem excluir pareceres")
 
 
 @ws_router.websocket("/ws/pareceres")
@@ -289,7 +308,12 @@ async def reprocess_parecer(
 async def delete_parecer(
     id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
 ) -> None:
+    """Exclui um parecer. Restrito a administradores (auditoria — Erro 1) e vedado
+    para pareceres já enviados."""
+    _require_admin(credentials)
+
     result = await db.execute(
         select(ParecerRequest).where(ParecerRequest.id == id)
     )
@@ -297,6 +321,14 @@ async def delete_parecer(
     if not item:
         raise HTTPException(status_code=404, detail="Parecer nao encontrado")
 
+    if item.status == ParecerStatus.enviado:
+        raise HTTPException(status_code=400, detail="Nao e possivel excluir um parecer ja enviado")
+
+    # Apaga filhos antes do pai (peer_reviews inclusa — senao viola FK ao excluir
+    # pareceres que passaram por revisao entre pares).
+    await db.execute(
+        PeerReview.__table__.delete().where(PeerReview.request_id == id)
+    )
     await db.execute(
         ParecerVersion.__table__.delete().where(ParecerVersion.request_id == id)
     )

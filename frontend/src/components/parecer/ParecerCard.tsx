@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import type { ParecerRequest, ParecerStatus, ParecerTema } from '../../types/parecer'
 import { deleteParecer, reprocessParecer } from '../../services/parecerApi'
+import { useCurrentUser } from '../../hooks/useCurrentUser'
 
 const STATUS: Record<ParecerStatus, { label: string; color: string }> = {
   pendente:     { label: 'Pendente',           color: '#C9A94E' },
@@ -21,7 +23,8 @@ const TEMA: Record<NonNullable<ParecerTema>, { label: string; color: string }> =
   administrativo: { label: 'Administrativo geral', color: '#6B6860' },
 }
 
-const DELETABLE_STATUSES: ParecerStatus[] = ['devolvido', 'erro']
+// devolvido/erro não geram versão — não abrem no editor (mostrariam doc vazio).
+const NON_EDITABLE_STATUSES: ParecerStatus[] = ['devolvido', 'erro']
 
 export default function ParecerCard({
   parecer,
@@ -32,24 +35,28 @@ export default function ParecerCard({
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { data: currentUser } = useCurrentUser()
   const [deleting, setDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [reprocessing, setReprocessing] = useState(false)
   const s = STATUS[parecer.status]
   const t = parecer.tema ? TEMA[parecer.tema] : null
-  // devolvido/erro não geram versão de parecer — abrir o editor mostraria só a assinatura
-  // sobre um documento vazio. Esses cards já exibem o motivo inline e o botão de excluir.
-  const openable = !DELETABLE_STATUSES.includes(parecer.status)
+  const openable = !NON_EDITABLE_STATUSES.includes(parecer.status)
+  // Exclusão liberada ao ADMIN para qualquer parecer não enviado (auditoria — Erro 1).
+  // A permissão também é validada no servidor (DELETE só passa com role admin).
+  const canDelete = currentUser?.role === 'admin' && parecer.status !== 'enviado'
   const date = new Date(parecer.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
   const enviadoEm = parecer.status === 'enviado' && parecer.updated_at
     ? new Date(parecer.updated_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     : null
 
-  async function handleDelete(e: React.MouseEvent) {
-    e.stopPropagation()
-    if (!confirm('Excluir este email permanentemente?')) return
+  const rotuloParecer = parecer.numero_parecer || parecer.subject || 'este parecer'
+
+  async function confirmDelete() {
     setDeleting(true)
     try {
       await deleteParecer(parecer.id)
+      setShowDeleteConfirm(false)
       await queryClient.invalidateQueries({ queryKey: ['pareceres'] })
       await queryClient.invalidateQueries({ queryKey: ['dashboard', 'pareceres-overview'] })
     } finally {
@@ -125,9 +132,9 @@ export default function ParecerCard({
               )}
             </button>
           )}
-          {DELETABLE_STATUSES.includes(parecer.status) && (
+          {canDelete && (
             <button
-              onClick={handleDelete}
+              onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true) }}
               disabled={deleting}
               title="Excluir"
               className="p-1.5 rounded-lg transition-all duration-150 hover:brightness-[0.92] disabled:opacity-50 cursor-pointer"
@@ -169,6 +176,53 @@ export default function ParecerCard({
             {parecer.motivo}
           </span>
         </div>
+      )}
+
+      {/* Confirmação de exclusão — padrão de modal do sistema (auditoria — Erro 1).
+          Renderizado via portal no body: a lista tem ancestral com `transform`
+          (animate-fade-up), o que prenderia um `position: fixed` ao card. */}
+      {showDeleteConfirm && createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          style={{ background: 'rgba(27,40,56,0.5)' }}
+          onClick={(e) => { e.stopPropagation(); if (!deleting) setShowDeleteConfirm(false) }}
+        >
+          <div
+            className="rounded-2xl w-full max-w-md overflow-hidden cursor-default"
+            style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4" style={{ borderBottom: '1px solid #EDE8DF' }}>
+              <h3 className="text-base font-semibold" style={{ color: '#0A1120' }}>Excluir parecer</h3>
+              <p className="text-sm mt-0.5" style={{ color: '#A69B8D' }}>Esta ação é permanente e não pode ser desfeita.</p>
+            </div>
+            <div className="px-6 py-4">
+              <p className="text-sm" style={{ color: '#0A1120' }}>
+                Tem certeza que deseja excluir <span className="font-semibold">{rotuloParecer}</span>?
+              </p>
+            </div>
+            <div className="px-6 py-4 flex items-center justify-end gap-2" style={{ borderTop: '1px solid #EDE8DF' }}>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer disabled:opacity-50"
+                style={{ background: '#EDE8DF', color: '#6B6860' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                style={{ background: '#8B2332', color: '#FAF8F5' }}
+              >
+                {deleting && <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+                {deleting ? 'Excluindo...' : 'Excluir'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   )
