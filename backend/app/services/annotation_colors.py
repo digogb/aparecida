@@ -7,8 +7,10 @@ fallback (estável por autor). As cores são tons pastel para não competir com 
 
 # Chaveado por e-mail (minúsculo). Inclui os e-mails reais de prod e os seeds antigos.
 _BY_EMAIL: dict[str, str] = {
-    "dr.ione@uol.com.br": "#FDE68A",          # amarelo — Dr. Ione
-    "matheuspl20@hotmail.com": "#BFDBFE",     # azul-claro — Matheus
+    "dr.ione@uol.com.br": "#FDE68A",          # amarelo — Dr. Ione (prod)
+    "francisco@ione.adv.br": "#FDE68A",       # amarelo — Dr. Ione (HML)
+    "matheuspl20@hotmail.com": "#BFDBFE",     # azul-claro — Matheus (prod)
+    "matheus@ione.adv.br": "#BFDBFE",         # azul-claro — Matheus (HML)
     "flavio@ione.adv.br": "#BBF7D0",          # verde — Flávio
     "flaviolona@uol.com.br": "#BBF7D0",
     "valeria@ione.adv.br": "#DDD6FE",         # roxo — Valéria
