@@ -120,8 +120,10 @@ export async function exportParecer(
 
 // ── Peer Review ──────────────────────────────────────────────────────────────
 
-export async function fetchLawyers(): Promise<Lawyer[]> {
-  const { data } = await api.get<Lawyer[]>('/api/users/lawyers')
+export async function fetchLawyers(includeSelf = false): Promise<Lawyer[]> {
+  const { data } = await api.get<Lawyer[]>('/api/users/lawyers', {
+    params: includeSelf ? { include_self: true } : undefined,
+  })
   return data
 }
 

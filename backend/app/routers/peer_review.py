@@ -9,7 +9,7 @@ import unicodedata
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt
 from sqlalchemy import func, select
@@ -303,18 +303,21 @@ async def _load_peer_review(
 
 @router.get("/users/lawyers", response_model=list[UserOut])
 async def list_lawyers(
+    include_self: bool = Query(default=False),
     credentials: HTTPAuthorizationCredentials = Depends(bearer),
     db: AsyncSession = Depends(get_db),
 ) -> list[UserOut]:
-    """Retorna todos os advogados ativos (excluindo o usuário atual)."""
+    """Advogados/admins ativos. Por padrão exclui o usuário atual (uso do peer review,
+    onde não se pede revisão a si mesmo); `include_self=true` retorna todos, incluindo o
+    próprio usuário (usado no filtro "Enviado por" da lista de pareceres)."""
     current_user_id = _require_user_id(credentials)
-    result = await db.execute(
-        select(User).where(
-            User.is_active == True,
-            User.role.in_([UserRole.advogado, UserRole.admin]),
-            User.id != uuid.UUID(current_user_id),
-        ).order_by(User.name)
-    )
+    filters = [
+        User.is_active == True,
+        User.role.in_([UserRole.advogado, UserRole.admin]),
+    ]
+    if not include_self:
+        filters.append(User.id != uuid.UUID(current_user_id))
+    result = await db.execute(select(User).where(*filters).order_by(User.name))
     return list(result.scalars().all())
 
 

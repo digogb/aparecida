@@ -34,8 +34,8 @@ export default function ParecerFilters({ filters, onChange }: {
     staleTime: 5 * 60_000,
   })
   const { data: lawyers = [] } = useQuery({
-    queryKey: ['lawyers'],
-    queryFn: fetchLawyers,
+    queryKey: ['lawyers', 'all'],
+    queryFn: () => fetchLawyers(true),
     staleTime: 5 * 60_000,
   })
 
@@ -68,11 +68,11 @@ export default function ParecerFilters({ filters, onChange }: {
           <select
             value={filters.municipio}
             onChange={e => onChange({ ...filters, municipio: e.target.value })}
-            className="rounded-lg px-2.5 py-1.5 text-sm focus:outline-none cursor-pointer capitalize"
+            className="rounded-lg px-2.5 py-1.5 text-sm focus:outline-none cursor-pointer"
             style={selectStyle}
           >
             <option value="">Município: todos</option>
-            {municipios.map(m => <option key={m} value={m} className="capitalize">{m.toLowerCase()}</option>)}
+            {municipios.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         )}
 
