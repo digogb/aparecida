@@ -163,6 +163,7 @@ async def list_parecer_requests(
     tema: Optional[ParecerTema] = Query(default=None),
     municipio: Optional[str] = Query(default=None),
     remetente: Optional[str] = Query(default=None),
+    enviado_por: Optional[uuid.UUID] = Query(default=None),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_db),
@@ -179,6 +180,16 @@ async def list_parecer_requests(
         )
     if remetente is not None:
         base_filters.append(ParecerRequest.sender_email.ilike(f"%{remetente}%"))
+    if enviado_por is not None:
+        # Pareceres cujo envio (transição para 'enviado') foi feito por este advogado.
+        base_filters.append(
+            ParecerRequest.id.in_(
+                select(ParecerStatusHistory.request_id).where(
+                    ParecerStatusHistory.to_status == ParecerStatus.enviado,
+                    ParecerStatusHistory.changed_by == enviado_por,
+                )
+            )
+        )
 
     count_query = select(func.count()).select_from(ParecerRequest).where(*base_filters)
     total_result = await db.execute(count_query)

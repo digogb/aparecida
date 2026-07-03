@@ -73,6 +73,8 @@ export interface ParecerFiltersState {
   status: ParecerStatus | ''
   tema: ParecerTema | ''
   municipio: string
+  /** id do advogado que enviou o parecer (filtra pela transição para 'enviado'). */
+  enviado_por: string
   remetente: string
 }
 

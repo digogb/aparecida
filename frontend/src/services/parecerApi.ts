@@ -10,6 +10,7 @@ export async function fetchPareceres(
   if (filters.status) params.status = filters.status
   if (filters.tema) params.tema = filters.tema
   if (filters.municipio) params.municipio = filters.municipio
+  if (filters.enviado_por) params.enviado_por = filters.enviado_por
   if (filters.remetente) params.remetente = filters.remetente
   const { data } = await api.get<ParecerListResponse>('/api/parecer-requests', { params })
   return data

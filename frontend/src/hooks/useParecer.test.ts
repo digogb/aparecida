@@ -13,7 +13,7 @@ function makeWrapper() {
 describe('usePareceres', () => {
   it('começa carregando e entrega lista após fetch', async () => {
     const { result } = renderHook(
-      () => usePareceres({ status: '', tema: '', municipio: '', remetente: '' }),
+      () => usePareceres({ status: '', tema: '', municipio: '', enviado_por: '', remetente: '' }),
       { wrapper: makeWrapper() },
     )
 
@@ -27,7 +27,7 @@ describe('usePareceres', () => {
 
   it('configura refetchInterval apenas quando há pareceres em processamento', async () => {
     const { result } = renderHook(
-      () => usePareceres({ status: 'pendente', tema: '', municipio: '', remetente: '' }),
+      () => usePareceres({ status: 'pendente', tema: '', municipio: '', enviado_por: '', remetente: '' }),
       { wrapper: makeWrapper() },
     )
 

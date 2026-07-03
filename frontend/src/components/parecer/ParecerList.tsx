@@ -8,7 +8,7 @@ import type { ParecerFiltersState } from '../../types/parecer'
 import ParecerCard from './ParecerCard'
 import ParecerFilters from './ParecerFilters'
 
-const EMPTY: ParecerFiltersState = { status: '', tema: '', municipio: '', remetente: '' }
+const EMPTY: ParecerFiltersState = { status: '', tema: '', municipio: '', enviado_por: '', remetente: '' }
 
 const METRICS = [
   { key: 'total', label: 'Total',              tone: '#0A1120' },

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { ParecerFiltersState, ParecerStatus, ParecerTema } from '../../types/parecer'
 import { fetchMunicipios } from '../../services/parecerApi'
+import { fetchLawyers } from '../../services/editorApi'
 
 const STATUS_OPTIONS: { value: ParecerStatus; label: string; color: string }[] = [
   { value: 'gerado',      label: 'Aguardando revisão', color: '#A69B8D' },
@@ -23,14 +24,20 @@ export default function ParecerFilters({ filters, onChange }: {
   const toggleStatus    = (v: ParecerStatus) => onChange({ ...filters, status: filters.status === v ? '' : v })
   const toggleTema      = (v: ParecerTema)   => onChange({ ...filters, tema:   filters.tema   === v ? '' : v })
   const toggleMunicipio = (v: string)        => onChange({ ...filters, municipio: filters.municipio === v ? '' : v })
+  const toggleEnviadoPor = (v: string)       => onChange({ ...filters, enviado_por: filters.enviado_por === v ? '' : v })
 
   const { data: municipios = [] } = useQuery({
     queryKey: ['parecer-municipios'],
     queryFn: fetchMunicipios,
     staleTime: 5 * 60_000,
   })
+  const { data: lawyers = [] } = useQuery({
+    queryKey: ['lawyers'],
+    queryFn: fetchLawyers,
+    staleTime: 5 * 60_000,
+  })
 
-  const hasActiveFilter = !!(filters.status || filters.tema || filters.municipio || filters.remetente)
+  const hasActiveFilter = !!(filters.status || filters.tema || filters.municipio || filters.enviado_por || filters.remetente)
   // No mobile o grid começa fechado e abre se o usuário clicar ou já houver filtro ativo.
   // No desktop (md+) o grid é sempre visível via `md:grid`.
   const [showMoreMobile, setShowMoreMobile] = useState(false)
@@ -121,6 +128,27 @@ export default function ParecerFilters({ filters, onChange }: {
                       ? { background: '#C9A94E18', color: '#7A5C2E', border: '1.5px solid #C9A94E44' }
                       : { background: '#FAF8F5', color: '#6B6860', border: '1.5px solid #E0D9CE' }}>
                     {m.toLowerCase()}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Enviado por — advogado que efetuou o envio */}
+        {lawyers.length > 0 && (
+          <div className="rounded-xl px-4 py-3 md:col-span-2" style={{ background: '#EDE8DF' }}>
+            <span className="text-xs font-medium uppercase tracking-widest block mb-2" style={{ color: '#A69B8D' }}>Enviado por</span>
+            <div className="flex flex-wrap gap-1.5">
+              {lawyers.map(l => {
+                const active = filters.enviado_por === l.id
+                return (
+                  <button key={l.id} onClick={() => toggleEnviadoPor(l.id)}
+                    className="px-3 py-1 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer"
+                    style={active
+                      ? { background: '#5B755318', color: '#5B7553', border: '1.5px solid #5B755344' }
+                      : { background: '#FAF8F5', color: '#6B6860', border: '1.5px solid #E0D9CE' }}>
+                    {l.name}
                   </button>
                 )
               })}
