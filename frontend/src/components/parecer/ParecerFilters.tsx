@@ -93,20 +93,6 @@ export default function ParecerFilters({ filters, onChange, total, onClear }: {
       </div>
 
       {/* Total do recorte atual — compacto, logo abaixo dos dropdowns */}
-      {typeof total === 'number' && (
-        <div className="flex items-center justify-between text-sm -mt-0.5" style={{ color: '#6B6860' }}>
-          <span>
-            <span className="font-semibold tabular-nums">{total}</span>{' '}
-            {total === 1 ? 'parecer' : 'pareceres'}{hasActiveFilter ? ' no filtro' : ''}
-          </span>
-          {hasActiveFilter && onClear && (
-            <button onClick={onClear} className="font-medium cursor-pointer hover:underline" style={{ color: '#C9A94E' }}>
-              Limpar
-            </button>
-          )}
-        </div>
-      )}
-
       {/* Mobile-only toggle para os chips de status/tema */}
       <button
         type="button"
@@ -142,6 +128,21 @@ export default function ParecerFilters({ filters, onChange, total, onClear }: {
             {o.label}
           </button>
         ))}
+
+        {/* Total do recorte — no final da linha, à direita */}
+        {typeof total === 'number' && (
+          <span className="ml-auto flex items-center gap-2 text-sm" style={{ color: '#6B6860' }}>
+            {hasActiveFilter && onClear && (
+              <button onClick={onClear} className="font-medium cursor-pointer hover:underline" style={{ color: '#C9A94E' }}>
+                Limpar
+              </button>
+            )}
+            <span>
+              <span className="font-semibold tabular-nums">{total}</span>{' '}
+              {total === 1 ? 'parecer' : 'pareceres'}{hasActiveFilter ? ' no filtro' : ''}
+            </span>
+          </span>
+        )}
       </div>
     </div>
   )
