@@ -114,7 +114,9 @@ export default function ParecerCard({
           </p>
           {enviadoEm && (
             <p className="text-sm mt-1" style={{ color: '#5B7553' }}>
-              Enviado em {enviadoEm}{parecer.sent_to_email && <span style={{ color: '#A69B8D' }}> · para {parecer.sent_to_email}</span>}
+              Enviado em {enviadoEm}
+              {parecer.enviado_por && <span style={{ color: '#A69B8D' }}> · por {parecer.enviado_por}</span>}
+              {parecer.sent_to_email && <span style={{ color: '#A69B8D' }}> · para {parecer.sent_to_email}</span>}
             </p>
           )}
         </div>

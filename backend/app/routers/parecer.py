@@ -103,6 +103,9 @@ class ParecerRequestOut(BaseModel):
     # (`devolvido`, `erro`). Permite ao advogado ver no card por que a IA
     # não conseguiu gerar o parecer, sem precisar abrir a timeline.
     motivo: Optional[str] = None
+    # Nome de quem enviou o parecer ao cliente (só quando status=enviado). Derivado do
+    # histórico de status (transição para 'enviado'), sem novo campo no banco.
+    enviado_por: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -114,6 +117,7 @@ class ParecerRequestOut(BaseModel):
         classificacao = pr.classificacao or {}
         data["municipio_nome"] = classificacao.get("municipio") or None
         data["motivo"] = _latest_motivo(pr) if pr.status in _STATUS_COM_MOTIVO else None
+        data["enviado_por"] = _enviado_por(pr) if pr.status == ParecerStatus.enviado else None
         return cls(**data)
 
 
@@ -128,6 +132,14 @@ def _latest_motivo(pr: ParecerRequest) -> Optional[str]:
     # status_history vem ordenado por created_at asc; o último é o mais recente.
     latest = history[-1]
     return (latest.notes or None) if latest.to_status == pr.status else None
+
+
+def _enviado_por(pr: ParecerRequest) -> Optional[str]:
+    """Nome de quem realizou o envio — última transição para 'enviado' no histórico."""
+    for h in reversed(pr.status_history or []):
+        if h.to_status == ParecerStatus.enviado:
+            return h.changed_by_user.name if h.changed_by_user else None
+    return None
 
 
 class ParecerRequestDetail(ParecerRequestOut):
@@ -175,7 +187,7 @@ async def list_parecer_requests(
     query = (
         select(ParecerRequest)
         .where(*base_filters)
-        .options(selectinload(ParecerRequest.status_history))
+        .options(selectinload(ParecerRequest.status_history).selectinload(ParecerStatusHistory.changed_by_user))
         .order_by(ParecerRequest.created_at.desc())
         .limit(limit)
         .offset(offset)
@@ -223,7 +235,7 @@ async def get_parecer_request(
         .options(
             selectinload(ParecerRequest.attachments),
             selectinload(ParecerRequest.versions),
-            selectinload(ParecerRequest.status_history),
+            selectinload(ParecerRequest.status_history).selectinload(ParecerStatusHistory.changed_by_user),
         )
         .where(ParecerRequest.id == id)
     )
@@ -243,6 +255,7 @@ async def get_parecer_request(
         for v in detail.versions
     ]
     detail.motivo = _latest_motivo(item) if item.status in _STATUS_COM_MOTIVO else None
+    detail.enviado_por = _enviado_por(item) if item.status == ParecerStatus.enviado else None
     classificacao = item.classificacao or {}
     detail.municipio_nome = classificacao.get("municipio") or None
     return detail

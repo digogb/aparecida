@@ -149,6 +149,7 @@ class ParecerStatusHistory(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     request: Mapped["ParecerRequest"] = relationship("ParecerRequest", back_populates="status_history")
+    changed_by_user: Mapped["User | None"] = relationship("User", foreign_keys=[changed_by])
 
 
 class PeerReview(Base):

@@ -29,6 +29,8 @@ export interface ParecerRequest {
   /** Última nota do status_history quando status é 'devolvido' ou 'erro'.
    *  Explica por que a IA não conseguiu gerar o parecer. */
   motivo?: string | null
+  /** Nome de quem enviou o parecer ao cliente (só quando status='enviado'). */
+  enviado_por?: string | null
   created_at: string
   updated_at: string
 }
