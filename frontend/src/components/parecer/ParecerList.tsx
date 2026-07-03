@@ -77,7 +77,6 @@ export default function ParecerList() {
   const sorted = [...items].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   // Total do recorte atual (respeita os filtros — vem do backend, não é só a página).
-  const activeFilter = !!(filters.status || filters.tema || filters.municipio || filters.enviado_por || filters.remetente)
   const filteredTotal = data?.total ?? 0
 
   // Agrupa por thread (só quando não-nula) para anotar a rodada N/M de cada irmão.
@@ -140,29 +139,15 @@ export default function ParecerList() {
         ))}
       </div>
 
-      {/* Filters */}
+      {/* Filters (com a contagem do recorte logo abaixo dos dropdowns) */}
       <div className="animate-fade-up" style={{ animationDelay: '180ms' }}>
-        <ParecerFilters filters={filters} onChange={handleFiltersChange} />
+        <ParecerFilters
+          filters={filters}
+          onChange={handleFiltersChange}
+          total={isLoading || isError ? undefined : filteredTotal}
+          onClear={() => handleFiltersChange(EMPTY)}
+        />
       </div>
-
-      {/* Contagem do recorte atual — sempre visível, reflete os filtros */}
-      {!isLoading && !isError && (
-        <div className="flex items-center justify-between animate-fade-up" style={{ animationDelay: '210ms' }}>
-          <p className="text-sm font-medium" style={{ color: '#6B6860' }}>
-            <span className="font-display" style={{ fontSize: 18, color: '#142038', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>{filteredTotal}</span>
-            {' '}{filteredTotal === 1 ? 'parecer' : 'pareceres'}{activeFilter ? ' no filtro' : ''}
-          </p>
-          {activeFilter && (
-            <button
-              onClick={() => handleFiltersChange(EMPTY)}
-              className="text-sm font-medium cursor-pointer hover:underline"
-              style={{ color: '#C9A94E' }}
-            >
-              Limpar filtros
-            </button>
-          )}
-        </div>
-      )}
 
       {/* List */}
       <div className="space-y-2 animate-fade-up" style={{ animationDelay: '240ms' }}>

@@ -21,9 +21,12 @@ const selectStyle: React.CSSProperties = {
   background: '#FAF8F5', border: '1.5px solid #E0D9CE', color: '#0A1120',
 }
 
-export default function ParecerFilters({ filters, onChange }: {
+export default function ParecerFilters({ filters, onChange, total, onClear }: {
   filters: ParecerFiltersState
   onChange: (f: ParecerFiltersState) => void
+  /** Total do recorte atual (reflete os filtros) — exibido logo abaixo dos dropdowns. */
+  total?: number
+  onClear?: () => void
 }) {
   const toggleStatus = (v: ParecerStatus) => onChange({ ...filters, status: filters.status === v ? '' : v })
   const toggleTema   = (v: ParecerTema)   => onChange({ ...filters, tema:   filters.tema   === v ? '' : v })
@@ -88,6 +91,21 @@ export default function ParecerFilters({ filters, onChange }: {
           </select>
         )}
       </div>
+
+      {/* Total do recorte atual — compacto, logo abaixo dos dropdowns */}
+      {typeof total === 'number' && (
+        <div className="flex items-center justify-between text-sm -mt-0.5" style={{ color: '#6B6860' }}>
+          <span>
+            <span className="font-semibold tabular-nums">{total}</span>{' '}
+            {total === 1 ? 'parecer' : 'pareceres'}{hasActiveFilter ? ' no filtro' : ''}
+          </span>
+          {hasActiveFilter && onClear && (
+            <button onClick={onClear} className="font-medium cursor-pointer hover:underline" style={{ color: '#C9A94E' }}>
+              Limpar
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Mobile-only toggle para os chips de status/tema */}
       <button
