@@ -70,6 +70,7 @@ export interface ParecerListResponse {
 export interface ParecerFiltersState {
   status: ParecerStatus | ''
   tema: ParecerTema | ''
+  municipio: string
   remetente: string
 }
 
@@ -133,5 +134,16 @@ export interface Lawyer {
   email: string
   role: string
   is_active: boolean
+  created_at: string
+}
+
+export interface Annotation {
+  id: string
+  request_id: string
+  author_id: string
+  author_name: string | null
+  author_color: string
+  trecho_texto: string
+  questionamento: string
   created_at: string
 }

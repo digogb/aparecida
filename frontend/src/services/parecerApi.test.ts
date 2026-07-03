@@ -5,7 +5,7 @@ import { deleteParecer, fetchParecer, fetchPareceres } from './parecerApi'
 
 describe('fetchPareceres', () => {
   it('retorna lista paginada com total correto', async () => {
-    const result = await fetchPareceres({ status: '', tema: '', remetente: '' })
+    const result = await fetchPareceres({ status: '', tema: '', municipio: '', remetente: '' })
 
     expect(result.total).toBe(2)
     expect(result.items).toHaveLength(2)
@@ -22,7 +22,7 @@ describe('fetchPareceres', () => {
       }),
     )
 
-    await fetchPareceres({ status: 'pendente', tema: 'licitacao', remetente: '' })
+    await fetchPareceres({ status: 'pendente', tema: 'licitacao', municipio: '', remetente: '' })
 
     expect(url).toContain('status=pendente')
     expect(url).toContain('tema=licitacao')
@@ -38,7 +38,7 @@ describe('fetchPareceres', () => {
       }),
     )
 
-    await fetchPareceres({ status: '', tema: '', remetente: '' })
+    await fetchPareceres({ status: '', tema: '', municipio: '', remetente: '' })
 
     expect(url).not.toContain('status=')
     expect(url).not.toContain('tema=')

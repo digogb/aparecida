@@ -9,8 +9,14 @@ export async function fetchPareceres(
   const params: Record<string, string | number> = { limit, offset }
   if (filters.status) params.status = filters.status
   if (filters.tema) params.tema = filters.tema
+  if (filters.municipio) params.municipio = filters.municipio
   if (filters.remetente) params.remetente = filters.remetente
   const { data } = await api.get<ParecerListResponse>('/api/parecer-requests', { params })
+  return data
+}
+
+export async function fetchMunicipios(): Promise<string[]> {
+  const { data } = await api.get<string[]>('/api/parecer-requests/municipios')
   return data
 }
 

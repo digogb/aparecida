@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import type { ParecerRequest, ParecerStatus, ParecerTema } from '../../types/parecer'
 import { deleteParecer, reprocessParecer } from '../../services/parecerApi'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
+import { formatParecerTitle } from '../../utils/formatTitle'
 
 const STATUS: Record<ParecerStatus, { label: string; color: string }> = {
   pendente:     { label: 'Pendente',           color: '#C9A94E' },
@@ -45,6 +46,8 @@ export default function ParecerCard({
   // Exclusão liberada ao ADMIN para qualquer parecer não enviado (auditoria — Erro 1).
   // A permissão também é validada no servidor (DELETE só passa com role admin).
   const canDelete = currentUser?.role === 'admin' && parecer.status !== 'enviado'
+  // Reprocessar redispara o pipeline de IA → só admin (item 2). Validado no servidor (403).
+  const canReprocess = currentUser?.role === 'admin' && parecer.status === 'erro'
   const date = new Date(parecer.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
   const enviadoEm = parecer.status === 'enviado' && parecer.updated_at
     ? new Date(parecer.updated_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -103,7 +106,7 @@ export default function ParecerCard({
             )}
           </div>
           <p className="text-base font-medium truncate" style={{ color: '#0A1120' }}>
-            {parecer.subject || '(sem assunto)'}
+            {formatParecerTitle(parecer.subject) || '(sem assunto)'}
           </p>
           <p className="text-sm mt-1 flex flex-wrap gap-x-1 gap-y-0.5" style={{ color: '#A69B8D' }}>
             <span className="truncate max-w-[200px] xs:max-w-none">{parecer.sender_email || '—'}</span>
@@ -117,7 +120,7 @@ export default function ParecerCard({
         </div>
         <div className="flex items-center gap-2 shrink-0 mt-0.5">
           <span className="text-xs xs:text-sm" style={{ color: '#A69B8D' }}>{date}</span>
-          {parecer.status === 'erro' && (
+          {canReprocess && (
             <button
               onClick={handleReprocess}
               disabled={reprocessing}

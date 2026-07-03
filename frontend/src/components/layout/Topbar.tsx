@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle } from 'lucide-react'
-import NotificationBell from '../notifications/NotificationBell'
 import ChangePasswordModal from '../auth/ChangePasswordModal'
 import api from '../../services/api'
 
@@ -59,7 +58,7 @@ export function Topbar({ onMenuToggle }: Props) {
       <div className="hidden md:block flex-1" />
 
       {/* Ações — sempre à direita */}
-      <NotificationBell />
+      {/* NotificationBell REMOVIDO (item 6b) — fluxo de notificação de peer review descontinuado. */}
       <button
         onClick={() => setShowChangePassword(true)}
         className="text-sm transition-all duration-150 cursor-pointer"

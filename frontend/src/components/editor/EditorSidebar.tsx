@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
+import type { Editor } from '@tiptap/react'
 import type { ParecerRequestDetail, ParecerVersion } from '../../types/parecer'
 import type { ReviewFlowStep } from '../../types/editor'
 import { restoreVersion, fetchPeerReviews } from '../../services/editorApi'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import PeerReviewPanel from './PeerReviewPanel'
 import RevisaoMarkersPanel from './RevisaoMarkersPanel'
+import AnnotationsPanel from './AnnotationsPanel'
 import { MobileDrawer } from '../layout/MobileDrawer'
 import { colorForInitials } from '../../utils/authorColors'
 
@@ -24,6 +25,7 @@ interface Props {
   activeVersion: ParecerVersion | null
   onVersionSelect: (version: ParecerVersion) => void
   onVersionRestored: (version: ParecerVersion) => void
+  editor: Editor | null
   /** Mobile drawer mode */
   drawerOpen?: boolean
   onDrawerClose?: () => void
@@ -130,6 +132,7 @@ export default function EditorSidebar({
   activeVersion,
   onVersionSelect,
   onVersionRestored,
+  editor,
   drawerOpen = false,
   onDrawerClose,
 }: Props) {
@@ -354,8 +357,9 @@ export default function EditorSidebar({
         <RevisaoMarkersPanel tiptap={activeVersion.content_tiptap} />
       )}
 
-      {/* Peer Reviews */}
-      <PeerReviewPanel parecerId={parecer.id} currentUserId={currentUserId} />
+      {/* Anotações inline (marca + questionamento, cor por autor) */}
+      <AnnotationsPanel parecerId={parecer.id} editor={editor} />
+      {/* Peer review REMOVIDO (item 6b) — substituído pelas anotações. */}
     </aside>
   )
 

@@ -44,3 +44,4 @@ class PareceresOverview(BaseModel):
     total_abertos: int
     concluidos_semana: int
     enviados_semana: int
+    enviados_mes: int

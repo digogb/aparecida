@@ -35,4 +35,5 @@ export interface PareceresOverview {
   total_abertos: number
   concluidos_semana: number
   enviados_semana: number
+  enviados_mes: number
 }

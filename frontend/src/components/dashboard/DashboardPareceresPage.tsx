@@ -4,6 +4,7 @@ import api from '../../services/api'
 import { fetchPareceresOverview } from '../../services/dashboardApi'
 import type { User } from '../../types'
 import type { OldestParecer, PipelineStage } from '../../types/dashboard'
+import { formatParecerTitle } from '../../utils/formatTitle'
 
 function getGreeting() {
   const h = new Date().getHours()
@@ -144,7 +145,7 @@ function OldestList({ items }: { items: OldestParecer[] }) {
 
           {/* Info */}
           <div className="min-w-0 flex-1">
-            <p className="text-base truncate" style={{ color: '#0A1120' }}>{p.subject ?? 'Sem assunto'}</p>
+            <p className="text-base truncate" style={{ color: '#0A1120' }}>{formatParecerTitle(p.subject) || 'Sem assunto'}</p>
             {p.municipio_nome && (
               <p className="text-sm mt-0.5 truncate" style={{ color: '#A69B8D' }}>{p.municipio_nome}</p>
             )}
@@ -192,9 +193,9 @@ export default function DashboardPareceresPage() {
       </header>
 
       {/* Resumo geral */}
-      <section className="grid grid-cols-2 gap-3 animate-fade-up" style={{ animationDelay: '60ms' }}>
+      <section className="grid grid-cols-2 md:grid-cols-3 gap-3 animate-fade-up" style={{ animationDelay: '60ms' }}>
         {isLoading ? (
-          Array.from({ length: 2 }).map((_, i) => (
+          Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="rounded-xl px-5 py-4" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}>
               <div className="w-12 h-8 rounded animate-pulse" style={{ background: '#EDE8DF' }} />
               <div className="w-24 h-4 rounded mt-2 animate-pulse" style={{ background: '#EDE8DF' }} />
@@ -229,6 +230,19 @@ export default function DashboardPareceresPage() {
                   {overview?.concluidos_semana ?? 0}
                 </span>
                 <span className="text-sm font-medium mt-1.5 block" style={{ color: '#6B6860' }}>Concluídos esta semana</span>
+              </div>
+            </div>
+
+            <div
+              className="rounded-xl overflow-hidden"
+              style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}
+            >
+              <div className="h-1" style={{ background: '#142038' }} />
+              <div className="px-5 py-4">
+                <span className="block font-display leading-none" style={{ fontSize: 44, fontWeight: 500, color: '#142038', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
+                  {overview?.enviados_mes ?? 0}
+                </span>
+                <span className="text-sm font-medium mt-1.5 block" style={{ color: '#6B6860' }}>Enviados no mês</span>
               </div>
             </div>
           </>

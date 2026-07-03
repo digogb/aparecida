@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import type { ParecerFiltersState, ParecerStatus, ParecerTema } from '../../types/parecer'
+import { fetchMunicipios } from '../../services/parecerApi'
 
 const STATUS_OPTIONS: { value: ParecerStatus; label: string; color: string }[] = [
   { value: 'gerado',      label: 'Aguardando revisão', color: '#A69B8D' },
@@ -18,10 +20,17 @@ export default function ParecerFilters({ filters, onChange }: {
   filters: ParecerFiltersState
   onChange: (f: ParecerFiltersState) => void
 }) {
-  const toggleStatus = (v: ParecerStatus) => onChange({ ...filters, status: filters.status === v ? '' : v })
-  const toggleTema   = (v: ParecerTema)   => onChange({ ...filters, tema:   filters.tema   === v ? '' : v })
+  const toggleStatus    = (v: ParecerStatus) => onChange({ ...filters, status: filters.status === v ? '' : v })
+  const toggleTema      = (v: ParecerTema)   => onChange({ ...filters, tema:   filters.tema   === v ? '' : v })
+  const toggleMunicipio = (v: string)        => onChange({ ...filters, municipio: filters.municipio === v ? '' : v })
 
-  const hasActiveFilter = !!(filters.status || filters.tema || filters.remetente)
+  const { data: municipios = [] } = useQuery({
+    queryKey: ['parecer-municipios'],
+    queryFn: fetchMunicipios,
+    staleTime: 5 * 60_000,
+  })
+
+  const hasActiveFilter = !!(filters.status || filters.tema || filters.municipio || filters.remetente)
   // No mobile o grid começa fechado e abre se o usuário clicar ou já houver filtro ativo.
   // No desktop (md+) o grid é sempre visível via `md:grid`.
   const [showMoreMobile, setShowMoreMobile] = useState(false)
@@ -97,6 +106,27 @@ export default function ParecerFilters({ filters, onChange }: {
             })}
           </div>
         </div>
+
+        {/* Município — opções vindas da classificação da IA */}
+        {municipios.length > 0 && (
+          <div className="rounded-xl px-4 py-3 md:col-span-2" style={{ background: '#EDE8DF' }}>
+            <span className="text-xs font-medium uppercase tracking-widest block mb-2" style={{ color: '#A69B8D' }}>Município</span>
+            <div className="flex flex-wrap gap-1.5">
+              {municipios.map(m => {
+                const active = filters.municipio === m
+                return (
+                  <button key={m} onClick={() => toggleMunicipio(m)}
+                    className="px-3 py-1 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer capitalize"
+                    style={active
+                      ? { background: '#C9A94E18', color: '#7A5C2E', border: '1.5px solid #C9A94E44' }
+                      : { background: '#FAF8F5', color: '#6B6860', border: '1.5px solid #E0D9CE' }}>
+                    {m.toLowerCase()}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

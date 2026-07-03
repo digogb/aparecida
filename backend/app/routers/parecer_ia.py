@@ -34,6 +34,7 @@ class CorrectSelectionIn(BaseModel):
 class CorrectSelectionOut(BaseModel):
     corrigido: str
 from app.services import classifier, parecer_engine
+from app.utils.auth_guard import require_admin
 
 PREFIX = "/api"
 TAGS = ["parecer-ia"]
@@ -61,6 +62,7 @@ def _get_user_id(credentials: HTTPAuthorizationCredentials | None) -> uuid.UUID 
 async def classify_request(
     id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    _admin: dict = Depends(require_admin),
 ) -> ClassifyOut:
     try:
         pr, data = await classifier.classify(str(id), db)
@@ -90,6 +92,7 @@ async def classify_request(
 async def generate_parecer(
     id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    _admin: dict = Depends(require_admin),
 ) -> ParecerVersionDetail:
     try:
         version = await parecer_engine.generate(str(id), db)
@@ -107,6 +110,7 @@ async def preview_correction(
     id: uuid.UUID,
     body: ReprocessIn,
     db: AsyncSession = Depends(get_db),
+    _admin: dict = Depends(require_admin),
 ) -> PreviewCorrectionOut:
     """Chama P3 e retorna preview das correções sem salvar."""
     try:
@@ -124,6 +128,7 @@ async def apply_correction(
     id: uuid.UUID,
     body: ApplyCorrectionIn,
     db: AsyncSession = Depends(get_db),
+    _admin: dict = Depends(require_admin),
 ) -> ParecerVersionDetail:
     """Aplica as seções aprovadas pelo advogado e cria nova versão."""
     try:
@@ -148,6 +153,7 @@ async def correct_selection(
     id: uuid.UUID,
     body: CorrectSelectionIn,
     db: AsyncSession = Depends(get_db),
+    _admin: dict = Depends(require_admin),
 ) -> CorrectSelectionOut:
     """Correção por trecho selecionado (auditoria — Erro 3): reescreve só o trecho,
     sem tocar no resto do documento. O editor substitui apenas a seleção."""

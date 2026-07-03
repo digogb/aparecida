@@ -21,7 +21,7 @@ async def seed_users(db: AsyncSession) -> None:
 
     users = [
         User(name="Francisco Ione", email="dr.ione@uol.com.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.admin),
-        User(name="Matheus Nogueira", email="Matheuspl20@hotmail.com", hashed_password=DEFAULT_PASSWORD, role=UserRole.advogado),
+        User(name="Matheus Nogueira", email="Matheuspl20@hotmail.com", hashed_password=DEFAULT_PASSWORD, role=UserRole.admin),
         User(name="Flavio Henrique", email="flavio@ione.adv.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.advogado),
         User(name="Valeria Matias", email="valeria@ione.adv.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.advogado),
         User(name="Secretaria", email="secretaria@ione.adv.br", hashed_password=DEFAULT_PASSWORD, role=UserRole.secretaria),

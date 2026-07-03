@@ -223,11 +223,8 @@ class TestSecurityGapsDocumented:
         finally:
             app.dependency_overrides.clear()
 
-    def test_classify_does_not_require_auth_SECURITY_GAP(self):
-        """
-        TODO: /classify deve exigir autenticação.
-        parecer_ia.py usa HTTPBearer(auto_error=False) — token opcional.
-        """
+    def test_classify_requires_admin(self):
+        """IA só para admin (item 2): sem token → 401; advogado → 403."""
         db = mock_db()
         result = MagicMock()
         result.scalar_one_or_none.return_value = None
@@ -236,19 +233,20 @@ class TestSecurityGapsDocumented:
 
         try:
             with TestClient(app) as client:
+                # Sem token
                 resp = client.post(f"/api/parecer-requests/{self._pid()}/classify")
-            # Sem token e sem parecer → 404 (não 403)
-            # Confirma que auth não está sendo verificada
-            assert resp.status_code in (404, 422, 500), (
-                f"Esperado 404 sem auth (gap de segurança), recebeu {resp.status_code}"
-            )
+                assert resp.status_code == 401, resp.status_code
+                # Advogado (não-admin)
+                resp = client.post(
+                    f"/api/parecer-requests/{self._pid()}/classify",
+                    headers=auth_header(make_token(role="advogado")),
+                )
+                assert resp.status_code == 403, resp.status_code
         finally:
             app.dependency_overrides.clear()
 
-    def test_generate_does_not_require_auth_SECURITY_GAP(self):
-        """
-        TODO: /generate deve exigir autenticação.
-        """
+    def test_generate_requires_admin(self):
+        """IA só para admin (item 2): sem token → 401; advogado → 403."""
         db = mock_db()
         result = MagicMock()
         result.scalar_one_or_none.return_value = None
@@ -258,6 +256,11 @@ class TestSecurityGapsDocumented:
         try:
             with TestClient(app) as client:
                 resp = client.post(f"/api/parecer-requests/{self._pid()}/generate")
-            assert resp.status_code in (404, 422, 500)
+                assert resp.status_code == 401, resp.status_code
+                resp = client.post(
+                    f"/api/parecer-requests/{self._pid()}/generate",
+                    headers=auth_header(make_token(role="advogado")),
+                )
+                assert resp.status_code == 403, resp.status_code
         finally:
             app.dependency_overrides.clear()

@@ -5,7 +5,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
 import Typography from '@tiptap/extension-typography'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import AIContent from '../components/editor/extensions/AIContent'
 import CorrectionMark from '../components/editor/extensions/CorrectionMark'
 import SearchHighlight from '../components/editor/extensions/SearchHighlight'
@@ -14,6 +14,7 @@ import RevisaoMarkerHighlight from '../components/editor/extensions/RevisaoMarke
 import ParagraphIndent from '../components/editor/extensions/ParagraphIndent'
 import EmentaHighlight from '../components/editor/extensions/EmentaHighlight'
 import SignatureBlock from '../components/editor/extensions/SignatureBlock'
+import AnnotationHighlight, { type AnnotationDeco } from '../components/editor/extensions/AnnotationHighlight'
 import AsteriskCleanup from '../components/editor/extensions/AsteriskCleanup'
 import type { DiffAnnotation } from '../components/editor/extensions/DiffHighlight'
 import {
@@ -28,7 +29,8 @@ import {
   respondToPeerReview,
 } from '../services/editorApi'
 import type { CorrectionPreview, PeerReviewCreatePayload, PeerReviewRespondPayload } from '../services/editorApi'
-import type { ParecerRequestDetail, ParecerVersion, PeerReviewListItem } from '../types/parecer'
+import { fetchAnnotations, createAnnotation, deleteAnnotation } from '../services/annotationApi'
+import type { Annotation, ParecerRequestDetail, ParecerVersion, PeerReviewListItem } from '../types/parecer'
 import { contarMarcadoresRevisao, extrairMarcadoresRevisao, type MarcadorRevisao } from '../utils/revisaoMarkers'
 
 // getMonth() → 0–11
@@ -465,6 +467,7 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
       ParagraphIndent,
       EmentaHighlight,
       SignatureBlock,
+      AnnotationHighlight,
       AsteriskCleanup,
     ],
     content: activeVersion?.content_tiptap || activeVersion?.content_html || '',
@@ -745,6 +748,51 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     }, 300)
     return () => clearTimeout(timer)
   }, [editor, pendingReviewForMe, activeVersion])
+
+  // --- Anotações inline (marca + questionamento, cor por autor) ---
+  const { data: annotations = [] } = useQuery({
+    queryKey: ['annotations', parecer?.id],
+    queryFn: () => fetchAnnotations(parecer!.id),
+    enabled: !!parecer?.id,
+    staleTime: 10_000,
+  })
+
+  // Alimenta a extensão de decoration sempre que a lista ou o editor mudam.
+  useEffect(() => {
+    if (!editor) return
+    const decos: AnnotationDeco[] = (annotations as Annotation[]).map((a) => ({
+      id: a.id,
+      trecho: a.trecho_texto,
+      color: a.author_color,
+      hint: `${a.author_name ?? 'Anônimo'}: ${a.questionamento}`,
+    }))
+    editor.commands.setAnnotations(decos)
+  }, [editor, annotations, activeVersion])
+
+  const getSelectionText = useCallback((): string => {
+    if (!editor) return ''
+    const { from, to } = editor.state.selection
+    if (from === to) return ''
+    return editor.state.doc.textBetween(from, to, '\n').trim()
+  }, [editor])
+
+  const handleAddAnnotation = useCallback(
+    async (trecho: string, questionamento: string) => {
+      if (!parecer) return
+      await createAnnotation(parecer.id, trecho, questionamento)
+      await queryClient.invalidateQueries({ queryKey: ['annotations', parecer.id] })
+    },
+    [parecer, queryClient],
+  )
+
+  const handleDeleteAnnotation = useCallback(
+    async (annotationId: string) => {
+      if (!parecer) return
+      await deleteAnnotation(annotationId)
+      await queryClient.invalidateQueries({ queryKey: ['annotations', parecer.id] })
+    },
+    [parecer, queryClient],
+  )
 
   const handleSave = useCallback(async () => {
     if (!editor || !parecer || !activeVersion) return
@@ -1033,5 +1081,10 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
     handleCloseCompletedReview,
     handleApplySuggestion,
     handleDismissCompletedReview,
+    // Anotações inline
+    annotations: annotations as Annotation[],
+    getSelectionText,
+    handleAddAnnotation,
+    handleDeleteAnnotation,
   }
 }

@@ -24,6 +24,7 @@ from app.models.parecer import (
     VersionSource,
 )
 from app.services.notification import parecer_ws_manager
+from app.utils.auth_guard import require_admin
 
 PREFIX = "/api"
 TAGS = ["parecer"]
@@ -190,6 +191,26 @@ async def list_parecer_requests(
     )
 
 
+# Declarada ANTES de "/parecer-requests/{id}" — senão o converter de UUID de {id}
+# tentaria casar "municipios" e devolveria 422.
+@router.get("/parecer-requests/municipios", response_model=list[str])
+async def list_municipios(db: AsyncSession = Depends(get_db)) -> list[str]:
+    """Lista distinta dos municípios detectados pela IA (classificacao->>'municipio'),
+    para alimentar o filtro da lista de pareceres. Município real vem da classificação,
+    não da tabela `municipios` (que tem placeholders SP)."""
+    from sqlalchemy import literal_column
+
+    mun_expr = literal_column("classificacao->>'municipio'")
+    result = await db.execute(
+        select(mun_expr)
+        .select_from(ParecerRequest)
+        .where(mun_expr.isnot(None))
+        .distinct()
+        .order_by(mun_expr)
+    )
+    return [row[0] for row in result.all() if row[0]]
+
+
 @router.get("/parecer-requests/{id}", response_model=ParecerRequestDetail)
 async def get_parecer_request(
     id: uuid.UUID,
@@ -258,6 +279,7 @@ async def reprocess_parecer(
     id: uuid.UUID,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    _admin: dict = Depends(require_admin),
 ) -> ParecerRequestOut:
     """
     Redispara o pipeline P1→P2 para um request que falhou (status=erro).

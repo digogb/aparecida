@@ -171,3 +171,26 @@ class PeerReview(Base):
     request: Mapped["ParecerRequest"] = relationship("ParecerRequest", foreign_keys=[request_id])
     requester: Mapped["User"] = relationship("User", foreign_keys=[requested_by])
     reviewer: Mapped["User"] = relationship("User", foreign_keys=[reviewer_id])
+
+
+class ParecerAnnotation(Base):
+    """Anotação inline: um advogado marca um trecho e escreve um questionamento.
+
+    Substitui o fluxo de peer review + notificação (decisão do cliente, 03/07/2026):
+    como todos editam o mesmo documento, a função principal é marcar um trecho e
+    deixar uma pergunta que qualquer advogado vê ao abrir o parecer no editor.
+
+    Pertence ao REQUEST (não à versão) → persiste entre versões. NÃO é armazenada no
+    content_tiptap (que é o canon do DOCX) — é renderizada como decoration no editor.
+    """
+
+    __tablename__ = "parecer_annotations"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    request_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("parecer_requests.id"), nullable=False, index=True)
+    author_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    trecho_texto: Mapped[str] = mapped_column(Text, nullable=False)
+    questionamento: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    author: Mapped["User"] = relationship("User", foreign_keys=[author_id])

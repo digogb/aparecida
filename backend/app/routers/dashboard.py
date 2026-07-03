@@ -78,6 +78,15 @@ async def get_pareceres_overview(
     week_start = week_start_local.astimezone(timezone.utc)
     week_end = week_end_local.astimezone(timezone.utc)
 
+    # Mês corrente no fuso local (dia 1 00:00 -> primeiro dia do mês seguinte), convertido p/ UTC.
+    month_start_local = now_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if month_start_local.month == 12:
+        month_end_local = month_start_local.replace(year=month_start_local.year + 1, month=1)
+    else:
+        month_end_local = month_start_local.replace(month=month_start_local.month + 1)
+    month_start = month_start_local.astimezone(timezone.utc)
+    month_end = month_end_local.astimezone(timezone.utc)
+
     # Pipeline: contagem por status
     pipeline_q = await db.execute(
         select(ParecerRequest.status, func.count().label("cnt"))
@@ -185,6 +194,18 @@ async def get_pareceres_overview(
     )
     enviados_semana = enviados_q.scalar() or 0
 
+    # Enviados no mês (só status enviado, por updated_at; janela do mês corrente fuso local).
+    enviados_mes_q = await db.execute(
+        select(func.count()).select_from(ParecerRequest).where(
+            and_(
+                ParecerRequest.status == ParecerStatus.enviado,
+                ParecerRequest.updated_at >= month_start,
+                ParecerRequest.updated_at < month_end,
+            )
+        )
+    )
+    enviados_mes = enviados_mes_q.scalar() or 0
+
     return PareceresOverview(
         pipeline=pipeline,
         por_municipio=por_municipio,
@@ -193,4 +214,5 @@ async def get_pareceres_overview(
         total_abertos=total_abertos,
         concluidos_semana=concluidos_semana,
         enviados_semana=enviados_semana,
+        enviados_mes=enviados_mes,
     )

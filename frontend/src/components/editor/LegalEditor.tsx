@@ -10,10 +10,10 @@ import EditorToolbar from './EditorToolbar'
 import EditorSidebar from './EditorSidebar'
 import SplitView from './SplitView'
 import Ruler from './Ruler'
-import PeerReviewModal from './PeerReviewModal'
-import CompletedReviewModal from './CompletedReviewModal'
 import ExportWithMarkersModal from './ExportWithMarkersModal'
 import DiffGutter from './DiffGutter'
+import { formatParecerTitle } from '../../utils/formatTitle'
+import { useCurrentUser } from '../../hooks/useCurrentUser'
 
 const SECTION_LABELS: Record<string, string> = {
   ementa: 'Ementa',
@@ -96,6 +96,82 @@ function SelectionCorrectionModal({
           >
             {isApplying && <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
             {isApplying ? 'Corrigindo...' : 'Aplicar correção'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Anotação inline (item 6a): mostra o trecho selecionado e coleta o questionamento.
+ *  A anotação fica visível a todos os advogados (cor por autor) — não dispara IA. */
+function AnnotationModal({
+  trecho,
+  isSaving,
+  onSave,
+  onClose,
+}: {
+  trecho: string
+  isSaving?: boolean
+  onSave: (questionamento: string) => void
+  onClose: () => void
+}) {
+  const [questionamento, setQuestionamento] = useState('')
+  const podeSalvar = questionamento.trim().length > 0 && !isSaving
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(27,40,56,0.5)' }}>
+      <div className="rounded-2xl w-full max-w-lg overflow-hidden" style={{ background: '#FAF8F5', border: '1.5px solid #E0D9CE' }}>
+        <div className="px-6 py-4" style={{ borderBottom: '1px solid #EDE8DF' }}>
+          <h3 className="text-base font-semibold" style={{ color: '#0A1120' }}>Anotar trecho</h3>
+          <p className="text-sm mt-0.5" style={{ color: '#A69B8D' }}>
+            O trecho fica realçado e qualquer advogado verá seu questionamento ao abrir o parecer.
+          </p>
+        </div>
+
+        <div className="px-6 py-4 space-y-3">
+          <div>
+            <div className="text-xs font-medium uppercase tracking-widest mb-1" style={{ color: '#A69B8D' }}>Trecho selecionado</div>
+            <div
+              className="text-sm leading-relaxed whitespace-pre-wrap rounded-xl px-3 py-2 max-h-40 overflow-auto"
+              style={{ color: '#0A1120', background: '#FFFFFF', border: '1px solid #EDE8DF' }}
+            >
+              {trecho}
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium uppercase tracking-widest mb-1 block" style={{ color: '#A69B8D' }}>
+              Questionamento
+            </label>
+            <textarea
+              autoFocus
+              value={questionamento}
+              onChange={(e) => setQuestionamento(e.target.value)}
+              placeholder="Ex.: confirmar a base legal deste trecho; rever o valor citado; está de acordo com o edital?"
+              rows={3}
+              className="w-full text-sm rounded-xl px-3 py-2 resize-none outline-none"
+              style={{ color: '#0A1120', background: '#FFFFFF', border: '1px solid #E0D9CE' }}
+            />
+          </div>
+        </div>
+
+        <div className="px-6 py-4 flex items-center justify-end gap-2" style={{ borderTop: '1px solid #EDE8DF' }}>
+          <button
+            onClick={onClose}
+            disabled={isSaving}
+            className="px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer disabled:opacity-50"
+            style={{ background: '#EDE8DF', color: '#6B6860' }}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => onSave(questionamento.trim())}
+            disabled={!podeSalvar}
+            className="px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            style={{ background: '#142038', color: '#FAF8F5' }}
+          >
+            {isSaving && <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+            {isSaving ? 'Salvando...' : 'Salvar anotação'}
           </button>
         </div>
       </div>
@@ -653,7 +729,14 @@ export default function LegalEditor() {
     handleCloseCompletedReview,
     handleApplySuggestion,
     handleDismissCompletedReview,
+    getSelectionText,
+    handleAddAnnotation,
   } = useEditorInstance(parecer ?? null)
+
+  // Só admin (Dr. Ione, Matheus) dispara IA — decisão do cliente (03/07). A trava real
+  // é o 403 do backend; aqui é só UX (esconder os botões).
+  const { data: currentUser } = useCurrentUser()
+  const isAdmin = currentUser?.role === 'admin'
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -663,6 +746,9 @@ export default function LegalEditor() {
   const [showRuler, setShowRuler] = useState(true)
   // Confirmação antes de enviar o parecer por e-mail (ação irreversível — auditoria item D)
   const [showSendConfirm, setShowSendConfirm] = useState(false)
+  // Anotação inline: marca o trecho selecionado + questionamento (item 6a)
+  const [annotationTrecho, setAnnotationTrecho] = useState<string | null>(null)
+  const [savingAnnotation, setSavingAnnotation] = useState(false)
   // Correção por trecho selecionado (auditoria — Erro 3): reescreve só a seleção
   const [selectionCorrection, setSelectionCorrection] = useState<
     { from: number; to: number; trecho: string } | null
@@ -774,7 +860,7 @@ export default function LegalEditor() {
             ← Voltar
           </button>
           <h1 className="text-sm font-medium truncate max-w-md" style={{ color: '#0A1120' }}>
-            {parecer.numero_parecer || parecer.subject || 'Parecer'}
+            {parecer.numero_parecer || formatParecerTitle(parecer.subject) || 'Parecer'}
           </h1>
           {isSaving && (
             <span className="text-sm" style={{ color: '#A69B8D' }}>Salvando...</span>
@@ -860,6 +946,7 @@ export default function LegalEditor() {
           activeVersion={activeVersion}
           onVersionSelect={setActiveVersion}
           onVersionRestored={setActiveVersion}
+          editor={editor}
           drawerOpen={sidebarDrawerOpen}
           onDrawerClose={() => setSidebarDrawerOpen(false)}
         />
@@ -869,7 +956,26 @@ export default function LegalEditor() {
       {activeVersion && (
         <div className="flex items-center justify-between px-4 py-3" style={{ background: '#EDE8DF', borderTop: '1px solid #E0D9CE' }}>
           <div className="flex items-center gap-2">
-            {/* Correção AMPLA: a IA reescreve seções inteiras a partir dos trechos realçados. */}
+            {/* Anotar trecho: marca a seleção + questionamento (todos os advogados — item 6a). */}
+            <button
+              onClick={() => {
+                const trecho = getSelectionText()
+                if (trecho) setAnnotationTrecho(trecho)
+              }}
+              disabled={!editor || editor.state.selection.empty}
+              title="Marca o trecho selecionado e adiciona um questionamento que qualquer advogado verá ao abrir o parecer. Selecione um trecho para habilitar."
+              className="px-4 py-2 text-sm rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ border: '1.5px solid #14203844', color: '#142038', background: '#14203812' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              Anotar trecho
+            </button>
+
+            {/* Correção AMPLA: a IA reescreve seções inteiras a partir dos trechos realçados.
+                Só admin dispara IA (item 2). */}
+            {isAdmin && (
             <button
               onClick={() => setShowReturnModal(true)}
               disabled={isReprocessing || isGenerating || isPeerReviewSending}
@@ -888,8 +994,11 @@ export default function LegalEditor() {
                 </span>
               )}
             </button>
+            )}
 
-            {/* Correção PONTUAL: a IA reescreve só o trecho selecionado, preservando o resto (Erro 3). */}
+            {/* Correção PONTUAL: a IA reescreve só o trecho selecionado, preservando o resto (Erro 3).
+                Só admin dispara IA (item 2). */}
+            {isAdmin && (
             <button
               onClick={handleOpenSelectionCorrection}
               disabled={!editor || editor.state.selection.empty || isReprocessing || isGenerating || isCorrectingSelection}
@@ -903,60 +1012,9 @@ export default function LegalEditor() {
               </svg>
               Corrigir só a seleção (IA)
             </button>
-            {completedReviewsForMe.length > 0 && (
-              <button
-                onClick={() => handleOpenCompletedReview(completedReviewsForMe[0])}
-                disabled={isReprocessing || isGenerating}
-                className="px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150 hover:brightness-[0.95] cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: '#5B7553', color: '#FAF8F5', boxShadow: '0 2px 8px rgba(91,117,83,0.25)' }}
-                title="Revisão do colega pronta para aplicar"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                  <polyline points="22 4 12 14.01 9 11.01"/>
-                </svg>
-                Ver revisão de {completedReviewsForMe[0].reviewer_name}
-                {completedReviewsForMe.length > 1 && (
-                  <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full" style={{ background: '#FAF8F5', color: '#5B7553' }}>
-                    {completedReviewsForMe.length}
-                  </span>
-                )}
-              </button>
             )}
-            {pendingReviewForMe ? (
-              <button
-                onClick={() => setShowReviewResponseModal(true)}
-                disabled={isReprocessing || isGenerating || isReviewResponding}
-                className="px-4 py-2 text-sm rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ border: '1.5px solid #14203844', color: '#142038', background: '#14203812' }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                  <circle cx="12" cy="12" r="3"/>
-                </svg>
-                Revisar parecer
-              </button>
-            ) : (
-              <button
-                onClick={() => setShowPeerReviewModal(true)}
-                disabled={isReprocessing || isGenerating || isPeerReviewSending}
-                className="px-4 py-2 text-sm rounded-xl transition-all duration-150 hover:brightness-[0.97] cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ border: '1.5px solid #14203844', color: '#142038', background: '#14203812' }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-                Enviar para colega
-                {correctionCount > 0 && (
-                  <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full" style={{ background: '#142038', color: '#FAF8F5' }}>
-                    {correctionCount}
-                  </span>
-                )}
-              </button>
-            )}
+            {/* Fluxo de peer review + notificação REMOVIDO (item 6b): substituído pelas
+                anotações inline. Backend/tabelas seguem dormentes. */}
           </div>
           <div className="flex items-center gap-2">
             {parecer.status !== 'aprovado' && parecer.status !== 'enviado' && (
@@ -1008,33 +1066,25 @@ export default function LegalEditor() {
         />
       )}
 
-      {/* Peer Review Modal — solicitar revisão */}
-      {showPeerReviewModal && (
-        <PeerReviewModal
-          markedTexts={getMarkedTexts()}
-          onSubmit={handleRequestPeerReview}
-          onClose={() => setShowPeerReviewModal(false)}
-          isLoading={isPeerReviewSending}
-        />
-      )}
+      {/* Modais de peer review REMOVIDOS (item 6b) — substituídos pelas anotações inline. */}
 
-      {/* Review Response Modal — responder revisão */}
-      {showReviewResponseModal && pendingReviewForMe && (
-        <ReviewResponseModal
-          review={pendingReviewForMe}
-          onSubmit={handleRespondPeerReview}
-          onClose={() => setShowReviewResponseModal(false)}
-          isLoading={isReviewResponding}
-        />
-      )}
-
-      {/* Completed Review Modal — aplicar sugestões do revisor */}
-      {showCompletedReviewModal && activeCompletedReview && (
-        <CompletedReviewModal
-          review={activeCompletedReview}
-          onApplySuggestion={handleApplySuggestion}
-          onDismiss={handleDismissCompletedReview}
-          onClose={handleCloseCompletedReview}
+      {/* Modal de anotação (item 6a) */}
+      {annotationTrecho !== null && (
+        <AnnotationModal
+          trecho={annotationTrecho}
+          isSaving={savingAnnotation}
+          onClose={() => setAnnotationTrecho(null)}
+          onSave={async (questionamento) => {
+            setSavingAnnotation(true)
+            try {
+              await handleAddAnnotation(annotationTrecho, questionamento)
+              setAnnotationTrecho(null)
+            } catch (err) {
+              console.error('Add annotation failed:', err)
+            } finally {
+              setSavingAnnotation(false)
+            }
+          }}
         />
       )}
 
