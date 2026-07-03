@@ -3,7 +3,7 @@
 Branch de trabalho: `entrega-cliente`. Prod usa imagem baked → rebuild no deploy.
 Numeração espelha as mensagens do Dr. (itens 2 a 6).
 
-## STATUS — IMPLEMENTADO (03/07/2026, local no ar; NÃO pushado/deployado)
+## STATUS — IMPLEMENTADO + COMMITADO `8b674ba` (03/07/2026, local no ar; NÃO pushado/deployado)
 Todos os 5 itens feitos e validados local: `tsc` 0 erros; backend unit 80/80 + acesso 15/15
 (2 testes de "gap" viraram testes de exigência de admin). As 8 falhas do vitest
 (`parecerApi.test.ts`/`useParecer.test.ts`, ERR_NETWORK do MSW) são **pré-existentes** (confirmado
@@ -22,7 +22,7 @@ por baseline com `git stash`). Migration **0014** aplicada no banco local. Smoke
 - **6b** removido peer review+notificação da UI (botões/modais/`PeerReviewPanel`/`NotificationBell`);
   backend e tabelas `peer_reviews`/`notifications` ficam dormentes (não dropados).
 
-**PENDENTE:** commit na `entrega-cliente` → push → backup do banco de prod → deploy
+**PENDENTE:** push → backup do banco de prod → deploy
 (`docker compose -f docker-compose.prod.yml up -d --build backend frontend`) → aplicar 0014 em prod
 → rodar `promote_matheus_admin.py` em prod. Ver `reference_ione_prod_deploy`.
 

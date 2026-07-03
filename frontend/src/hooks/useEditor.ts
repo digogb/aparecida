@@ -33,6 +33,9 @@ import { fetchAnnotations, createAnnotation, deleteAnnotation } from '../service
 import type { Annotation, ParecerRequestDetail, ParecerVersion, PeerReviewListItem } from '../types/parecer'
 import { contarMarcadoresRevisao, extrairMarcadoresRevisao, type MarcadorRevisao } from '../utils/revisaoMarkers'
 
+// Referência estável para o default de anotações (evita novo array por render → loop).
+const EMPTY_ANNOTATIONS: Annotation[] = []
+
 // getMonth() → 0–11
 const MESES_EXTENSO = [
   'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
@@ -750,17 +753,21 @@ export function useEditorInstance(parecer: ParecerRequestDetail | null) {
   }, [editor, pendingReviewForMe, activeVersion])
 
   // --- Anotações inline (marca + questionamento, cor por autor) ---
-  const { data: annotations = [] } = useQuery({
+  // IMPORTANTE: não usar `= []` no destructuring — o default criaria um array NOVO a
+  // cada render, e como ele entra nas deps do useEffect abaixo (que dispara uma
+  // transação no editor → re-render), viraria loop infinito ("Maximum update depth").
+  const { data: annotationsData } = useQuery({
     queryKey: ['annotations', parecer?.id],
     queryFn: () => fetchAnnotations(parecer!.id),
     enabled: !!parecer?.id,
     staleTime: 10_000,
   })
+  const annotations = annotationsData ?? EMPTY_ANNOTATIONS
 
   // Alimenta a extensão de decoration sempre que a lista ou o editor mudam.
   useEffect(() => {
     if (!editor) return
-    const decos: AnnotationDeco[] = (annotations as Annotation[]).map((a) => ({
+    const decos: AnnotationDeco[] = annotations.map((a) => ({
       id: a.id,
       trecho: a.trecho_texto,
       color: a.author_color,

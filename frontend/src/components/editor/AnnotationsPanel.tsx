@@ -10,6 +10,8 @@ interface Props {
   editor: Editor | null
 }
 
+const EMPTY: Annotation[] = []
+
 function normalize(s: string): string {
   return s
     .replace(/[“”„‟″]/g, '"')
@@ -31,11 +33,12 @@ export default function AnnotationsPanel({ parecerId, editor }: Props) {
   const { data: currentUser } = useCurrentUser()
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  const { data: annotations = [] } = useQuery({
+  const { data: annotationsData } = useQuery({
     queryKey: ['annotations', parecerId],
     queryFn: () => fetchAnnotations(parecerId),
     staleTime: 10_000,
   })
+  const annotations = annotationsData ?? EMPTY
 
   // Texto normalizado do documento atual, para detectar anotações órfãs e pular ao trecho.
   const docText = useMemo(() => (editor ? normalize(editor.getText()) : ''), [editor, annotations])
