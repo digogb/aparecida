@@ -38,6 +38,25 @@ logger = logging.getLogger(__name__)
 # pelas skills.
 _GATE_MAX_RETRIES = 3
 
+# Conteúdo mínimo do corpo (relatório+fundamentos+conclusão) para o parecer ser
+# considerado gerado. Abaixo disso é um esqueleto vazio (item 3.4 do cliente): não
+# pode ser salvo como "gerado"/"Aguardando revisão". Um parecer real tem milhares de
+# chars; 200 fica muito acima de zero e bem abaixo de qualquer minuta legítima.
+_MIN_CORPO_CHARS = 200
+
+
+class EmptyGenerationError(Exception):
+    """O P2 devolveu um parecer sem conteúdo (corpo vazio) — não salvar como gerado."""
+
+
+def _corpo_vazio(sections: dict) -> bool:
+    """True quando o corpo do parecer é essencialmente vazio (só o esqueleto)."""
+    corpo = "".join(
+        (sections.get(secao) or "").strip()
+        for secao in ("relatorio", "fundamentos", "conclusao")
+    )
+    return len(corpo) < _MIN_CORPO_CHARS
+
 
 # ─── TipTap JSON builder com formatação rica ───
 
@@ -465,6 +484,60 @@ async def _enforce_mechanical_gate(
     return sections, result, retries
 
 
+async def _thread_cumulative_context(
+    pr: ParecerRequest, db: AsyncSession
+) -> tuple[list[tuple[str, str]], str]:
+    """Contexto documental do P2 acumulado por thread (itens 1/2 do cliente, jul/2026).
+
+    Quando a documentação vem incompleta, o município reenvia os documentos faltantes
+    na MESMA thread e o poller cria um parecer "irmão" para a rodada. Esse irmão deve
+    ler TODOS os documentos e corpos da conversa — não só a mensagem desta rodada, que
+    antes o fazia apontar como ausente algo que já havia sido enviado.
+
+    Retorna (anexos, corpo) reunidos de todos os requests da thread:
+    - anexos: dedup por nome de arquivo (rodada mais recente vence — docs reenviados
+      substituem a versão antiga);
+    - corpo: corpos das mensagens concatenados (mais antiga primeiro), rotulados.
+
+    Threads de um único request (ou sem gmail_thread_id — ingestão manual) retornam
+    apenas o próprio conteúdo, sem mudança de comportamento.
+    """
+    own_docs = [
+        (a.filename or "anexo_sem_nome", a.extracted_text)
+        for a in pr.attachments
+        if a.extracted_text
+    ]
+    if not pr.gmail_thread_id:
+        return own_docs, extract_body_section(pr.extracted_text)
+
+    result = await db.execute(
+        select(ParecerRequest)
+        .where(ParecerRequest.gmail_thread_id == pr.gmail_thread_id)
+        .options(selectinload(ParecerRequest.attachments))
+        .order_by(ParecerRequest.created_at.asc())
+    )
+    reqs = list(result.scalars().all()) or [pr]
+    if len(reqs) == 1:
+        return own_docs, extract_body_section(pr.extracted_text)
+
+    # Anexos: dict preserva a ordem de 1ª aparição (mais antigo primeiro) e o valor
+    # é sobrescrito pela ocorrência mais recente (reqs em ordem crescente de data).
+    by_name: dict[str, str] = {}
+    for r in reqs:
+        for a in r.attachments:
+            if a.extracted_text:
+                by_name[a.filename or "anexo_sem_nome"] = a.extracted_text
+    docs = list(by_name.items())
+
+    body_parts: list[str] = []
+    for i, r in enumerate(reqs, 1):
+        b = extract_body_section(r.extracted_text).strip()
+        if b:
+            body_parts.append(f"## MENSAGEM {i} DA CONVERSA\n{b}")
+    body = "\n\n".join(body_parts) if body_parts else extract_body_section(pr.extracted_text)
+    return docs, body
+
+
 async def generate(parecer_request_id: str, db: AsyncSession) -> ParecerVersion:
     result = await db.execute(
         select(ParecerRequest)
@@ -494,16 +567,24 @@ async def generate(parecer_request_id: str, db: AsyncSession) -> ParecerVersion:
         classification = await classify_email(body_section, attachments, subject=pr.subject or "")
         pr.classificacao = classification
 
-    # Coleta (nome, texto) dos anexos — o nome é rotulado no prompt do P2 para o
-    # Sonnet saber exatamente quais documentos foram juntados.
-    attachment_docs = [
-        (a.filename or "anexo_sem_nome", a.extracted_text)
-        for a in pr.attachments
-        if a.extracted_text
-    ]
+    # Coleta (nome, texto) dos anexos + corpo — o nome é rotulado no prompt do P2
+    # para o Sonnet saber exatamente quais documentos foram juntados. Num follow-up
+    # de thread (parecer irmão), reúne TODOS os documentos e corpos da conversa, não
+    # só os da última mensagem (itens 1/2 do cliente).
+    attachment_docs, p2_body = await _thread_cumulative_context(pr, db)
 
     # P2 — Gerar parecer
-    sections = await generate_parecer(classification, attachment_docs, body_section)
+    sections = await generate_parecer(classification, attachment_docs, p2_body)
+
+    # Guard de conteúdo mínimo (item 3.4): se o P2 devolveu um esqueleto vazio (recusa
+    # não capturada, XML malformado, resposta curtíssima), NÃO salvar como "gerado" —
+    # levanta para o pipeline marcar status=erro (com botão de reprocessar), em vez de
+    # entregar um documento em branco marcado como "Aguardando revisão". Roda ANTES do
+    # gate mecânico para não gastar retries do P3 num parecer sem conteúdo.
+    if _corpo_vazio(sections):
+        raise EmptyGenerationError(
+            "P2 devolveu parecer sem conteúdo (corpo vazio); não será salvo como gerado"
+        )
 
     # Gate mecânico (Camada 4) — IRR-1 ementa em CAPS, IRR-2 parágrafos ≤ 7 linhas.
     # Se reprovar, dispara revisão automática pelo P3 com a lista de parágrafos longos
