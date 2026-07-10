@@ -23,9 +23,6 @@ from docx import Document
 
 logger = logging.getLogger(__name__)
 
-# Average characters per page below this threshold triggers OCR fallback
-_OCR_THRESHOLD = 100
-
 # LibreOffice conversion timeout (soffice can hang on malformed input)
 _SOFFICE_TIMEOUT_S = 60
 
@@ -201,6 +198,16 @@ def _tabela_para_markdown(tabela: list[list[Optional[str]]]) -> str:
     return "\n".join(out)
 
 
+def _ocr_page(page) -> str:
+    """Roda Tesseract (pt) numa única página renderizada. Falha silenciosa → ''."""
+    try:
+        img = page.to_image(resolution=200).original
+        return pytesseract.image_to_string(img, lang="por")
+    except Exception as exc:
+        logger.warning("OCR falhou na página: %s", exc)
+        return ""
+
+
 def extract_pdf(file_bytes: bytes) -> Tuple[str, str]:
     """Extract text from a PDF, preservando estrutura de tabelas.
 
@@ -210,13 +217,20 @@ def extract_pdf(file_bytes: bytes) -> Tuple[str, str]:
     ficam em colunas distintas). Texto não-tabular da mesma página é
     capturado por `extract_text()` em complemento.
 
-    Returns (text, method) where method is 'pdfplumber' or 'tesseract_ocr'.
-    Falls back to Tesseract quando a página é escassa de texto e provavelmente
-    é imagem escaneada.
+    OCR POR PÁGINA (item 3.2 — caso Galícia): quando uma página não tem camada
+    de texto mas contém imagem embutida (página digitalizada), roda Tesseract só
+    naquela página. Antes o OCR só disparava quando o documento INTEIRO era escasso
+    (média de chars/página baixa), então páginas escaneadas isoladas dentro de um PDF
+    majoritariamente textual eram descartadas silenciosamente — e o modelo concluía
+    pela ausência do documento que estava nos autos.
+
+    Returns (text, method) where method is 'pdfplumber' or 'tesseract_ocr'
+    (este último quando ao menos uma página precisou de OCR).
     """
     page_texts: list[str] = []
     table_blocos: list[str] = []
     total_chars = 0
+    ocr_used = False
 
     with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
         pages = pdf.pages
@@ -243,33 +257,47 @@ def extract_pdf(file_bytes: bytes) -> Tuple[str, str]:
                 texto = _consertar_numeros_rachados(texto)
                 page_texts.append(texto)
                 total_chars += len(texto)
+            elif page.images:
+                # Página digitalizada (sem texto, com imagem): OCR só desta página.
+                ocr = _ocr_page(page)
+                ocr_used = True
+                if ocr.strip():
+                    page_texts.append(
+                        f"[Página {pidx + 1} — documento digitalizado, lido por OCR]\n{ocr}"
+                    )
+                    total_chars += len(ocr)
+                else:
+                    # OCR não rendeu texto: registra a PRESENÇA do documento para o
+                    # modelo não afirmar ausência (o relatório aceita "sinalizar dúvida").
+                    page_texts.append(
+                        f"[Página {pidx + 1} — documento digitalizado presente nos autos, "
+                        "ilegível por OCR; NÃO afirmar ausência deste documento]"
+                    )
 
-        avg_chars = total_chars / len(pages)
-        if avg_chars >= _OCR_THRESHOLD:
-            resumo = resumo_financeiro_canonico("\n".join(page_texts))
-            corpo_texts, boilerplate = _separar_cabecalho_repetido(page_texts)
+    # Fallback extremo: nenhuma página tinha texto NEM imagem detectável (scan atípico
+    # sem page.images) — OCR do documento inteiro, renderizando cada página.
+    if total_chars == 0 and not ocr_used:
+        logger.info("PDF sem texto e sem imagens detectáveis — OCR do documento inteiro")
+        ocr_texts: list[str] = []
+        with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+            for page in pdf.pages:
+                ocr_texts.append(_ocr_page(page))
+        return "\n".join(ocr_texts), "tesseract_ocr"
 
-            blocos: list[str] = []
-            if resumo:
-                blocos.append(resumo)
-            if boilerplate:
-                blocos.append(
-                    "[CABEÇALHO/RODAPÉ REPETIDO DA PLANILHA]\n" + "\n".join(boilerplate)
-                )
-            blocos.extend(table_blocos)
-            blocos.extend(corpo_texts)
-            return "\n".join(blocos), "pdfplumber"
+    resumo = resumo_financeiro_canonico("\n".join(page_texts))
+    corpo_texts, boilerplate = _separar_cabecalho_repetido(page_texts)
 
-    logger.info(
-        "PDF sparse (avg %.1f chars/page), switching to Tesseract OCR", avg_chars
-    )
-    ocr_texts: list[str] = []
-    with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
-        for page in pdf.pages:
-            img = page.to_image(resolution=200).original
-            ocr_texts.append(pytesseract.image_to_string(img, lang="por"))
+    blocos: list[str] = []
+    if resumo:
+        blocos.append(resumo)
+    if boilerplate:
+        blocos.append(
+            "[CABEÇALHO/RODAPÉ REPETIDO DA PLANILHA]\n" + "\n".join(boilerplate)
+        )
+    blocos.extend(table_blocos)
+    blocos.extend(corpo_texts)
 
-    return "\n".join(ocr_texts), "tesseract_ocr"
+    return "\n".join(blocos), ("tesseract_ocr" if ocr_used else "pdfplumber")
 
 
 def extract_docx(file_bytes: bytes) -> Tuple[str, str]:
