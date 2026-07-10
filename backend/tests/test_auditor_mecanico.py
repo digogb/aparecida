@@ -359,3 +359,75 @@ class TestIRR3MarcadoresResiduais:
         assert len(log["marcadores_residuais"]) == 1
         assert log["marcadores_residuais"][0]["tipo"] == "verificar"
         assert log["marcadores_residuais"][0]["secao"] == "fundamentos"
+
+
+# ─── Citação literal de artigo de lei (item 3.3 — Opção B) ──────────────────────
+
+
+class TestCitacaoLiteralLei:
+    EMENTA_OK = "CONTRATAÇÃO DIRETA. INEXIGIBILIDADE. ART. 74. PARECER FAVORÁVEL."
+
+    def _sections(self, fundamentos: str) -> dict:
+        return {
+            "ementa": self.EMENTA_OK,
+            "relatorio": "Trata-se de consulta objetiva do Município.",
+            "fundamentos": fundamentos,
+            "conclusao": "Opina-se favoravelmente.",
+        }
+
+    def test_transcricao_em_recuo_reprova(self):
+        f = (
+            "O dispositivo é expresso.\n\n"
+            "> Art. 107. Os contratos de serviços e fornecimentos contínuos poderão ser "
+            "prorrogados sucessivamente, respeitada a vigência máxima decenal.\n\n"
+            "Cabe, portanto, a prorrogação."
+        )
+        result = audit_sections(self._sections(f))
+        assert not result.passed
+        assert len(result.citacoes_literais) == 1
+        assert result.citacoes_literais[0].secao == "fundamentos"
+
+    def test_transcricao_entre_aspas_reprova(self):
+        f = (
+            'A norma dispõe: "Art. 65. As alterações contratuais serão formalizadas por termo '
+            'aditivo, respeitados os limites legais e a manutenção do equilíbrio econômico do ajuste."'
+        )
+        result = audit_sections(self._sections(f))
+        assert not result.passed
+        assert len(result.citacoes_literais) == 1
+
+    def test_referencia_inline_curta_passa(self):
+        f = "Nos termos do art. 107 da Lei 14.133/2021, admite-se a prorrogação sucessiva do contrato."
+        result = audit_sections(self._sections(f))
+        assert result.citacoes_literais == []
+        assert result.passed
+
+    def test_parafrase_passa(self):
+        f = (
+            "O art. 107 estabelece, em síntese, que os contratos contínuos podem ser prorrogados "
+            "sucessivamente, respeitada a vigência decenal e a vantajosidade."
+        )
+        result = audit_sections(self._sections(f))
+        assert result.citacoes_literais == []
+        assert result.passed
+
+    def test_jurisprudencia_em_recuo_nao_reprova(self):
+        f = (
+            "O TCU já decidiu a matéria.\n\n"
+            "> A prorrogação de contratos de serviços contínuos exige demonstração da "
+            "vantajosidade, sob pena de nulidade do ajuste.\n\n"
+            "O entendimento aplica-se ao caso."
+        )
+        result = audit_sections(self._sections(f))
+        assert result.citacoes_literais == []
+        assert result.passed
+
+    def test_reportado_em_affected_sections_e_instrucoes(self):
+        f = (
+            "> Art. 57. O prazo de vigência será de até doze meses, prorrogável na forma da lei, "
+            "conforme o interesse público devidamente justificado nos autos do processo."
+        )
+        result = audit_sections(self._sections(f))
+        assert "fundamentos" in affected_sections(result)
+        instr = format_revision_instructions(result)
+        assert "CITAÇÃO LITERAL DE LEI" in instr

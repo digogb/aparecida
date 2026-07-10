@@ -100,6 +100,20 @@ _REVISAR_ADVERSA_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# CITAÇÃO LITERAL DE ARTIGO DE LEI (item 3.3 — Opção B). Transcrever o TEXTO de um
+# artigo entre aspas ou em recuo `>` é proibido: o modelo reproduz de memória e fabrica
+# a redação (ex.: "art. 107 da Lei 14.133" com texto que NÃO é o da lei — aparência de
+# transcrição fiel que engana o revisor). Padrão = paráfrase; se a redação exata importa,
+# marcador [REVISAR]. NÃO afeta citação de JURISPRUDÊNCIA em recuo (começa com o texto do
+# julgado/ementa, não com "Art. N") nem referência inline curta ("nos termos do art. 107").
+# (a) Recuo `>` iniciado por "Art. N"/"Artigo N".
+_ART_INICIO_PATTERN = re.compile(r"^[\"'“‘\s]*(?:Art\.?|Artigo)\s*\d+", re.IGNORECASE)
+# (b) Aspas envolvendo transcrição de artigo com corpo substancial (≥ 60 chars).
+_ASPAS_ARTIGO_PATTERN = re.compile(
+    r"[\"“]\s*(?:Art\.?|Artigo)\s*\d+[^\"”]{60,}[\"”]",
+    re.IGNORECASE | re.DOTALL,
+)
+
 
 @dataclass
 class ParagrafoLongo:
@@ -118,12 +132,19 @@ class MarcadorResidual:
 
 
 @dataclass
+class CitacaoLiteralLei:
+    secao: str          # "relatorio" | "fundamentos" | "conclusao"
+    trecho: str          # preview do trecho ofensor (até 150 chars)
+
+
+@dataclass
 class AuditorResult:
     passed: bool
     violacoes: list[str] = field(default_factory=list)
     paragrafos_longos: list[ParagrafoLongo] = field(default_factory=list)
     ementa_ok: bool | None = None
     marcadores_residuais: list[MarcadorResidual] = field(default_factory=list)
+    citacoes_literais: list[CitacaoLiteralLei] = field(default_factory=list)
 
     def as_log_dict(self) -> dict[str, Any]:
         """Serializa para gravação em ParecerVersion.gate_mecanico_log (JSONB)."""
@@ -144,6 +165,9 @@ class AuditorResult:
             "marcadores_residuais": [
                 {"secao": m.secao, "marcador": m.marcador, "tipo": m.tipo}
                 for m in self.marcadores_residuais
+            ],
+            "citacoes_literais": [
+                {"secao": c.secao, "trecho": c.trecho} for c in self.citacoes_literais
             ],
         }
 
@@ -284,6 +308,43 @@ def _detectar_marcadores_residuais(
     return achados
 
 
+def _detectar_citacao_literal_lei(secao_nome: str, texto: str) -> list[CitacaoLiteralLei]:
+    """Item 3.3 (Opção B) — transcrição literal do texto de um artigo de lei.
+
+    Detecta blocos que reproduzem o TEXTO de um artigo como se fosse transcrição fiel:
+      (a) recuo `>` iniciado por "Art. N"/"Artigo N";
+      (b) trecho entre aspas iniciado por "Art. N" com corpo substancial (≥ 60 chars).
+
+    NÃO detecta: referência inline curta ("nos termos do art. 107 da Lei 14.133") nem
+    citação de JURISPRUDÊNCIA em recuo (que começa com o texto do julgado, não "Art. N").
+    """
+    if not texto:
+        return []
+
+    achados: list[CitacaoLiteralLei] = []
+    vistos: set[str] = set()
+
+    def _add(trecho: str) -> None:
+        chave = trecho[:60].lower()
+        if chave not in vistos:
+            vistos.add(chave)
+            achados.append(CitacaoLiteralLei(secao=secao_nome, trecho=trecho[:150]))
+
+    # (a) Blockquote iniciado por "Art. N"
+    for linha in texto.split("\n"):
+        stripped = linha.lstrip()
+        if stripped.startswith(">"):
+            conteudo = stripped.lstrip(">").strip()
+            if _ART_INICIO_PATTERN.match(conteudo):
+                _add(conteudo)
+
+    # (b) Aspas envolvendo transcrição de artigo
+    for match in _ASPAS_ARTIGO_PATTERN.finditer(texto):
+        _add(match.group(0))
+
+    return achados
+
+
 def audit_sections(sections: dict, modo: str | None = None) -> AuditorResult:
     """Aplica IRR-1, IRR-2 e (em modo quase-processual) IRR-3 sobre o dict de seções.
 
@@ -328,10 +389,23 @@ def audit_sections(sections: dict, modo: str | None = None) -> AuditorResult:
                 "sobre norma da parte adversa em texto final (modo quase-processual)"
             )
 
+    # Citação literal de artigo de lei (item 3.3 — Opção B). Vale em qualquer modo.
+    citacoes_literais: list[CitacaoLiteralLei] = []
+    for secao in ("relatorio", "fundamentos", "conclusao"):
+        citacoes_literais.extend(
+            _detectar_citacao_literal_lei(secao, sections.get(secao, "") or "")
+        )
+    if citacoes_literais:
+        violacoes.append(
+            f"CITAÇÃO LITERAL VIOLADA: {len(citacoes_literais)} transcrição(ões) literal(is) "
+            "de artigo de lei (aspas/recuo) — devem virar paráfrase ou [REVISAR]"
+        )
+
     passed = (
         ementa_ok is True
         and not paragrafos_longos
         and not marcadores_residuais
+        and not citacoes_literais
     )
 
     return AuditorResult(
@@ -340,6 +414,7 @@ def audit_sections(sections: dict, modo: str | None = None) -> AuditorResult:
         paragrafos_longos=paragrafos_longos,
         ementa_ok=ementa_ok,
         marcadores_residuais=marcadores_residuais,
+        citacoes_literais=citacoes_literais,
     )
 
 
@@ -394,6 +469,27 @@ def format_revision_instructions(result: AuditorResult) -> str:
                 f"... e mais {len(result.marcadores_residuais) - 10} marcador(es)."
             )
 
+    if result.citacoes_literais:
+        linhas.append("")
+        linhas.append(
+            f"- CITAÇÃO LITERAL DE LEI — {len(result.citacoes_literais)} trecho(s) reproduzem o "
+            "TEXTO de um artigo de lei entre aspas ou em recuo `>`. A redação pode ter sido "
+            "reproduzida de memória e não corresponder à lei (erro grave de confiabilidade). "
+            "Converta CADA um em PARÁFRASE funcional em prosa, SEM aspas e SEM `>`, no formato "
+            '"o art. X estabelece, em síntese, que...". Se a redação literal for indispensável e '
+            "você não a confirmou por web_search, substitua por "
+            "[REVISAR — TEXTO LITERAL DO ART. X DA LEI Y NÃO CONFIRMADO; CONFERIR REDAÇÃO OFICIAL]. "
+            "Esta regra NÃO se aplica a citação de jurisprudência."
+        )
+        linhas.append("")
+        linhas.append("## TRANSCRIÇÕES A CONVERTER EM PARÁFRASE")
+        for i, c in enumerate(result.citacoes_literais[:10], start=1):
+            linhas.append(f'{i}. (seção {c.secao}) "{c.trecho}..."')
+        if len(result.citacoes_literais) > 10:
+            linhas.append(
+                f"... e mais {len(result.citacoes_literais) - 10} transcrição(ões)."
+            )
+
     return "\n".join(linhas)
 
 
@@ -408,4 +504,6 @@ def affected_sections(result: AuditorResult) -> list[str]:
         secoes.add(p.secao)
     for m in result.marcadores_residuais:
         secoes.add(m.secao)
+    for c in result.citacoes_literais:
+        secoes.add(c.secao)
     return sorted(secoes) or ["fundamentos"]  # fallback defensivo
