@@ -39,6 +39,17 @@ logger = logging.getLogger(__name__)
 MODEL_P1 = "claude-haiku-4-5-20251001"   # classificação: rápido, barato, TPM separado
 MODEL_P2_P3 = "claude-sonnet-5"  # geração/revisão: Sonnet 5 (1M ctx, sucessor do 4.6)
 
+# Fallback de geração/revisão quando o modelo primário RECUSA (stop_reason=refusal).
+# O Sonnet 5 às vezes recusa (falso-positivo de segurança) conteúdo legítimo — visto em
+# prod no PAR-2026-0056 (habilitação/notas fiscais de uma inexigibilidade). A recusa é
+# determinística pelo conteúdo, então retry no mesmo modelo recusaria de novo; o Sonnet 4.6
+# (modelo anterior de prod) gera o MESMO conteúdo sem recusar e aceita os mesmos params.
+MODEL_P2_FALLBACK = "claude-sonnet-4-6"
+
+
+class ModelRefusalError(Exception):
+    """O modelo recusou a geração (stop_reason=refusal) — resposta vazia."""
+
 # Rede de segurança das chamadas HAIKU (P1 classificação, P1.5 valores).
 # LIMITE OBRIGATÓRIO: Haiku 4.5 tem janela de 200k TOKENS — e os anexos são densos
 # (~1,9-2,0 chars/token nas planilhas de preço), então 300k chars ≈ ~155k tokens;
@@ -245,6 +256,18 @@ async def _call_api(
                     **tools_kwargs,
                 )
             usage = response.usage
+            # Recusa do modelo (stop_reason=refusal): resposta sem blocos de texto —
+            # não deixar virar parecer "gerado" em branco. Levanta p/ o chamador
+            # decidir (fallback de modelo em P2/P3; erro no pipeline se persistir).
+            if response.stop_reason == "refusal":
+                logger.warning(
+                    "REFUSAL [%s/%s] input=%d output=%d — modelo recusou a geração",
+                    stage, model, usage.input_tokens, usage.output_tokens,
+                )
+                _log_api_call(stage, model, usage.input_tokens, usage.output_tokens, "", tool_calls=[])
+                raise ModelRefusalError(
+                    f"{model} recusou a geração (stop_reason=refusal) na etapa {stage}"
+                )
             if tools_kwargs:
                 raw_text, tool_calls = _extract_text_and_tool_calls(response)
             else:
@@ -275,6 +298,36 @@ async def _call_api(
             await asyncio.sleep(wait)
 
     raise last_error  # type: ignore[misc]
+
+
+async def _call_generation_with_fallback(
+    system: str,
+    user_message: str,
+    max_tokens: int,
+    stage: str,
+    *,
+    web_search_max_uses: int = 0,
+) -> str:
+    """Chama o modelo de geração/revisão (Sonnet 5) com fallback em caso de recusa.
+
+    Se o Sonnet 5 recusar (ModelRefusalError), tenta uma vez com MODEL_P2_FALLBACK
+    (Sonnet 4.6), que aceita os mesmos parâmetros e não recusa os casos vistos em
+    prod. Se o fallback também recusar, propaga o erro — o pipeline marca status=erro
+    (e o botão de reprocessar aparece), em vez de salvar um parecer em branco.
+    """
+    try:
+        return await _call_api(
+            MODEL_P2_P3, system, user_message, max_tokens, stage,
+            web_search_max_uses=web_search_max_uses,
+        )
+    except ModelRefusalError:
+        logger.warning(
+            "%s: %s recusou — tentando fallback %s", stage, MODEL_P2_P3, MODEL_P2_FALLBACK,
+        )
+        return await _call_api(
+            MODEL_P2_FALLBACK, system, user_message, max_tokens, f"{stage}-fallback",
+            web_search_max_uses=web_search_max_uses,
+        )
 
 
 # ─── P0: PRÉ-FILTRO DE ANEXOS ───
@@ -737,8 +790,7 @@ async def generate_parecer(
     )
 
     async with _sonnet_semaphore:
-        raw = await _call_api(
-            model=MODEL_P2_P3,
+        raw = await _call_generation_with_fallback(
             system=system_prompt,
             user_message=user_message,
             max_tokens=12000,
@@ -815,8 +867,7 @@ async def revise_parecer(
         stage = "P3"
 
     async with _sonnet_semaphore:
-        raw = await _call_api(
-            model=MODEL_P2_P3,
+        raw = await _call_generation_with_fallback(
             system=system_prompt,
             user_message=user_message,
             max_tokens=6000,
@@ -860,8 +911,7 @@ async def correct_selection(trecho: str, instrucao: str) -> str:
     user_message = _truncate(user_message, MAX_USER_CONTENT_CHARS)
 
     async with _sonnet_semaphore:
-        raw = await _call_api(
-            model=MODEL_P2_P3,
+        raw = await _call_generation_with_fallback(
             system=system_prompt,
             user_message=user_message,
             max_tokens=2000,

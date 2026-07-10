@@ -155,3 +155,84 @@ class TestCallApiWebSearch:
             }
         ]
         assert result == "OK"
+
+
+@pytest.mark.asyncio
+class TestCallApiRefusal:
+    """Item 3 do cliente: Sonnet 5 às vezes recusa (stop_reason=refusal) e devolve
+    resposta vazia — não pode virar parecer 'gerado' em branco."""
+
+    @patch("app.services.parecer_ai_service.AsyncAnthropic")
+    @patch("app.services.parecer_ai_service._log_api_call")
+    async def test_refusal_levanta_model_refusal_error(self, _mock_log, mock_client_cls):
+        from app.services.parecer_ai_service import _call_api, ModelRefusalError
+
+        mock_client = MagicMock()
+        mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        fake = MagicMock()
+        fake.usage.input_tokens = 145_000
+        fake.usage.output_tokens = 2
+        fake.stop_reason = "refusal"
+        fake.content = []  # recusa não traz blocos de texto
+        mock_client.messages.create = AsyncMock(return_value=fake)
+
+        with pytest.raises(ModelRefusalError):
+            await _call_api(
+                model="claude-sonnet-5", system="s", user_message="m",
+                max_tokens=12000, stage="P2-test", web_search_max_uses=8,
+            )
+
+
+@pytest.mark.asyncio
+class TestGenerationFallback:
+    """Fallback de modelo em recusa: Sonnet 5 → Sonnet 4.6; se ambos recusarem, propaga."""
+
+    async def test_recusa_primaria_usa_fallback(self):
+        import app.services.parecer_ai_service as svc
+
+        calls: list[str] = []
+
+        def fake(model, system, user_message, max_tokens, stage, web_search_max_uses=0):
+            calls.append(model)
+            if model == svc.MODEL_P2_P3:
+                raise svc.ModelRefusalError("recusou")
+            return "PARECER OK"
+
+        with patch.object(svc, "_call_api", side_effect=fake):
+            out = await svc._call_generation_with_fallback(
+                system="s", user_message="m", max_tokens=12000,
+                stage="P2-x", web_search_max_uses=8,
+            )
+        assert out == "PARECER OK"
+        assert calls == [svc.MODEL_P2_P3, svc.MODEL_P2_FALLBACK]
+
+    async def test_ambos_recusam_propaga(self):
+        import app.services.parecer_ai_service as svc
+
+        def always_refuse(model, system, user_message, max_tokens, stage, web_search_max_uses=0):
+            raise svc.ModelRefusalError("recusou")
+
+        with patch.object(svc, "_call_api", side_effect=always_refuse):
+            with pytest.raises(svc.ModelRefusalError):
+                await svc._call_generation_with_fallback(
+                    system="s", user_message="m", max_tokens=12000,
+                    stage="P2-x", web_search_max_uses=8,
+                )
+
+    async def test_sucesso_primario_nao_chama_fallback(self):
+        import app.services.parecer_ai_service as svc
+
+        calls: list[str] = []
+
+        def ok(model, system, user_message, max_tokens, stage, web_search_max_uses=0):
+            calls.append(model)
+            return "OK"
+
+        with patch.object(svc, "_call_api", side_effect=ok):
+            out = await svc._call_generation_with_fallback(
+                system="s", user_message="m", max_tokens=100, stage="P2-x",
+            )
+        assert out == "OK"
+        assert calls == [svc.MODEL_P2_P3]
