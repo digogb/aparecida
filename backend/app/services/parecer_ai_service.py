@@ -22,6 +22,7 @@ from anthropic import AsyncAnthropic, RateLimitError
 
 from app.config import settings
 from app.services.extractor import resumo_financeiro_canonico
+from app.services.prompt_safety import wrap_documents
 from app.services.prompt_service import (
     assemble_p2_context,
     assemble_p3_context,
@@ -354,6 +355,11 @@ async def prefilter_attachments(
 
     Usa Haiku com prévia curta (filename + 400 chars) para decidir.
     Falha silenciosa: qualquer erro mantém a ordem original.
+
+    P0 NÃO envolve os anexos em `<documento_anexo>`: recebe só um snippet curto
+    para ordenar (não gera conteúdo do parecer) e devolve apenas uma permutação
+    de índices — a fronteira de confiança é aplicada em P1/P1.5/P2, onde o texto
+    de fato entra no prompt de geração/classificação.
     """
     if len(attachments) <= 1:
         return attachments
@@ -480,8 +486,9 @@ async def classify_email(
 
     user_message = email_body
     if ordered:
-        labeled_parts = [f"## Anexo: {fn}\n{text}" for fn, text in ordered]
-        user_message += "\n\n---\n\n" + "\n\n---\n\n".join(labeled_parts)
+        # Fronteira de confiança: anexos vão envoltos em `<documento_anexo>`
+        # (conteúdo é dado a classificar, não instrução). Ver p1_classification.txt.
+        user_message += "\n\n---\n\n" + wrap_documents(ordered)
     user_message = _truncate(user_message, MAX_USER_CONTENT_CHARS)
 
     raw = await _call_api(
@@ -650,12 +657,13 @@ async def extract_valores_financeiros(
     if not documents_text:
         return None
 
-    docs_joined = "\n\n---\n\n".join(documents_text)
+    docs_raw = "\n\n---\n\n".join(documents_text)
 
-    # Iça o(s) totalizador(es) canônico(s) ao topo. Sem isso, em planilhas longas
-    # (300k+ chars) o 'VALOR TOTAL GERAL' fica na última página e é cortado pelo
-    # truncamento — sobrando só o cabeçalho repetido com valores enganosos.
-    resumo = resumo_financeiro_canonico(docs_joined)
+    # Resumo é extração canônica computada pelo pipeline (confiável). Calculado
+    # sobre o texto BRUTO; os anexos em si vão envoltos na fronteira de confiança
+    # `<documento_anexo>` (conteúdo não-confiável). Sem os anexos aqui não há nome.
+    resumo = resumo_financeiro_canonico(docs_raw)
+    docs_joined = wrap_documents([("", t) for t in documents_text])
     if resumo:
         docs_joined = resumo + "\n\n---\n\n" + docs_joined
 
@@ -728,10 +736,12 @@ async def generate_parecer(
     para o Sonnet usar como fato dado em vez de inferir do texto bruto.
     """
     budgeted = _budget_documents(documents, MAX_DOCS_CHARS)
+    # Fronteira de confiança: cada anexo (conteúdo NÃO-CONFIÁVEL) vai envolto na
+    # tag `<documento_anexo>`, com tags forjadas neutralizadas. Aplicado DEPOIS do
+    # water-filling para que a cota por anexo seja calculada sobre o texto real.
+    # Ver REGRA de FRONTEIRA DE CONFIANÇA nos prompts p2_*.txt.
     if budgeted:
-        docs_joined = "\n\n---\n\n".join(
-            f"### ANEXO: {name}\n{text}" for name, text in budgeted
-        )
+        docs_joined = wrap_documents(budgeted)
     else:
         docs_joined = "(sem anexos)"
 
@@ -757,6 +767,9 @@ async def generate_parecer(
         "## DOCUMENTOS ANEXOS\n"
         f"{docs_joined}"
     )
+    # Nota: este cap é "sem limite prático" (nenhuma consulta real encosta); no
+    # pior caso corta a tag `</documento_anexo>` de fechamento do ÚLTIMO anexo —
+    # risco baixo (é sempre o último bloco e há aviso de truncamento). Ver plano.
     user_message = _truncate(user_message, MAX_P2_USER_CONTENT_CHARS)
 
     vertente = resolve_vertente(classification)
