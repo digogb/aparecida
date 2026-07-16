@@ -7,7 +7,11 @@ import io
 
 import pytest
 
-from app.services.content_assembler import assemble
+from app.services.content_assembler import (
+    SECTION_SEPARATOR,
+    assemble,
+    extract_body_section,
+)
 from app.services.extractor import (
     _consertar_numeros_rachados,
     _tabela_para_markdown,
@@ -281,7 +285,10 @@ class TestAssemble:
     def test_empty_body_with_attachment(self):
         result = assemble("", ["Apenas o anexo"])
         assert "Apenas o anexo" in result
-        assert "---" not in result
+        # O corpo (mesmo vazio) permanece como primeira seção: extract_body_section
+        # separa corpo de anexos pelo primeiro separador.
+        assert result.startswith(SECTION_SEPARATOR)
+        assert extract_body_section(result) == ""
 
     def test_all_empty_returns_empty(self):
         result = assemble("", [])

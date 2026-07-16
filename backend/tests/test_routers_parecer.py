@@ -45,6 +45,7 @@ def _mock_parecer(**overrides) -> MagicMock:
         classificacao=None,
         municipio_nome=None,
         motivo=None,
+        enviado_por=None,
         revisoes=0,
         created_at=_now(),
         updated_at=_now(),

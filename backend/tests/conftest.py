@@ -103,6 +103,7 @@ def mock_parecer(**overrides) -> MagicMock:
         classificacao=None,
         municipio_nome=None,
         motivo=None,
+        enviado_por=None,
         revisoes=0,
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),

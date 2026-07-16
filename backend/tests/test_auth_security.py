@@ -221,7 +221,9 @@ class TestRefresh:
         user = mock_user()
         _db_returns_user(db, user)
         app.dependency_overrides[get_db] = override_db(db)
-        token = make_token(user_id=str(user.id))
+        # TTL menor que o do endpoint (8h) — garante exp distinto e, portanto,
+        # token novo mesmo quando ambos são emitidos no mesmo segundo.
+        token = make_token(user_id=str(user.id), expires_delta=timedelta(hours=7))
 
         try:
             with TestClient(app) as client:
