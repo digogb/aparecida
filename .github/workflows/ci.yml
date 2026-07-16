@@ -114,7 +114,9 @@ jobs:
           JWT_SECRET: ci-secret
           ANTHROPIC_API_KEY: dummy
           ENV: test
-        run: pytest tests/ --ignore=tests/unit/ -v --tb=short
+        # test_pipeline_stability fica fora do CI: mocka a IA no nível do router mas
+        # pode cair em chamada real com retry/backoff de minutos — flaky e lento.
+        run: pytest tests/ --ignore=tests/unit/ --ignore=tests/test_pipeline_stability.py -v --tb=short
 
   # --------------------------------------------------
   # Frontend – testes unitários (2 min)
