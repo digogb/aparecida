@@ -105,7 +105,7 @@ npm run test:e2e   # Playwright (requer a stack docker no ar)
 ```
 
 O CI (`.github/workflows/ci.yml`) roda lint (ruff + tsc), testes de backend (unit e
-integração com Postgres), vitest, build do frontend, E2E e auditorias de dependências.
+integração com Postgres), vitest, build do frontend e auditorias de dependências.
 
 ## Estrutura do repositório
 

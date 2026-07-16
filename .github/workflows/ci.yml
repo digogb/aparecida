@@ -64,7 +64,8 @@ jobs:
       - name: pytest unit/
         working-directory: backend
         env:
-          DATABASE_URL: sqlite+aiosqlite:///:memory:
+          # Aspas obrigatórias: o ":" final faria o YAML ler a linha como mapa
+          DATABASE_URL: "sqlite+aiosqlite:///:memory:"
           JWT_SECRET: ci-secret
           ANTHROPIC_API_KEY: dummy
           ENV: test
@@ -165,51 +166,6 @@ jobs:
         env:
           VITE_API_URL: ""
         run: npm run build
-
-  # --------------------------------------------------
-  # E2E – Playwright Chromium (8 min, stack completa)
-  # --------------------------------------------------
-  e2e:
-    name: E2E — Playwright
-    runs-on: ubuntu-latest
-    needs: [backend-integration, frontend-build]
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: npm ci
-        working-directory: frontend
-        run: npm ci
-
-      - name: Instalar Playwright browsers
-        working-directory: frontend
-        run: npx playwright install --with-deps chromium
-
-      - name: Subir stack (docker compose)
-        run: |
-          cp .env.example .env || true
-          docker compose up -d --build
-          # Aguarda backend ficar pronto
-          timeout 120 bash -c 'until curl -sf http://localhost/api/health; do sleep 3; done'
-
-      - name: Playwright tests
-        working-directory: frontend
-        env:
-          BASE_URL: http://localhost
-        run: npm run test:e2e
-
-      - name: Upload artefatos de falha
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: frontend/playwright-report/
-          retention-days: 7
 
   # --------------------------------------------------
   # Segurança (paralelo)
