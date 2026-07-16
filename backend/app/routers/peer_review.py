@@ -312,7 +312,7 @@ async def list_lawyers(
     próprio usuário (usado no filtro "Enviado por" da lista de pareceres)."""
     current_user_id = _require_user_id(credentials)
     filters = [
-        User.is_active == True,
+        User.is_active.is_(True),
         User.role.in_([UserRole.advogado, UserRole.admin]),
     ]
     if not include_self:
@@ -336,7 +336,6 @@ async def create_peer_review(
     db: AsyncSession = Depends(get_db),
 ) -> PeerReviewOut:
     """Cria uma solicitação de revisão por pares."""
-    from sqlalchemy.orm import selectinload
 
     current_user_id = _require_user_id(credentials)
 
@@ -350,7 +349,7 @@ async def create_peer_review(
 
     # Verificar que o revisor existe
     reviewer_result = await db.execute(
-        select(User).where(User.id == body.reviewer_id, User.is_active == True)
+        select(User).where(User.id == body.reviewer_id, User.is_active.is_(True))
     )
     reviewer = reviewer_result.scalar_one_or_none()
     if reviewer is None:

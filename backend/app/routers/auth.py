@@ -96,7 +96,7 @@ async def _user_from_reset_token(token: str, db: AsyncSession) -> User:
 @router.post("/auth/login", response_model=TokenOut)
 async def login(body: LoginIn, db: AsyncSession = Depends(get_db)) -> TokenOut:
     result = await db.execute(
-        select(User).where(func.lower(User.email) == body.email.strip().lower(), User.is_active == True)
+        select(User).where(func.lower(User.email) == body.email.strip().lower(), User.is_active.is_(True))
     )
     user = result.scalar_one_or_none()
     if not user or not pwd_ctx.verify(body.password, user.hashed_password):
@@ -143,7 +143,7 @@ async def change_password(
 async def forgot_password(body: ForgotPasswordIn, db: AsyncSession = Depends(get_db)) -> dict:
     """Envia link de redefinição por email. Sempre responde 200 (não revela se o email existe)."""
     result = await db.execute(
-        select(User).where(func.lower(User.email) == body.email.strip().lower(), User.is_active == True)
+        select(User).where(func.lower(User.email) == body.email.strip().lower(), User.is_active.is_(True))
     )
     user = result.scalar_one_or_none()
     if user:

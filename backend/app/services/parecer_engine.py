@@ -28,7 +28,7 @@ from app.services.parecer_ai_service import (
     generate_parecer,
     revise_parecer,
 )
-from app.services.parecer_html_service import render_parecer_html, parse_parecer_xml
+from app.services.parecer_html_service import render_parecer_html
 from app.services.prompt_service import get_prompt_version
 
 logger = logging.getLogger(__name__)
@@ -104,7 +104,6 @@ def _parse_block(text: str) -> list[dict]:
     # Detectar blockquote (todas as linhas começam com >)
     bq_lines = []
     normal_lines = []
-    in_blockquote = False
 
     for line in lines:
         stripped = line.strip()
@@ -113,12 +112,10 @@ def _parse_block(text: str) -> list[dict]:
                 nodes.extend(_flush_normal_lines(normal_lines))
                 normal_lines = []
             bq_lines.append(stripped[1:].strip())
-            in_blockquote = True
         else:
             if bq_lines:
                 nodes.append(_make_blockquote(bq_lines))
                 bq_lines = []
-                in_blockquote = False
             if stripped:
                 normal_lines.append(stripped)
 
@@ -626,7 +623,7 @@ async def generate(parecer_request_id: str, db: AsyncSession) -> ParecerVersion:
     pr.status = ParecerStatus.gerado
 
     gate_suffix = (
-        f" — GATE PASSED" if gate_result.passed
+        " — GATE PASSED" if gate_result.passed
         else f" — GATE FAILED após {retries} tentativa(s) de auto-revisão"
     )
     db.add(

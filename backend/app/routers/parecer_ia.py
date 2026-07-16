@@ -19,6 +19,8 @@ from app.schemas.parecer_version import (
     PreviewCorrectionOut,
     ReprocessIn,
 )
+from app.services import classifier, parecer_engine
+from app.utils.auth_guard import require_admin
 
 
 class VersionUpdateIn(BaseModel):
@@ -33,8 +35,7 @@ class CorrectSelectionIn(BaseModel):
 
 class CorrectSelectionOut(BaseModel):
     corrigido: str
-from app.services import classifier, parecer_engine
-from app.utils.auth_guard import require_admin
+
 
 PREFIX = "/api"
 TAGS = ["parecer-ia"]

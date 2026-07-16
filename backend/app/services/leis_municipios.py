@@ -258,7 +258,7 @@ def assemble_municipal_context(
             parts.append(f"### TEXTO INTEGRAL — {lei.title}\n{lei.body}")
         logger.info(
             "Leis municipais: municipio=%s leis_indexadas=%d texto_integral=%s chars=%d",
-            municipio_nome, len(leis), [l.filename for l in chosen], used,
+            municipio_nome, len(leis), [doc.filename for doc in chosen], used,
         )
     else:
         logger.info(

@@ -14,7 +14,6 @@ O HTML gerado:
 """
 
 from datetime import date
-from typing import Optional
 import json
 import re
 

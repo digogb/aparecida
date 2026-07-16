@@ -143,7 +143,7 @@ def _separar_cabecalho_repetido(
     threshold = max(min_pages, int(n * min_fraction))
     freq: Counter[str] = Counter()
     for pt in page_texts:
-        for linha in {l.strip() for l in pt.splitlines() if l.strip()}:
+        for linha in {ln.strip() for ln in pt.splitlines() if ln.strip()}:
             freq[linha] += 1
     boiler = {linha for linha, c in freq.items() if c >= threshold}
     if not boiler:

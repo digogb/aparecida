@@ -18,9 +18,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.parecer import Attachment as AttachmentModel
-
-UPLOADS_DIR = Path("/app/uploads")
-
 from app.database import get_db
 from app.models.parecer import (
     Attachment,
@@ -32,6 +29,8 @@ from app.models.parecer import (
 from app.services.attachment_filter import has_document_attachment
 from app.services.content_assembler import assemble
 from app.services.extractor import extract_file
+
+UPLOADS_DIR = Path("/app/uploads")
 
 PREFIX = "/api"
 TAGS = ["ingest"]
@@ -97,7 +96,6 @@ def _collect_attachments(
     if not msg.is_multipart():
         return result
     for part in msg.walk():
-        cd = part.get("Content-Disposition", "")
         filename_raw = part.get_filename()
         if not filename_raw:
             continue

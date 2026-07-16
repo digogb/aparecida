@@ -83,17 +83,6 @@ class TestStripHtml:
         assert "<p>" not in out
 
 
-class TestExtractDomain:
-    def test_extrai_dominio(self):
-        assert gp._extract_domain("fulano@prefeitura.ce.gov.br") == "prefeitura.ce.gov.br"
-
-    def test_lower_case(self):
-        assert gp._extract_domain("X@MUNI.GOV.BR") == "muni.gov.br"
-
-    def test_sem_arroba_retorna_vazio(self):
-        assert gp._extract_domain("sem-email") == ""
-
-
 class TestExtractSenderEmail:
     def test_com_display_name(self):
         assert gp._extract_sender_email("Fulano <fulano@x.gov.br>") == "fulano@x.gov.br"

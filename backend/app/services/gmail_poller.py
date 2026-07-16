@@ -11,6 +11,7 @@ Fluxo:
 """
 from __future__ import annotations
 
+import base64
 import logging
 import re
 import uuid
@@ -117,8 +118,6 @@ async def _notify_token_revoked(db: AsyncSession) -> None:
 # Message parsing (sync — Google client is sync)
 # ---------------------------------------------------------------------------
 
-import base64
-
 
 def _decode_b64(data: str) -> bytes:
     return base64.urlsafe_b64decode(data + "==")
@@ -190,11 +189,6 @@ def _download_attachment(service, message_id: str, attachment_id: str) -> bytes:
     return _decode_b64(att.get("data", ""))
 
 
-def _extract_domain(email_addr: str) -> str:
-    match = re.search(r"@([\w.-]+)", email_addr)
-    return match.group(1).lower() if match else ""
-
-
 def _extract_sender_email(from_header: str) -> str:
     match = re.search(r"<([^>]+)>", from_header)
     if match:
@@ -262,7 +256,6 @@ async def _ingest_message(
     subject = re.sub(r"^(ENC|FWD|RES|RE|FW):\s*", "", subject_raw, flags=re.IGNORECASE).strip()
     from_header = headers.get("from", "")
     sender_email = _extract_sender_email(from_header)
-    domain = _extract_domain(sender_email)
 
     body = _walk_payload(payload)
 

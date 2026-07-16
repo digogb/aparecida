@@ -26,7 +26,6 @@ from app.services.prompt_safety import wrap_documents
 from app.services.prompt_service import (
     assemble_p2_context,
     assemble_p3_context,
-    build_p2_prompt,
     get_prompt_version,
     load_prompt,
     resolve_vertente,
@@ -598,7 +597,9 @@ def _reconciliar_valores(data: dict) -> dict:
     if not isinstance(incons, list):
         incons = data["inconsistencias_detectadas"] = []
 
-    implicado = lambda b: acr / b * 100.0
+    def implicado(b: float) -> float:
+        return acr / b * 100.0
+
     melhor = min(bases, key=lambda b: abs(implicado(b) - declarado))
     erro = abs(implicado(melhor) - declarado)
 
