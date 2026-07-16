@@ -9,7 +9,7 @@ Checklist completo do zero até o sistema rodando na VM OCI com CI/CD automátic
 - [ ] Crie um repositório privado no GitHub
 - [ ] Faça o primeiro push do código:
   ```bash
-  cd /home/rodgb/personal/aparecida/ione
+  cd /caminho/para/o/projeto/ione
   git init
   git add .
   git commit -m "feat: entrega 1 — módulo de pareceres"

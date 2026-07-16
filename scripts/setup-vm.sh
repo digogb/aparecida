@@ -7,7 +7,7 @@
 
 set -e
 
-REPO_URL="https://github.com/digogb/aparecida.git"
+REPO_URL="https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git"
 APP_DIR="/home/ubuntu/ione"
 
 echo "======================================"
