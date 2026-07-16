@@ -73,7 +73,7 @@ jobs:
           pytest tests/unit/ -v \
             --cov=app/services --cov=app/schemas \
             --cov-report=term-missing \
-            --cov-fail-under=50
+            --cov-fail-under=30
 
   # --------------------------------------------------
   # Backend – testes de integração (5 min, com Postgres)

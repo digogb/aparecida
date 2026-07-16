@@ -25,8 +25,11 @@ from app.models.parecer import (
     VersionSource,
 )
 
-# JWT secret padrão de config.py (dev)
-_JWT_SECRET = "troque-isso-em-producao"
+# Mesmo segredo da aplicação sob teste (config lê o env) — tokens assinados aqui
+# precisam validar nos endpoints independente do JWT_SECRET do ambiente.
+from app.config import settings as _settings  # noqa: E402
+
+_JWT_SECRET = _settings.JWT_SECRET
 _JWT_ALG = "HS256"
 
 
