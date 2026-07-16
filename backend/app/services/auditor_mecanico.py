@@ -239,12 +239,17 @@ def _auditar_ementa(ementa: str) -> tuple[bool | None, list[str]]:
 
 
 def _auditar_secao_paragrafos(secao_nome: str, texto: str) -> list[ParagrafoLongo]:
-    """Detecta parágrafos com 8+ linhas estimadas. Parágrafos são separados por \\n\\n."""
+    """Detecta parágrafos com 8+ linhas estimadas.
+
+    Cada linha não-vazia vira um <p> próprio no documento renderizado
+    (parecer_html_service divide por \\n) — portanto o que conta como
+    "parágrafo" para o gate é a linha, não o bloco separado por \\n\\n.
+    """
     if not texto:
         return []
 
     longos: list[ParagrafoLongo] = []
-    paragrafos = [p.strip() for p in texto.split("\n\n")]
+    paragrafos = [p.strip() for p in texto.splitlines()]
 
     for idx, p in enumerate(paragrafos):
         if not p or len(p) < _MIN_PARAGRAFO_CHARS:
